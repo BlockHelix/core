@@ -1,0 +1,5 @@
+export const PROGRAM_IDS = {
+  VAULT: 'Gvau1tqBUv7hZ7t6KmEkYs3FXZvZfqGfVmR8Ah7YsX5r',
+  REGISTRY: 'RcptRg1stryZ7hZ7t6KmEkYs3FXZvZfqGfVmR8Ah7Ys',
+  FACTORY: 'FctryZ7hZ7t6KmEkYs3FXZvZfqGfVmR8Ah7YsX5rG1',
+};

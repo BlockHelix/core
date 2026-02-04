@@ -1,0 +1,23 @@
+[package]
+name = "agent-factory"
+version = "0.1.0"
+description = "One-instruction agent deployment factory"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "agent_factory"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = "0.32.1"
+anchor-spl = "0.32.1"
+agent-vault = { path = "../agent-vault", features = ["cpi"] }
+receipt-registry = { path = "../receipt-registry", features = ["cpi"] }

@@ -1,0 +1,31 @@
+[toolchain]
+anchor_version = "0.32.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+agent_vault = "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS"
+receipt_registry = "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9"
+agent_factory = "7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j"
+
+[programs.devnet]
+agent_vault = "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS"
+receipt_registry = "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9"
+agent_factory = "7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j"
+
+[registry]
+url = "https://api.devnet.solana.com"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+upgradeable = false
