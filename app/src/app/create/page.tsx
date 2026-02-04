@@ -1,31 +1,54 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useCreateAgent } from '@/hooks/useCreateAgent';
 import { motion } from 'framer-motion';
 import WalletButton from '@/components/WalletButton';
 
 export default function CreateAgent() {
+  const router = useRouter();
   const { authenticated: connected } = useAuth();
+  const { createAgent, isLoading } = useCreateAgent();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    githubHandle: '',
     endpoint: '',
-    managementFee: '2.0',
-    performanceFee: '20.0',
+    agentFee: '2.0',
+    protocolFee: '0.5',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
-    console.log('Agent creation data:', formData);
+    try {
+      const agentFeeBps = Math.floor(parseFloat(formData.agentFee) * 100);
+      const protocolFeeBps = Math.floor(parseFloat(formData.protocolFee) * 100);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      const result = await createAgent({
+        name: formData.name,
+        githubHandle: formData.githubHandle,
+        endpointUrl: formData.endpoint,
+        agentFeeBps,
+        protocolFeeBps,
+        challengeWindow: 86400,
+        maxTvl: 1_000_000_000_000,
+        lockupEpochs: 0,
+        epochLength: 86400,
+      });
 
-    alert('Agent creation will be available when programs are deployed');
-    setIsSubmitting(false);
+      router.push(`/agent/${result.agentWallet.toString()}`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -99,29 +122,30 @@ export default function CreateAgent() {
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-helix-secondary mb-2">
-                  Description *
+                <label htmlFor="githubHandle" className="block text-sm font-medium text-helix-secondary mb-2">
+                  GitHub Handle *
                 </label>
-                <textarea
-                  id="description"
-                  name="description"
+                <input
+                  type="text"
+                  id="githubHandle"
+                  name="githubHandle"
                   required
-                  value={formData.description}
+                  value={formData.githubHandle}
                   onChange={handleChange}
-                  rows={4}
-                  className="w-full bg-helix-terminal border border-helix-border rounded px-4 py-2.5 text-helix-primary focus:border-helix-cyan focus:outline-none focus:ring-2 focus:ring-helix-cyan/20 transition-colors resize-none"
-                  placeholder="Describe what your agent does and how it generates revenue..."
+                  className="w-full bg-helix-terminal border border-helix-border rounded px-4 py-2.5 text-helix-primary focus:border-helix-cyan focus:outline-none focus:ring-2 focus:ring-helix-cyan/20 transition-colors"
+                  placeholder="e.g., defi-optimizer-ai"
                 />
               </div>
 
               <div>
                 <label htmlFor="endpoint" className="block text-sm font-medium text-helix-secondary mb-2">
-                  Service Endpoint URL
+                  Service Endpoint URL *
                 </label>
                 <input
                   type="url"
                   id="endpoint"
                   name="endpoint"
+                  required
                   value={formData.endpoint}
                   onChange={handleChange}
                   className="w-full bg-helix-terminal border border-helix-border rounded px-4 py-2.5 text-helix-primary focus:border-helix-cyan focus:outline-none focus:ring-2 focus:ring-helix-cyan/20 transition-colors"
@@ -131,34 +155,34 @@ export default function CreateAgent() {
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="managementFee" className="block text-sm font-medium text-helix-secondary mb-2">
-                    Management Fee Rate (%)
+                  <label htmlFor="agentFee" className="block text-sm font-medium text-helix-secondary mb-2">
+                    Agent Performance Fee (%)
                   </label>
                   <input
                     type="number"
-                    id="managementFee"
-                    name="managementFee"
+                    id="agentFee"
+                    name="agentFee"
                     step="0.1"
                     min="0"
-                    max="100"
-                    value={formData.managementFee}
+                    max="50"
+                    value={formData.agentFee}
                     onChange={handleChange}
                     className="w-full bg-helix-terminal border border-helix-border rounded px-4 py-2.5 text-helix-primary font-data focus:border-helix-cyan focus:outline-none focus:ring-2 focus:ring-helix-cyan/20 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="performanceFee" className="block text-sm font-medium text-helix-secondary mb-2">
-                    Performance Fee Rate (%)
+                  <label htmlFor="protocolFee" className="block text-sm font-medium text-helix-secondary mb-2">
+                    Protocol Fee (%)
                   </label>
                   <input
                     type="number"
-                    id="performanceFee"
-                    name="performanceFee"
+                    id="protocolFee"
+                    name="protocolFee"
                     step="0.1"
-                    min="0"
-                    max="100"
-                    value={formData.performanceFee}
+                    min="0.5"
+                    max="10"
+                    value={formData.protocolFee}
                     onChange={handleChange}
                     className="w-full bg-helix-terminal border border-helix-border rounded px-4 py-2.5 text-helix-primary font-data focus:border-helix-cyan focus:outline-none focus:ring-2 focus:ring-helix-cyan/20 transition-colors"
                   />
@@ -166,9 +190,15 @@ export default function CreateAgent() {
               </div>
             </div>
 
+            {error && (
+              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
               className="w-full mt-8 bg-helix-cyan text-helix-bg font-bold rounded-md px-6 py-3 transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Creating...' : 'Create Agent'}

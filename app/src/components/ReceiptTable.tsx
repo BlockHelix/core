@@ -1,12 +1,12 @@
 'use client';
 
 import { ExternalLink } from 'lucide-react';
-import { MockJobReceipt } from '@/lib/mock';
 import { formatUSDC, truncateAddress, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { JobReceipt } from '@/hooks/useAgentData';
 
 interface ReceiptTableProps {
-  receipts: MockJobReceipt[];
+  receipts: JobReceipt[];
   className?: string;
 }
 
@@ -33,44 +33,53 @@ export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
             </tr>
           </thead>
           <tbody>
-            {receipts.map((receipt, index) => (
-              <tr
-                key={receipt.id}
-                className={cn(
-                  'border-b border-helix-border last:border-b-0',
-                  index % 2 === 0 ? 'bg-helix-card' : 'bg-helix-elevated'
-                )}
-              >
-                <td className="px-6 py-4 text-sm text-helix-primary">{receipt.jobType}</td>
-                <td className="px-6 py-4 text-sm text-right font-data text-helix-green">
-                  ${formatUSDC(receipt.revenue)}
-                </td>
-                <td className="px-6 py-4 text-sm text-helix-secondary">{timeAgo(receipt.timestamp)}</td>
-                <td className="px-6 py-4 text-center">
-                  <span
-                    className={cn(
-                      'inline-block px-2.5 py-1 rounded text-xs font-medium',
-                      receipt.status === 'completed' && 'bg-helix-green/10 text-helix-green',
-                      receipt.status === 'pending' && 'bg-helix-amber/10 text-helix-amber',
-                      receipt.status === 'failed' && 'bg-helix-red/10 text-helix-red'
-                    )}
-                  >
-                    {receipt.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <a
-                    href={`https://explorer.solana.com/tx/${receipt.txSignature}?cluster=devnet`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 font-data text-xs text-helix-cyan hover:text-helix-violet transition-colors"
-                  >
-                    {truncateAddress(receipt.txSignature, 4)}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </td>
-              </tr>
-            ))}
+            {receipts.map((receipt, index) => {
+              const timestamp = new Date(receipt.createdAt * 1000);
+              const statusText = typeof receipt.status === 'object'
+                ? (receipt.status.finalized !== undefined ? 'completed' : 'active')
+                : 'active';
+              const txHash = receipt.paymentTx && receipt.paymentTx.length > 0
+                ? Buffer.from(receipt.paymentTx).toString('hex').slice(0, 64)
+                : receipt.registry.toString();
+
+              return (
+                <tr
+                  key={receipt.jobId}
+                  className={cn(
+                    'border-b border-helix-border last:border-b-0',
+                    index % 2 === 0 ? 'bg-helix-card' : 'bg-helix-elevated'
+                  )}
+                >
+                  <td className="px-6 py-4 text-sm text-helix-primary">Job #{receipt.jobId}</td>
+                  <td className="px-6 py-4 text-sm text-right font-data text-helix-green">
+                    ${formatUSDC(receipt.paymentAmount / 1_000_000)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-helix-secondary">{timeAgo(timestamp)}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span
+                      className={cn(
+                        'inline-block px-2.5 py-1 rounded text-xs font-medium',
+                        statusText === 'completed' && 'bg-helix-green/10 text-helix-green',
+                        statusText === 'active' && 'bg-helix-amber/10 text-helix-amber'
+                      )}
+                    >
+                      {statusText}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <a
+                      href={`https://explorer.solana.com/tx/${txHash}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 font-data text-xs text-helix-cyan hover:text-helix-violet transition-colors"
+                    >
+                      {truncateAddress(txHash, 4)}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

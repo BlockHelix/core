@@ -5,10 +5,21 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { formatUSDC, formatPercent } from '@/lib/format';
 import { cn } from '@/lib/cn';
-import type { MockAgent } from '@/lib/mock';
+
+interface Agent {
+  id?: string;
+  agentWallet?: any;
+  name: string;
+  description?: string;
+  status?: 'active' | 'paused' | 'inactive';
+  tvl?: number;
+  apy?: number;
+  totalRevenue?: number;
+  jobsCompleted?: number;
+}
 
 interface AgentCardProps {
-  agent: MockAgent;
+  agent: Agent;
   index?: number;
 }
 
@@ -25,13 +36,16 @@ export default function AgentCard({ agent, index = 0 }: AgentCardProps) {
     inactive: 'Inactive',
   };
 
+  const agentId = agent.id || agent.agentWallet?.toString() || '';
+  const status = agent.status || 'active';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
-      <Link href={`/agent/${agent.id}`}>
+      <Link href={`/agent/${agentId}`}>
         <div className={cn(
           "bg-helix-card border border-helix-border rounded-lg p-6",
           "transition-all duration-200",
@@ -43,40 +57,40 @@ export default function AgentCard({ agent, index = 0 }: AgentCardProps) {
               {agent.name}
             </h3>
             <div className="flex items-center gap-1.5">
-              <div className={cn("w-2 h-2 rounded-full", statusColors[agent.status])} />
+              <div className={cn("w-2 h-2 rounded-full", statusColors[status])} />
               <span className="text-xs text-helix-secondary">
-                {statusLabels[agent.status]}
+                {statusLabels[status]}
               </span>
             </div>
           </div>
 
           <p className="text-sm text-helix-secondary mb-6 line-clamp-2 min-h-[2.5rem]">
-            {agent.description}
+            {agent.description || 'Tokenized autonomous agent'}
           </p>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <div className="text-xs text-helix-secondary mb-1">TVL</div>
               <div className="font-data text-helix-primary font-semibold">
-                ${formatUSDC(agent.tvl)}
+                ${formatUSDC(agent.tvl || 0)}
               </div>
             </div>
             <div>
               <div className="text-xs text-helix-secondary mb-1">APY</div>
               <div className="font-data text-helix-green font-semibold">
-                {formatPercent(agent.apy)}%
+                {formatPercent(agent.apy || 0)}%
               </div>
             </div>
             <div>
               <div className="text-xs text-helix-secondary mb-1">Revenue</div>
               <div className="font-data text-helix-primary font-semibold">
-                ${formatUSDC(agent.totalRevenue)}
+                ${formatUSDC(agent.totalRevenue || 0)}
               </div>
             </div>
             <div>
               <div className="text-xs text-helix-secondary mb-1">Jobs</div>
               <div className="font-data text-helix-primary font-semibold">
-                {agent.jobsCompleted.toLocaleString()}
+                {(agent.jobsCompleted || 0).toLocaleString()}
               </div>
             </div>
           </div>

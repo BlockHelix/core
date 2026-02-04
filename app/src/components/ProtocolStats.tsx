@@ -1,16 +1,20 @@
 'use client';
 
 import { formatUSDC, formatPercent } from '@/lib/format';
-import { getMockAgents } from '@/lib/mock';
 
-export default function ProtocolStats() {
-  const agents = getMockAgents();
+interface ProtocolStatsProps {
+  totalTVL?: number;
+  activeAgents?: number;
+  totalRevenue?: number;
+  avgAPY?: number;
+}
 
-  const totalTVL = agents.reduce((sum, agent) => sum + agent.tvl, 0);
-  const activeAgents = agents.filter(agent => agent.status === 'active').length;
-  const totalRevenue = agents.reduce((sum, agent) => sum + agent.totalRevenue, 0);
-  const avgAPY = agents.reduce((sum, agent) => sum + agent.apy, 0) / agents.length;
-
+export default function ProtocolStats({
+  totalTVL = 0,
+  activeAgents = 0,
+  totalRevenue = 0,
+  avgAPY = 0
+}: ProtocolStatsProps) {
   const stats = [
     { label: 'Total TVL', value: `$${formatUSDC(totalTVL)}` },
     { label: 'Active Agents', value: activeAgents.toString() },

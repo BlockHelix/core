@@ -1,11 +1,15 @@
 'use client';
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { MockRevenueDataPoint } from '@/lib/mock';
 import { formatUSDC } from '@/lib/format';
 
+interface RevenueDataPoint {
+  date: string;
+  revenue: number;
+}
+
 interface RevenueChartProps {
-  data: MockRevenueDataPoint[];
+  data: RevenueDataPoint[];
 }
 
 export function RevenueChart({ data }: RevenueChartProps) {

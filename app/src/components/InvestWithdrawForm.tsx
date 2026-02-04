@@ -1,30 +1,81 @@
 'use client';
 
 import { useState } from 'react';
+import { PublicKey } from '@solana/web3.js';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeposit, useWithdraw } from '@/hooks/useVaultTransactions';
 import { formatUSDC, formatShares } from '@/lib/format';
+import { toast } from '@/lib/toast';
 
 interface InvestWithdrawFormProps {
-  agentId: string;
+  vaultPubkey: PublicKey | null;
+  shareMint: PublicKey;
   sharePrice: number;
 }
 
-export function InvestWithdrawForm({ agentId, sharePrice }: InvestWithdrawFormProps) {
+export function InvestWithdrawForm({
+  vaultPubkey,
+  shareMint,
+  sharePrice
+}: InvestWithdrawFormProps) {
   const { authenticated: connected } = useAuth();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
 
+  const { deposit, isLoading: depositLoading } = useDeposit();
+  const { withdraw, isLoading: withdrawLoading } = useWithdraw();
+
   const estimatedShares = depositAmount ? parseFloat(depositAmount) / sharePrice : 0;
   const estimatedUsdc = withdrawAmount ? parseFloat(withdrawAmount) * sharePrice : 0;
 
-  const handleDeposit = () => {
-    console.log('Deposit:', depositAmount, 'USDC to agent', agentId);
+  const handleDeposit = async () => {
+    if (!vaultPubkey) {
+      toast('Vault not available', 'error');
+      return;
+    }
+
+    try {
+      const amount = parseFloat(depositAmount);
+      if (amount <= 0) return;
+
+      toast('Confirming deposit transaction...', 'info');
+      const result = await deposit(vaultPubkey, shareMint, amount);
+
+      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+      toast(`Deposit successful! View on Explorer: ${explorerUrl}`, 'success');
+
+      setDepositAmount('');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Deposit failed';
+      toast(`Deposit failed: ${errorMsg}`, 'error');
+    }
   };
 
-  const handleWithdraw = () => {
-    console.log('Withdraw:', withdrawAmount, 'shares from agent', agentId);
+  const handleWithdraw = async () => {
+    if (!vaultPubkey) {
+      toast('Vault not available', 'error');
+      return;
+    }
+
+    try {
+      const shares = parseFloat(withdrawAmount);
+      if (shares <= 0) return;
+
+      toast('Confirming withdraw transaction...', 'info');
+      const result = await withdraw(vaultPubkey, shareMint, shares);
+
+      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+      toast(`Withdraw successful! View on Explorer: ${explorerUrl}`, 'success');
+
+      setWithdrawAmount('');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Withdraw failed';
+      toast(`Withdraw failed: ${errorMsg}`, 'error');
+    }
   };
+
+  const isLoading = depositLoading || withdrawLoading;
 
   return (
     <div className="bg-helix-card border border-helix-border rounded-lg overflow-hidden">
@@ -62,7 +113,7 @@ export function InvestWithdrawForm({ agentId, sharePrice }: InvestWithdrawFormPr
                 onChange={(e) => setDepositAmount(e.target.value)}
                 placeholder="0.00"
                 className="w-full bg-helix-terminal border border-helix-border rounded-md px-4 py-3 font-data text-helix-primary placeholder:text-helix-tertiary focus:outline-none focus:border-helix-cyan transition-colors"
-                disabled={!connected}
+                disabled={!connected || isLoading}
               />
               {depositAmount && (
                 <div className="mt-2 text-sm text-helix-secondary">
@@ -74,10 +125,10 @@ export function InvestWithdrawForm({ agentId, sharePrice }: InvestWithdrawFormPr
             {connected ? (
               <button
                 onClick={handleDeposit}
-                disabled={!depositAmount || parseFloat(depositAmount) <= 0}
+                disabled={!depositAmount || parseFloat(depositAmount) <= 0 || isLoading}
                 className="w-full bg-helix-cyan text-helix-bg font-medium py-3 rounded-md hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Deposit USDC
+                {isLoading ? 'Processing...' : 'Deposit USDC'}
               </button>
             ) : (
               <div className="w-full bg-helix-elevated border border-helix-border text-helix-secondary text-center font-medium py-3 rounded-md">
@@ -95,7 +146,7 @@ export function InvestWithdrawForm({ agentId, sharePrice }: InvestWithdrawFormPr
                 onChange={(e) => setWithdrawAmount(e.target.value)}
                 placeholder="0.0000"
                 className="w-full bg-helix-terminal border border-helix-border rounded-md px-4 py-3 font-data text-helix-primary placeholder:text-helix-tertiary focus:outline-none focus:border-helix-cyan transition-colors"
-                disabled={!connected}
+                disabled={!connected || isLoading}
               />
               {withdrawAmount && (
                 <div className="mt-2 text-sm text-helix-secondary">
@@ -107,10 +158,10 @@ export function InvestWithdrawForm({ agentId, sharePrice }: InvestWithdrawFormPr
             {connected ? (
               <button
                 onClick={handleWithdraw}
-                disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0}
+                disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0 || isLoading}
                 className="w-full bg-helix-violet text-helix-bg font-medium py-3 rounded-md hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Withdraw Shares
+                {isLoading ? 'Processing...' : 'Withdraw Shares'}
               </button>
             ) : (
               <div className="w-full bg-helix-elevated border border-helix-border text-helix-secondary text-center font-medium py-3 rounded-md">

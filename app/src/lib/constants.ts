@@ -2,7 +2,6 @@ import { PublicKey } from '@solana/web3.js';
 
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com';
 export const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
-export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
 
 const DEFAULT_VAULT_PROGRAM_ID = '11111111111111111111111111111111';
 const DEFAULT_REGISTRY_PROGRAM_ID = '11111111111111111111111111111111';
