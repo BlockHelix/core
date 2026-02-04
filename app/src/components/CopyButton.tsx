@@ -23,12 +23,12 @@ export function CopyButton({ value, truncate = true, chars = 4, className = '' }
   return (
     <button
       onClick={handleCopy}
-      className={`inline-flex items-center gap-2 font-data text-sm text-helix-secondary hover:text-helix-cyan transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 font-mono text-sm text-white/60 hover:text-emerald-400 transition-colors duration-300 ${className}`}
       title={value}
     >
-      <span>{truncate ? truncateAddress(value, chars) : value}</span>
+      <span className="tabular-nums">{truncate ? truncateAddress(value, chars) : value}</span>
       {copied ? (
-        <Check className="w-3.5 h-3.5 text-helix-green" />
+        <Check className="w-3.5 h-3.5 text-emerald-400" />
       ) : (
         <Copy className="w-3.5 h-3.5" />
       )}

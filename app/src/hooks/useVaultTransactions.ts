@@ -50,7 +50,7 @@ export function useDeposit() {
       const amountMicroUsdc = new BN(Math.floor(usdcAmount * 1_000_000));
 
       const tx = await vaultProgram.methods
-        .deposit(amountMicroUsdc)
+        .deposit(amountMicroUsdc, new BN(0))
         .accountsPartial({
           vaultState,
           depositor,
@@ -116,7 +116,7 @@ export function useWithdraw() {
       const shareMicroAmount = new BN(Math.floor(shareAmount * 1_000_000));
 
       const tx = await vaultProgram.methods
-        .withdraw(shareMicroAmount)
+        .withdraw(shareMicroAmount, new BN(0))
         .accountsPartial({
           vaultState,
           withdrawer,

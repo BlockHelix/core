@@ -182,6 +182,10 @@
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "min_shares_out",
+          "type": "u64"
         }
       ]
     },
@@ -377,6 +381,18 @@
         {
           "name": "epoch_length",
           "type": "i64"
+        },
+        {
+          "name": "target_apy_bps",
+          "type": "u16"
+        },
+        {
+          "name": "lending_floor_bps",
+          "type": "u16"
+        },
+        {
+          "name": "arbitrator",
+          "type": "pubkey"
         }
       ]
     },
@@ -679,6 +695,10 @@
         {
           "name": "shares",
           "type": "u64"
+        },
+        {
+          "name": "min_assets_out",
+          "type": "u64"
         }
       ]
     }
@@ -867,6 +887,11 @@
       "code": 6009,
       "name": "SlashExceedsAssets",
       "msg": "Slash amount exceeds vault assets"
+    },
+    {
+      "code": 6010,
+      "name": "SlippageExceeded",
+      "msg": "Output below minimum slippage tolerance"
     }
   ],
   "types": [
@@ -905,6 +930,10 @@
           },
           {
             "name": "last_deposit_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "total_deposited",
             "type": "u64"
           },
           {
@@ -1008,6 +1037,10 @@
             "type": "pubkey"
           },
           {
+            "name": "arbitrator",
+            "type": "pubkey"
+          },
+          {
             "name": "max_tvl",
             "type": "u64"
           }
@@ -1033,6 +1066,10 @@
         "fields": [
           {
             "name": "agent_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "arbitrator",
             "type": "pubkey"
           },
           {
@@ -1134,6 +1171,14 @@
           {
             "name": "paused",
             "type": "bool"
+          },
+          {
+            "name": "target_apy_bps",
+            "type": "u16"
+          },
+          {
+            "name": "lending_floor_bps",
+            "type": "u16"
           }
         ]
       }

@@ -151,8 +151,44 @@
         {
           "name": "epoch_length",
           "type": "i64"
+        },
+        {
+          "name": "target_apy_bps",
+          "type": "u16"
+        },
+        {
+          "name": "lending_floor_bps",
+          "type": "u16"
+        },
+        {
+          "name": "arbitrator",
+          "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "deactivate_agent",
+      "discriminator": [
+        205,
+        171,
+        239,
+        225,
+        82,
+        126,
+        96,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "agent_metadata",
+          "writable": true
+        },
+        {
+          "name": "agent_wallet",
+          "signer": true
+        }
+      ],
+      "args": []
     },
     {
       "name": "initialize_factory",
@@ -206,6 +242,49 @@
           "type": "u16"
         }
       ]
+    },
+    {
+      "name": "update_agent",
+      "discriminator": [
+        85,
+        2,
+        178,
+        9,
+        119,
+        139,
+        102,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "agent_metadata",
+          "writable": true
+        },
+        {
+          "name": "agent_wallet",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "github_handle",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "endpoint_url",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -248,6 +327,32 @@
         251,
         241,
         34
+      ]
+    },
+    {
+      "name": "AgentDeactivated",
+      "discriminator": [
+        138,
+        251,
+        82,
+        87,
+        119,
+        148,
+        20,
+        180
+      ]
+    },
+    {
+      "name": "AgentUpdated",
+      "discriminator": [
+        210,
+        179,
+        162,
+        250,
+        123,
+        250,
+        210,
+        166
       ]
     },
     {
@@ -294,6 +399,16 @@
       "code": 6005,
       "name": "ArithmeticOverflow",
       "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6006,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6007,
+      "name": "AgentAlreadyInactive",
+      "msg": "Agent is already inactive"
     }
   ],
   "types": [
@@ -329,6 +444,22 @@
           {
             "name": "endpoint_url",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgentDeactivated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent_id",
+            "type": "u64"
+          },
+          {
+            "name": "agent_wallet",
+            "type": "pubkey"
           }
         ]
       }
@@ -379,8 +510,36 @@
             "type": "i64"
           },
           {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgentUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent_id",
+            "type": "u64"
+          },
+          {
+            "name": "agent_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "endpoint_url",
+            "type": "string"
           }
         ]
       }

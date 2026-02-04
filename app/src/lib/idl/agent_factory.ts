@@ -157,8 +157,44 @@ export type AgentFactory = {
         {
           "name": "epochLength",
           "type": "i64"
+        },
+        {
+          "name": "targetApyBps",
+          "type": "u16"
+        },
+        {
+          "name": "lendingFloorBps",
+          "type": "u16"
+        },
+        {
+          "name": "arbitrator",
+          "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "deactivateAgent",
+      "discriminator": [
+        205,
+        171,
+        239,
+        225,
+        82,
+        126,
+        96,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "agentMetadata",
+          "writable": true
+        },
+        {
+          "name": "agentWallet",
+          "signer": true
+        }
+      ],
+      "args": []
     },
     {
       "name": "initializeFactory",
@@ -212,6 +248,49 @@ export type AgentFactory = {
           "type": "u16"
         }
       ]
+    },
+    {
+      "name": "updateAgent",
+      "discriminator": [
+        85,
+        2,
+        178,
+        9,
+        119,
+        139,
+        102,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "agentMetadata",
+          "writable": true
+        },
+        {
+          "name": "agentWallet",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "githubHandle",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "endpointUrl",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -254,6 +333,32 @@ export type AgentFactory = {
         251,
         241,
         34
+      ]
+    },
+    {
+      "name": "agentDeactivated",
+      "discriminator": [
+        138,
+        251,
+        82,
+        87,
+        119,
+        148,
+        20,
+        180
+      ]
+    },
+    {
+      "name": "agentUpdated",
+      "discriminator": [
+        210,
+        179,
+        162,
+        250,
+        123,
+        250,
+        210,
+        166
       ]
     },
     {
@@ -300,6 +405,16 @@ export type AgentFactory = {
       "code": 6005,
       "name": "arithmeticOverflow",
       "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6006,
+      "name": "unauthorized",
+      "msg": "unauthorized"
+    },
+    {
+      "code": 6007,
+      "name": "agentAlreadyInactive",
+      "msg": "Agent is already inactive"
     }
   ],
   "types": [
@@ -335,6 +450,22 @@ export type AgentFactory = {
           {
             "name": "endpointUrl",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "agentDeactivated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agentId",
+            "type": "u64"
+          },
+          {
+            "name": "agentWallet",
+            "type": "pubkey"
           }
         ]
       }
@@ -385,8 +516,36 @@ export type AgentFactory = {
             "type": "i64"
           },
           {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "agentUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agentId",
+            "type": "u64"
+          },
+          {
+            "name": "agentWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "endpointUrl",
+            "type": "string"
           }
         ]
       }

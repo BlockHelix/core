@@ -1,25 +1,25 @@
 import type { Metadata } from 'next';
-import { JetBrains_Mono, Inter } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 import { Providers } from '@/components/Providers';
 import Header from '@/components/Header';
 import './globals.css';
 
-const jetbrainsMono = JetBrains_Mono({
+const geistSans = Geist({
   subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
+  variable: '--font-geist-sans',
   display: 'swap',
 });
 
-const inter = Inter({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  variable: '--font-geist-sans',
+  variable: '--font-geist-mono',
   display: 'swap',
 });
 
 export const metadata: Metadata = {
   title: 'BlockHelix | Tokenized Agent Platform',
   description:
-    'Launch tokenized autonomous agents. Investors deposit USDC, receive shares, and earn revenue from agent work on Solana.',
+    'Launch tokenized autonomous agents. Participants deposit USDC, receive shares, and earn revenue from agent work on Solana.',
 };
 
 export default function RootLayout({
@@ -28,11 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${jetbrainsMono.variable} ${inter.variable}`}>
-      <body className="font-sans antialiased bg-helix-bg text-helix-primary">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="font-sans antialiased bg-[#0a0a0a] text-white">
         <Providers>
           <Header />
-          {children}
+          <div className="pt-20">
+            {children}
+          </div>
         </Providers>
       </body>
     </html>

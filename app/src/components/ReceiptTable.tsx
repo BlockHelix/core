@@ -13,23 +13,24 @@ interface ReceiptTableProps {
 export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
   if (receipts.length === 0) {
     return (
-      <div className={cn('bg-helix-card border border-helix-border rounded-lg p-12 text-center', className)}>
-        <p className="text-helix-secondary">No job receipts yet</p>
+      <div className={cn('border border-white/10 p-12 text-center corner-cut', className)}>
+        <p className="text-white/60 text-sm">No job receipts yet</p>
+        <p className="text-white/30 text-xs mt-2">Receipt data will appear when agent completes work</p>
       </div>
     );
   }
 
   return (
-    <div className={cn('bg-helix-card border border-helix-border rounded-lg overflow-hidden', className)}>
+    <div className={cn('border border-white/10 overflow-hidden corner-cut', className)}>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-helix-border">
-              <th className="text-left px-6 py-4 text-sm font-medium text-helix-secondary">Job Type</th>
-              <th className="text-right px-6 py-4 text-sm font-medium text-helix-secondary">Revenue</th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-helix-secondary">Time</th>
-              <th className="text-center px-6 py-4 text-sm font-medium text-helix-secondary">Status</th>
-              <th className="text-center px-6 py-4 text-sm font-medium text-helix-secondary">TX</th>
+            <tr className="border-b border-white/10 bg-white/[0.02]">
+              <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">JOB</th>
+              <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">REVENUE</th>
+              <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">TIME</th>
+              <th className="text-center px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">STATUS</th>
+              <th className="text-center px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">TX</th>
             </tr>
           </thead>
           <tbody>
@@ -46,32 +47,38 @@ export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
                 <tr
                   key={receipt.jobId}
                   className={cn(
-                    'border-b border-helix-border last:border-b-0',
-                    index % 2 === 0 ? 'bg-helix-card' : 'bg-helix-elevated'
+                    'border-b border-white/10 last:border-b-0 transition-colors duration-300',
+                    index % 2 === 0 ? 'bg-white/[0.01]' : 'bg-transparent',
+                    'hover:bg-white/[0.03]'
                   )}
                 >
-                  <td className="px-6 py-4 text-sm text-helix-primary">Job #{receipt.jobId}</td>
-                  <td className="px-6 py-4 text-sm text-right font-data text-helix-green">
+                  <td className="px-4 py-3 text-sm text-white font-mono">#{receipt.jobId}</td>
+                  <td className="px-4 py-3 text-sm text-right font-mono tabular-nums text-emerald-400">
                     ${formatUSDC(receipt.paymentAmount / 1_000_000)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-helix-secondary">{timeAgo(timestamp)}</td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-3 text-xs text-white/50 font-mono">{timeAgo(timestamp)}</td>
+                  <td className="px-4 py-3 text-center">
                     <span
                       className={cn(
-                        'inline-block px-2.5 py-1 rounded text-xs font-medium',
-                        statusText === 'completed' && 'bg-helix-green/10 text-helix-green',
-                        statusText === 'active' && 'bg-helix-amber/10 text-helix-amber'
+                        'inline-flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-widest font-medium',
+                        statusText === 'completed' && 'text-emerald-400',
+                        statusText === 'active' && 'text-amber-400'
                       )}
                     >
+                      <div className={cn(
+                        'w-1 h-1 rounded-full',
+                        statusText === 'completed' && 'bg-emerald-400',
+                        statusText === 'active' && 'bg-amber-400 status-pulse'
+                      )} />
                       {statusText}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-3 text-center">
                     <a
                       href={`https://explorer.solana.com/tx/${txHash}?cluster=devnet`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 font-data text-xs text-helix-cyan hover:text-helix-violet transition-colors"
+                      className="inline-flex items-center gap-1.5 font-mono text-xs text-emerald-400 hover:text-emerald-300 transition-colors duration-300"
                     >
                       {truncateAddress(txHash, 4)}
                       <ExternalLink className="w-3 h-3" />

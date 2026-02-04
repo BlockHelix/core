@@ -285,6 +285,35 @@ export type ReceiptRegistry = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "verifyReceipt",
+      "discriminator": [
+        202,
+        144,
+        21,
+        149,
+        181,
+        189,
+        23,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "jobReceipt",
+          "writable": true
+        },
+        {
+          "name": "client",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "jobId",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -369,6 +398,19 @@ export type ReceiptRegistry = {
       ]
     },
     {
+      "name": "receiptVerified",
+      "discriminator": [
+        189,
+        58,
+        109,
+        214,
+        74,
+        78,
+        181,
+        8
+      ]
+    },
+    {
       "name": "registryInitialized",
       "discriminator": [
         144,
@@ -412,6 +454,11 @@ export type ReceiptRegistry = {
       "code": 6005,
       "name": "arithmeticOverflow",
       "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6006,
+      "name": "alreadyVerified",
+      "msg": "Receipt already verified"
     }
   ],
   "types": [
@@ -523,6 +570,10 @@ export type ReceiptRegistry = {
             "type": "pubkey"
           },
           {
+            "name": "clientVerified",
+            "type": "bool"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -604,6 +655,30 @@ export type ReceiptRegistry = {
           },
           {
             "name": "rejected"
+          }
+        ]
+      }
+    },
+    {
+      "name": "receiptVerified",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "jobId",
+            "type": "u64"
+          },
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "verifiedAt",
+            "type": "i64"
           }
         ]
       }

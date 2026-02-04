@@ -43,13 +43,15 @@ describe("agent-vault", () => {
   const PROTOCOL_FEE_BPS = 500;
   const MAX_TVL = new BN(1_000_000_000_000);
   const LOCKUP_EPOCHS = 1;
-  const EPOCH_LENGTH = new BN(2);
+  const EPOCH_LENGTH = new BN(8);
   const BOND_AMOUNT = 100_000_000; // 100 USDC = MIN_OPERATOR_BOND
   const DEPOSIT_AMOUNT = 100_000_000;
   const REVENUE_AMOUNT = 10_000_000;
 
   const VIRTUAL_SHARES = 1_000_000;
   const VIRTUAL_ASSETS = 1_000_000;
+  const TARGET_APY_BPS = 1000; // 10%
+  const LENDING_FLOOR_BPS = 800; // 8%
 
   before(async () => {
     const sig1 = await connection.requestAirdrop(
@@ -150,7 +152,7 @@ describe("agent-vault", () => {
 
   it("Initializes vault with v2 params", async () => {
     await program.methods
-      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, LOCKUP_EPOCHS, EPOCH_LENGTH)
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, LOCKUP_EPOCHS, EPOCH_LENGTH, TARGET_APY_BPS, LENDING_FLOOR_BPS, arbitrator.publicKey)
       .accountsPartial({
         vaultState,
         shareMint,
@@ -169,6 +171,9 @@ describe("agent-vault", () => {
     expect(state.agentWallet.toString()).to.equal(
       agentWallet.publicKey.toString()
     );
+    expect(state.arbitrator.toString()).to.equal(
+      arbitrator.publicKey.toString()
+    );
     expect(state.agentFeeBps).to.equal(AGENT_FEE_BPS);
     expect(state.protocolFeeBps).to.equal(PROTOCOL_FEE_BPS);
     expect(state.totalRevenue.toNumber()).to.equal(0);
@@ -181,12 +186,14 @@ describe("agent-vault", () => {
     expect(state.virtualAssets.toNumber()).to.equal(VIRTUAL_ASSETS);
     expect(state.paused).to.equal(false);
     expect(state.navHighWaterMark.toNumber()).to.equal(1_000_000);
+    expect(state.targetApyBps).to.equal(TARGET_APY_BPS);
+    expect(state.lendingFloorBps).to.equal(LENDING_FLOOR_BPS);
   });
 
   it("Rejects deposit when bond below minimum", async () => {
     try {
       await program.methods
-        .deposit(new BN(DEPOSIT_AMOUNT))
+        .deposit(new BN(DEPOSIT_AMOUNT), new BN(0))
         .accountsPartial({
           vaultState,
           shareMint,
@@ -226,7 +233,7 @@ describe("agent-vault", () => {
 
     try {
       await program.methods
-        .deposit(new BN(DEPOSIT_AMOUNT))
+        .deposit(new BN(DEPOSIT_AMOUNT), new BN(0))
         .accountsPartial({
           vaultState,
           shareMint,
@@ -270,7 +277,7 @@ describe("agent-vault", () => {
 
   it("Deposits 100 USDC with virtual shares math", async () => {
     await program.methods
-      .deposit(new BN(DEPOSIT_AMOUNT))
+      .deposit(new BN(DEPOSIT_AMOUNT), new BN(0))
       .accountsPartial({
         vaultState,
         shareMint,
@@ -337,7 +344,7 @@ describe("agent-vault", () => {
     const shares = await getAccount(connection, depositorShareAccount);
     try {
       await program.methods
-        .withdraw(new BN(Number(shares.amount)))
+        .withdraw(new BN(Number(shares.amount)), new BN(0))
         .accountsPartial({
           vaultState,
           shareMint,
@@ -352,12 +359,13 @@ describe("agent-vault", () => {
         .rpc();
       expect.fail("Should have rejected withdrawal before lockup");
     } catch (err: any) {
+      if (!err.error?.errorCode) throw err;
       expect(err.error.errorCode.code).to.equal("LockupNotExpired");
     }
   });
 
   it("Withdraws after lockup expires", async () => {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 9000));
 
     const sharesBefore = await getAccount(connection, depositorShareAccount);
     const sharesToBurn = Number(sharesBefore.amount);
@@ -374,7 +382,7 @@ describe("agent-vault", () => {
     );
 
     await program.methods
-      .withdraw(new BN(sharesToBurn))
+      .withdraw(new BN(sharesToBurn), new BN(0))
       .accountsPartial({
         vaultState,
         shareMint,
@@ -393,8 +401,12 @@ describe("agent-vault", () => {
       500_000_000 - DEPOSIT_AMOUNT + expectedUsdcOut
     );
 
-    const sharesAfter = await getAccount(connection, depositorShareAccount);
-    expect(Number(sharesAfter.amount)).to.equal(0);
+    try {
+      await getAccount(connection, depositorShareAccount);
+      expect.fail("Share account should have been closed");
+    } catch (err: any) {
+      expect(err.name).to.equal("TokenAccountNotFoundError");
+    }
 
     const stateAfter = await program.account.vaultState.fetch(vaultState);
     expect(stateAfter.totalWithdrawn.toNumber()).to.equal(expectedUsdcOut);
@@ -425,7 +437,7 @@ describe("agent-vault", () => {
     const tinyTvlCap = new BN(150_000_000); // 150 USDC cap (bond alone is 100)
 
     await program.methods
-      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, tinyTvlCap, 0, new BN(86400))
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, tinyTvlCap, 0, new BN(86400), TARGET_APY_BPS, LENDING_FLOOR_BPS, arbitrator.publicKey)
       .accountsPartial({
         vaultState: vaultState2,
         shareMint: shareMint2,
@@ -475,7 +487,7 @@ describe("agent-vault", () => {
 
     try {
       await program.methods
-        .deposit(new BN(DEPOSIT_AMOUNT)) // 100 USDC + 100 bond = 200 > 150 cap
+        .deposit(new BN(DEPOSIT_AMOUNT), new BN(0)) // 100 USDC + 100 bond = 200 > 150 cap
         .accountsPartial({
           vaultState: vaultState2,
           shareMint: shareMint2,
@@ -496,10 +508,148 @@ describe("agent-vault", () => {
     }
   });
 
+  it("Dynamic TVL cap tightens after revenue is recorded", async () => {
+    const agentDyn = Keypair.generate();
+    const depositorDyn = Keypair.generate();
+    const sigs = await Promise.all([
+      connection.requestAirdrop(agentDyn.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
+      connection.requestAirdrop(depositorDyn.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
+    ]);
+    for (const s of sigs) await connection.confirmTransaction(s);
+
+    const [vsDyn] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), agentDyn.publicKey.toBuffer()],
+      program.programId
+    );
+    const [smDyn] = PublicKey.findProgramAddressSync(
+      [Buffer.from("shares"), vsDyn.toBuffer()],
+      program.programId
+    );
+    const vuaDyn = getAssociatedTokenAddressSync(usdcMint, vsDyn, true);
+
+    // Large fixed cap so only the dynamic cap constrains deposits.
+    // 50% target APY, 0% lending floor => 50% spread.
+    // This makes the dynamic cap = annual_depositor_rev / 0.50
+    const largeCap = new BN(10_000_000_000_000);
+    const highTargetApy = 5000;   // 50%
+    const zeroFloor = 0;          // 0%
+    await program.methods
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, largeCap, 0, new BN(86400), highTargetApy, zeroFloor, arbitrator.publicKey)
+      .accountsPartial({
+        vaultState: vsDyn,
+        shareMint: smDyn,
+        agentWallet: agentDyn.publicKey,
+        usdcMint,
+        vaultUsdcAccount: vuaDyn,
+        protocolTreasury: protocolUsdcAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([agentDyn])
+      .rpc();
+
+    const stateInit = await program.account.vaultState.fetch(vsDyn);
+    expect(stateInit.targetApyBps).to.equal(highTargetApy);
+    expect(stateInit.lendingFloorBps).to.equal(zeroFloor);
+    expect(stateInit.totalRevenue.toNumber()).to.equal(0);
+
+    const agentDynUsdc = await createAccount(connection, payer, usdcMint, agentDyn.publicKey);
+    await mintTo(connection, payer, usdcMint, agentDynUsdc, payer, 200_000_000);
+
+    const depositorDynUsdc = await createAccount(connection, payer, usdcMint, depositorDyn.publicKey);
+    await mintTo(connection, payer, usdcMint, depositorDynUsdc, payer, 500_000_000);
+
+    await program.methods
+      .stakeBond(new BN(100_000_000))
+      .accountsPartial({
+        vaultState: vsDyn,
+        agentWallet: agentDyn.publicKey,
+        vaultUsdcAccount: vuaDyn,
+        agentUsdcAccount: agentDynUsdc,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([agentDyn])
+      .rpc();
+
+    const depositorShareDyn = getAssociatedTokenAddressSync(smDyn, depositorDyn.publicKey);
+    const [depositRecordDyn] = PublicKey.findProgramAddressSync(
+      [Buffer.from("deposit"), vsDyn.toBuffer(), depositorDyn.publicKey.toBuffer()],
+      program.programId
+    );
+
+    // Bootstrapping deposit works (no revenue => uses fixed cap)
+    await program.methods
+      .deposit(new BN(10_000_000), new BN(0))
+      .accountsPartial({
+        vaultState: vsDyn,
+        shareMint: smDyn,
+        vaultUsdcAccount: vuaDyn,
+        depositor: depositorDyn.publicKey,
+        depositorUsdcAccount: depositorDynUsdc,
+        depositorShareAccount: depositorShareDyn,
+        depositRecord: depositRecordDyn,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([depositorDyn])
+      .rpc();
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Record near-zero revenue: 1 micro-USDC.
+    // vault_fee_bps = 10000 - 7000 - 500 = 2500, target=50%, floor=0%, spread=50%
+    // With ~2s elapsed:
+    //   annual_depositor_rev = 1 * 2500 * 31_536_000 / 10_000 / 2 = 3_942_000
+    //   dynamic_cap = 3_942_000 * 10_000 / 5000 = 7_884_000 (~$7.88)
+    // Vault holds ~110M (bond + deposit). 110M >> 7.8M => deposit rejected.
+    await program.methods
+      .receiveRevenue(new BN(1), new BN(1))
+      .accountsPartial({
+        vaultState: vsDyn,
+        agentWallet: agentDyn.publicKey,
+        vaultUsdcAccount: vuaDyn,
+        shareMint: smDyn,
+        agentUsdcAccount: agentDynUsdc,
+        protocolUsdcAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([agentDyn])
+      .rpc();
+
+    const stateAfterRev = await program.account.vaultState.fetch(vsDyn);
+    expect(stateAfterRev.totalRevenue.toNumber()).to.equal(1);
+
+    // Any additional deposit should now fail because the vault balance
+    // already exceeds the dynamic cap.
+    try {
+      await program.methods
+        .deposit(new BN(1_000_000), new BN(0))
+        .accountsPartial({
+          vaultState: vsDyn,
+          shareMint: smDyn,
+          vaultUsdcAccount: vuaDyn,
+          depositor: depositorDyn.publicKey,
+          depositorUsdcAccount: depositorDynUsdc,
+          depositorShareAccount: depositorShareDyn,
+          depositRecord: depositRecordDyn,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([depositorDyn])
+        .rpc();
+      expect.fail("Should have rejected deposit exceeding dynamic TVL cap");
+    } catch (err: any) {
+      expect(err.error.errorCode.code).to.equal("TVLCapExceeded");
+    }
+  });
+
   it("Slash 2x with three-way distribution from operator bond", async () => {
     // Re-deposit into original vault for slash test
     await program.methods
-      .deposit(new BN(50_000_000))
+      .deposit(new BN(50_000_000), new BN(0))
       .accountsPartial({
         vaultState,
         shareMint,
@@ -538,14 +688,14 @@ describe("agent-vault", () => {
       .slash(new BN(jobPayment), new BN(99))
       .accountsPartial({
         vaultState,
-        authority: agentWallet.publicKey,
+        authority: arbitrator.publicKey,
         vaultUsdcAccount,
         claimantUsdcAccount,
         arbitratorUsdcAccount,
         protocolUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([agentWallet])
+      .signers([arbitrator])
       .rpc();
 
     const stateAfter = await program.account.vaultState.fetch(vaultState);
@@ -593,14 +743,14 @@ describe("agent-vault", () => {
       .slash(new BN(jobPayment), new BN(100))
       .accountsPartial({
         vaultState,
-        authority: agentWallet.publicKey,
+        authority: arbitrator.publicKey,
         vaultUsdcAccount,
         claimantUsdcAccount,
         arbitratorUsdcAccount,
         protocolUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([agentWallet])
+      .signers([arbitrator])
       .rpc();
 
     const stateAfter = await program.account.vaultState.fetch(vaultState);
@@ -648,7 +798,7 @@ describe("agent-vault", () => {
 
     try {
       await program.methods
-        .deposit(new BN(1_000_000))
+        .deposit(new BN(1_000_000), new BN(0))
         .accountsPartial({
           vaultState,
           shareMint,
@@ -681,7 +831,7 @@ describe("agent-vault", () => {
     expect(state.paused).to.equal(false);
 
     await program.methods
-      .deposit(new BN(1_000_000))
+      .deposit(new BN(1_000_000), new BN(0))
       .accountsPartial({
         vaultState,
         shareMint,
@@ -717,7 +867,7 @@ describe("agent-vault", () => {
     const vua3 = getAssociatedTokenAddressSync(usdcMint, vs3, true);
 
     await program.methods
-      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, 0, new BN(86400))
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, 0, new BN(86400), TARGET_APY_BPS, LENDING_FLOOR_BPS, arbitrator.publicKey)
       .accountsPartial({
         vaultState: vs3,
         shareMint: sm3,
@@ -759,7 +909,7 @@ describe("agent-vault", () => {
     );
 
     await program.methods
-      .deposit(new BN(DEPOSIT_AMOUNT))
+      .deposit(new BN(DEPOSIT_AMOUNT), new BN(0))
       .accountsPartial({
         vaultState: vs3,
         shareMint: sm3,

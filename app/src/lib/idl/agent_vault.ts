@@ -188,6 +188,10 @@ export type AgentVault = {
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "minSharesOut",
+          "type": "u64"
         }
       ]
     },
@@ -383,6 +387,18 @@ export type AgentVault = {
         {
           "name": "epochLength",
           "type": "i64"
+        },
+        {
+          "name": "targetApyBps",
+          "type": "u16"
+        },
+        {
+          "name": "lendingFloorBps",
+          "type": "u16"
+        },
+        {
+          "name": "arbitrator",
+          "type": "pubkey"
         }
       ]
     },
@@ -685,6 +701,10 @@ export type AgentVault = {
         {
           "name": "shares",
           "type": "u64"
+        },
+        {
+          "name": "minAssetsOut",
+          "type": "u64"
         }
       ]
     }
@@ -873,6 +893,11 @@ export type AgentVault = {
       "code": 6009,
       "name": "slashExceedsAssets",
       "msg": "Slash amount exceeds vault assets"
+    },
+    {
+      "code": 6010,
+      "name": "slippageExceeded",
+      "msg": "Output below minimum slippage tolerance"
     }
   ],
   "types": [
@@ -911,6 +936,10 @@ export type AgentVault = {
           },
           {
             "name": "lastDepositEpoch",
+            "type": "u64"
+          },
+          {
+            "name": "totalDeposited",
             "type": "u64"
           },
           {
@@ -1014,6 +1043,10 @@ export type AgentVault = {
             "type": "pubkey"
           },
           {
+            "name": "arbitrator",
+            "type": "pubkey"
+          },
+          {
             "name": "maxTvl",
             "type": "u64"
           }
@@ -1039,6 +1072,10 @@ export type AgentVault = {
         "fields": [
           {
             "name": "agentWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "arbitrator",
             "type": "pubkey"
           },
           {
@@ -1140,6 +1177,14 @@ export type AgentVault = {
           {
             "name": "paused",
             "type": "bool"
+          },
+          {
+            "name": "targetApyBps",
+            "type": "u16"
+          },
+          {
+            "name": "lendingFloorBps",
+            "type": "u16"
           }
         ]
       }

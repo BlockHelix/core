@@ -422,4 +422,81 @@ describe("receipt-registry", () => {
       expect(anchorErr.error.errorCode.code).to.equal("Unauthorized");
     }
   });
+
+  it("client verifies a receipt", async () => {
+    const jobId = 0;
+    const jobReceipt = jobReceiptPda(registryState, jobId);
+
+    const receiptBefore = await program.account.jobReceipt.fetch(jobReceipt);
+    expect(receiptBefore.clientVerified).to.equal(false);
+
+    await program.methods
+      .verifyReceipt(new BN(jobId))
+      .accountsPartial({
+        jobReceipt,
+        client: clientWallet.publicKey,
+      })
+      .signers([clientWallet])
+      .rpc();
+
+    const receipt = await program.account.jobReceipt.fetch(jobReceipt);
+    expect(receipt.clientVerified).to.equal(true);
+  });
+
+  it("rejects verify from non-client", async () => {
+    // Record job #7 for this test
+    const jobId = 7;
+    const jobReceipt = jobReceiptPda(registryState, jobId);
+
+    await program.methods
+      .recordJob(
+        Array.from(artifactHash),
+        new BN(PAYMENT_AMOUNT),
+        Array.from(paymentTx)
+      )
+      .accountsPartial({
+        registryState,
+        jobReceipt,
+        agentWallet: agentWallet.publicKey,
+        client: clientWallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([agentWallet])
+      .rpc();
+
+    try {
+      await program.methods
+        .verifyReceipt(new BN(jobId))
+        .accountsPartial({
+          jobReceipt,
+          client: nonClient.publicKey,
+        })
+        .signers([nonClient])
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      const anchorErr = err as AnchorError;
+      expect(anchorErr.error.errorCode.code).to.equal("Unauthorized");
+    }
+  });
+
+  it("rejects double verification", async () => {
+    const jobId = 0;
+    const jobReceipt = jobReceiptPda(registryState, jobId);
+
+    try {
+      await program.methods
+        .verifyReceipt(new BN(jobId))
+        .accountsPartial({
+          jobReceipt,
+          client: clientWallet.publicKey,
+        })
+        .signers([clientWallet])
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      const anchorErr = err as AnchorError;
+      expect(anchorErr.error.errorCode.code).to.equal("AlreadyVerified");
+    }
+  });
 });

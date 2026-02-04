@@ -279,6 +279,35 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "verify_receipt",
+      "discriminator": [
+        202,
+        144,
+        21,
+        149,
+        181,
+        189,
+        23,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "job_receipt",
+          "writable": true
+        },
+        {
+          "name": "client",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_job_id",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -363,6 +392,19 @@
       ]
     },
     {
+      "name": "ReceiptVerified",
+      "discriminator": [
+        189,
+        58,
+        109,
+        214,
+        74,
+        78,
+        181,
+        8
+      ]
+    },
+    {
       "name": "RegistryInitialized",
       "discriminator": [
         144,
@@ -406,6 +448,11 @@
       "code": 6005,
       "name": "ArithmeticOverflow",
       "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyVerified",
+      "msg": "Receipt already verified"
     }
   ],
   "types": [
@@ -517,6 +564,10 @@
             "type": "pubkey"
           },
           {
+            "name": "client_verified",
+            "type": "bool"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -598,6 +649,30 @@
           },
           {
             "name": "Rejected"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReceiptVerified",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "verified_at",
+            "type": "i64"
           }
         ]
       }

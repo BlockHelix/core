@@ -4,7 +4,8 @@
   "description": "BlockHelix - Tokenized autonomous agent platform",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "initialize-factory": "ts-node scripts/initialize-factory.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",

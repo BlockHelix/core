@@ -3,34 +3,125 @@
 @tailwind utilities;
 
 :root {
-  --helix-bg: #0a0a0f;
-  --helix-card: #12121a;
-  --helix-elevated: #1a1a28;
-  --helix-terminal: #0d1117;
-  --helix-primary: #e4e4e7;
-  --helix-secondary: #a1a1aa;
-  --helix-tertiary: #52525b;
-  --helix-cyan: #22d3ee;
-  --helix-violet: #a78bfa;
-  --helix-green: #4ade80;
-  --helix-amber: #fbbf24;
-  --helix-red: #f87171;
-  --helix-border: #1e1e2e;
-  --helix-focus: rgba(34, 211, 238, 0.2);
+  --bg-dark: #0a0a0a;
+  --emerald: #10b981;
+  --emerald-bright: #34d399;
+  --cyan: #22d3ee;
+  --amber: #fbbf24;
 }
 
 html,
 body {
-  background-color: var(--helix-bg);
-  color: var(--helix-primary);
+  background-color: var(--bg-dark);
+  color: white;
   min-height: 100vh;
+  font-size: 16px;
+  overflow-x: hidden;
+  position: relative;
+}
+
+html::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(255, 255, 255, 0.02) 2px,
+      transparent 2px
+    );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+html::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(34, 211, 238, 0.008) 3px,
+      transparent 3px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(34, 211, 238, 0.008) 3px,
+      transparent 3px
+    );
+  background-size: 100px 100px;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 9998;
+  animation: grain 8s steps(10) infinite;
 }
 
 @layer utilities {
   .font-data {
-    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
   }
+
+  .tracking-wider-2 {
+    letter-spacing: 0.2em;
+  }
+
+  .text-clamp-hero {
+    font-size: clamp(3rem, 10vw, 7rem);
+    line-height: 0.9;
+  }
+
+  .corner-cut {
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  .corner-cut-sm {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+
+  .status-pulse {
+    animation: status-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .scan-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(34, 211, 238, 0.8),
+      transparent
+    );
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+    animation: scan-line 2s ease-in-out infinite;
+  }
+
+  .pulse-line {
+    animation: pulse-line 3s ease-in-out infinite;
+  }
+
+  .divider-pulse {
+    animation: divider-pulse 2s ease-in-out infinite;
+  }
+
+  .terminal-text {
+    text-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+  }
+
 }
 
 @keyframes shimmer {
@@ -42,12 +133,96 @@ body {
   }
 }
 
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+  }
+}
+
+@keyframes cube-rotate {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes cube-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.7));
+  }
+}
+
+@keyframes status-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 16px currentColor, 0 0 8px currentColor;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 8px currentColor, 0 0 4px currentColor;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    top: -100%;
+  }
+  100% {
+    top: 200%;
+  }
+}
+
+@keyframes pulse-line {
+  0%, 100% {
+    opacity: 0.3;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.8;
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0) }
+  10% { transform: translate(-5%, -5%) }
+  20% { transform: translate(-10%, 5%) }
+  30% { transform: translate(5%, -10%) }
+  40% { transform: translate(-5%, 15%) }
+  50% { transform: translate(-10%, 5%) }
+  60% { transform: translate(15%, 0%) }
+  70% { transform: translate(0%, 10%) }
+  80% { transform: translate(-15%, 0%) }
+  90% { transform: translate(10%, 5%) }
+}
+
+@keyframes divider-pulse {
+  0%, 100% {
+    opacity: 0.2;
+    text-shadow: 0 0 4px currentColor;
+  }
+  50% {
+    opacity: 0.5;
+    text-shadow: 0 0 8px currentColor;
+  }
+}
+
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--helix-card) 0%,
-    var(--helix-elevated) 50%,
-    var(--helix-card) 100%
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
   );
   background-size: 1000px 100%;
   animation: shimmer 2s infinite linear;
@@ -59,14 +234,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--helix-bg);
+  background: var(--bg-dark);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--helix-border);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--helix-elevated);
+  background: rgba(255, 255, 255, 0.2);
 }

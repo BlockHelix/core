@@ -16,6 +16,9 @@ export interface AgentMetadata {
   endpointUrl: string;
   agentId: number;
   createdAt: number;
+  isActive: boolean;
+  totalRevenue?: number;
+  totalJobs?: number;
 }
 
 export interface VaultState {
@@ -70,21 +73,36 @@ export interface JobReceipt {
 }
 
 export function useAgentList() {
-  const { factoryProgram } = usePrograms();
+  const { factoryProgram, vaultProgram } = usePrograms();
   const [agents, setAgents] = useState<AgentMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAgents = async () => {
-      if (!factoryProgram) {
+      if (!factoryProgram || !vaultProgram) {
         setIsLoading(false);
         return;
       }
 
       try {
         const agentAccounts = await factoryProgram.account.agentMetadata.all();
-        setAgents(agentAccounts.map((a) => a.account as any));
+        const agentsData = await Promise.all(
+          agentAccounts.map(async (a) => {
+            const account = a.account as any;
+            try {
+              const vaultData = await vaultProgram.account.vaultState.fetch(account.vault);
+              return {
+                ...account,
+                totalRevenue: (vaultData as any).totalRevenue,
+                totalJobs: (vaultData as any).totalJobs,
+              };
+            } catch {
+              return account;
+            }
+          })
+        );
+        setAgents(agentsData);
       } catch (err: any) {
         setError(err?.message || 'Failed to fetch agents');
       } finally {
@@ -93,7 +111,7 @@ export function useAgentList() {
     };
 
     fetchAgents();
-  }, [factoryProgram]);
+  }, [factoryProgram, vaultProgram]);
 
   return { agents, isLoading, error };
 }

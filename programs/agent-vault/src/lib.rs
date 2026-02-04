@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Burn, CloseAccount, Mint, MintTo, Token, TokenAccount, Transfer};
 use anchor_spl::associated_token::AssociatedToken;
 
 declare_id!("HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS");
@@ -11,6 +11,7 @@ const SLASH_MULTIPLIER: u64 = 2;
 const CLIENT_SHARE_BPS: u64 = 7_500;
 const ARBITRATOR_SHARE_BPS: u64 = 1_000;
 const MIN_OPERATOR_BOND: u64 = 100_000_000;
+const SECONDS_PER_YEAR: u128 = 31_536_000;
 
 #[program]
 pub mod agent_vault {
@@ -23,13 +24,19 @@ pub mod agent_vault {
         max_tvl: u64,
         lockup_epochs: u8,
         epoch_length: i64,
+        target_apy_bps: u16,
+        lending_floor_bps: u16,
+        arbitrator: Pubkey,
     ) -> Result<()> {
         let total_bps = agent_fee_bps as u64 + protocol_fee_bps as u64;
         require!(total_bps <= BPS_DENOMINATOR, VaultError::InvalidFees);
         require!(epoch_length > 0, VaultError::InvalidFees);
+        require!(target_apy_bps <= 10_000, VaultError::InvalidFees);
+        require!(lending_floor_bps <= 10_000, VaultError::InvalidFees);
 
         let vault = &mut ctx.accounts.vault_state;
         vault.agent_wallet = ctx.accounts.agent_wallet.key();
+        vault.arbitrator = arbitrator;
         vault.usdc_mint = ctx.accounts.usdc_mint.key();
         vault.share_mint = ctx.accounts.share_mint.key();
         vault.vault_usdc_account = ctx.accounts.vault_usdc_account.key();
@@ -52,6 +59,8 @@ pub mod agent_vault {
         vault.epoch_length = epoch_length;
         vault.nav_high_water_mark = 1_000_000;
         vault.paused = false;
+        vault.target_apy_bps = target_apy_bps;
+        vault.lending_floor_bps = lending_floor_bps;
         vault.bump = ctx.bumps.vault_state;
         vault.share_mint_bump = ctx.bumps.share_mint;
         vault.created_at = Clock::get()?.unix_timestamp;
@@ -61,6 +70,7 @@ pub mod agent_vault {
         emit!(VaultInitialized {
             vault: vault_key,
             agent_wallet: agent_key,
+            arbitrator,
             max_tvl,
         });
 
@@ -98,7 +108,7 @@ pub mod agent_vault {
         Ok(())
     }
 
-    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+    pub fn deposit(ctx: Context<Deposit>, amount: u64, min_shares_out: u64) -> Result<()> {
         require!(amount > 0, VaultError::ZeroAmount);
 
         let vault = &ctx.accounts.vault_state;
@@ -106,8 +116,11 @@ pub mod agent_vault {
         require!(vault.operator_bond >= MIN_OPERATOR_BOND, VaultError::InsufficientBond);
 
         let total_assets = ctx.accounts.vault_usdc_account.amount;
+        let now = Clock::get()?.unix_timestamp;
+        let effective_cap = calculate_dynamic_max_tvl(vault, now)
+            .ok_or(VaultError::ArithmeticOverflow)?;
         require!(
-            total_assets.checked_add(amount).ok_or(VaultError::ArithmeticOverflow)? <= vault.max_tvl,
+            total_assets.checked_add(amount).ok_or(VaultError::ArithmeticOverflow)? <= effective_cap,
             VaultError::TVLCapExceeded
         );
 
@@ -127,6 +140,7 @@ pub mod agent_vault {
             .ok_or(VaultError::ArithmeticOverflow)? as u64;
 
         require!(shares_to_mint > 0, VaultError::ZeroShares);
+        require!(shares_to_mint >= min_shares_out, VaultError::SlippageExceeded);
 
         token::transfer(
             CpiContext::new(
@@ -169,7 +183,11 @@ pub mod agent_vault {
         let deposit_record = &mut ctx.accounts.deposit_record;
         deposit_record.vault = vault_key;
         deposit_record.depositor = depositor_key;
-        deposit_record.last_deposit_epoch = current_epoch;
+        deposit_record.last_deposit_epoch = std::cmp::max(deposit_record.last_deposit_epoch, current_epoch);
+        deposit_record.total_deposited = deposit_record
+            .total_deposited
+            .checked_add(amount)
+            .ok_or(VaultError::ArithmeticOverflow)?;
         deposit_record.bump = ctx.bumps.deposit_record;
 
         let vault = &mut ctx.accounts.vault_state;
@@ -188,7 +206,7 @@ pub mod agent_vault {
         Ok(())
     }
 
-    pub fn withdraw(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
+    pub fn withdraw(ctx: Context<Withdraw>, shares: u64, min_assets_out: u64) -> Result<()> {
         require!(shares > 0, VaultError::ZeroAmount);
 
         let vault = &ctx.accounts.vault_state;
@@ -218,6 +236,7 @@ pub mod agent_vault {
             .ok_or(VaultError::ArithmeticOverflow)? as u64;
 
         require!(usdc_out > 0, VaultError::ZeroAmount);
+        require!(usdc_out >= min_assets_out, VaultError::SlippageExceeded);
 
         token::burn(
             CpiContext::new(
@@ -250,6 +269,20 @@ pub mod agent_vault {
             .with_signer(&[vault_seeds]),
             usdc_out,
         )?;
+
+        ctx.accounts.withdrawer_share_account.reload()?;
+        if ctx.accounts.withdrawer_share_account.amount == 0 {
+            token::close_account(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    CloseAccount {
+                        account: ctx.accounts.withdrawer_share_account.to_account_info(),
+                        destination: ctx.accounts.withdrawer.to_account_info(),
+                        authority: ctx.accounts.withdrawer.to_account_info(),
+                    },
+                ),
+            )?;
+        }
 
         let vault_key = ctx.accounts.vault_state.key();
         let withdrawer_key = ctx.accounts.withdrawer.key();
@@ -477,6 +510,41 @@ fn current_epoch(now: i64, created_at: i64, epoch_length: i64) -> u64 {
     ((now - created_at) / epoch_length) as u64
 }
 
+fn calculate_dynamic_max_tvl(vault: &VaultState, now: i64) -> Option<u64> {
+    let elapsed = now.checked_sub(vault.created_at)?;
+    if elapsed <= 0 || vault.total_revenue == 0 {
+        return Some(vault.max_tvl);
+    }
+
+    let target = vault.target_apy_bps as u128;
+    let floor = vault.lending_floor_bps as u128;
+    if target <= floor {
+        return Some(vault.max_tvl);
+    }
+    let spread_bps = target.checked_sub(floor)?;
+
+    let vault_fee_bps = BPS_DENOMINATOR as u128
+        - vault.agent_fee_bps as u128
+        - vault.protocol_fee_bps as u128;
+
+    let annual_depositor_revenue = (vault.total_revenue as u128)
+        .checked_mul(vault_fee_bps)?
+        .checked_mul(SECONDS_PER_YEAR)?
+        .checked_div(BPS_DENOMINATOR as u128)?
+        .checked_div(elapsed as u128)?;
+
+    let dynamic_cap = annual_depositor_revenue
+        .checked_mul(BPS_DENOMINATOR as u128)?
+        .checked_div(spread_bps)?;
+
+    let cap = if dynamic_cap > vault.max_tvl as u128 {
+        vault.max_tvl
+    } else {
+        dynamic_cap as u64
+    };
+    Some(cap)
+}
+
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
@@ -678,7 +746,7 @@ pub struct Slash<'info> {
     pub vault_state: Account<'info, VaultState>,
 
     #[account(
-        constraint = authority.key() == vault_state.agent_wallet,
+        constraint = authority.key() == vault_state.arbitrator,
     )]
     pub authority: Signer<'info>,
 
@@ -732,6 +800,7 @@ pub struct Unpause<'info> {
 #[derive(InitSpace)]
 pub struct VaultState {
     pub agent_wallet: Pubkey,
+    pub arbitrator: Pubkey,
     pub usdc_mint: Pubkey,
     pub share_mint: Pubkey,
     pub vault_usdc_account: Pubkey,
@@ -757,6 +826,8 @@ pub struct VaultState {
     pub epoch_length: i64,
     pub nav_high_water_mark: u64,
     pub paused: bool,
+    pub target_apy_bps: u16,
+    pub lending_floor_bps: u16,
 }
 
 #[account]
@@ -765,6 +836,7 @@ pub struct DepositRecord {
     pub vault: Pubkey,
     pub depositor: Pubkey,
     pub last_deposit_epoch: u64,
+    pub total_deposited: u64,
     pub bump: u8,
 }
 
@@ -790,12 +862,15 @@ pub enum VaultError {
     InsufficientBond,
     #[msg("Slash amount exceeds vault assets")]
     SlashExceedsAssets,
+    #[msg("Output below minimum slippage tolerance")]
+    SlippageExceeded,
 }
 
 #[event]
 pub struct VaultInitialized {
     pub vault: Pubkey,
     pub agent_wallet: Pubkey,
+    pub arbitrator: Pubkey,
     pub max_tvl: u64,
 }
 

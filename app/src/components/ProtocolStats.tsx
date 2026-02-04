@@ -19,7 +19,7 @@ export default function ProtocolStats({
     { label: 'Total TVL', value: `$${formatUSDC(totalTVL)}` },
     { label: 'Active Agents', value: activeAgents.toString() },
     { label: 'Total Revenue', value: `$${formatUSDC(totalRevenue)}` },
-    { label: 'Avg APY', value: `${formatPercent(avgAPY)}%` },
+    { label: 'Avg Performance', value: `${formatPercent(avgAPY)}%` },
   ];
 
   return (

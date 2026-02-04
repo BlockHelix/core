@@ -51,6 +51,7 @@ pub mod receipt_registry {
         receipt.challenged_at = 0;
         receipt.resolved_at = 0;
         receipt.challenger = Pubkey::default();
+        receipt.client_verified = false;
         receipt.bump = ctx.bumps.job_receipt;
 
         registry.job_counter = registry.job_counter
@@ -164,6 +165,20 @@ pub mod receipt_registry {
 
         Ok(())
     }
+
+    pub fn verify_receipt(ctx: Context<VerifyReceipt>, _job_id: u64) -> Result<()> {
+        let receipt = &mut ctx.accounts.job_receipt;
+        receipt.client_verified = true;
+
+        emit!(ReceiptVerified {
+            registry: receipt.registry,
+            job_id: receipt.job_id,
+            client: ctx.accounts.client.key(),
+            verified_at: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
+    }
 }
 
 // ── Account Contexts ──
@@ -260,6 +275,18 @@ pub struct FinalizeJob<'info> {
     pub job_receipt: Account<'info, JobReceipt>,
 }
 
+#[derive(Accounts)]
+pub struct VerifyReceipt<'info> {
+    #[account(
+        mut,
+        constraint = job_receipt.client == client.key() @ RegistryError::Unauthorized,
+        constraint = !job_receipt.client_verified @ RegistryError::AlreadyVerified,
+    )]
+    pub job_receipt: Account<'info, JobReceipt>,
+
+    pub client: Signer<'info>,
+}
+
 // ── State ──
 
 #[account]
@@ -289,6 +316,7 @@ pub struct JobReceipt {
     pub challenged_at: i64,
     pub resolved_at: i64,
     pub challenger: Pubkey,
+    pub client_verified: bool,
     pub bump: u8,
 }
 
@@ -343,6 +371,14 @@ pub struct JobFinalized {
     pub finalized_at: i64,
 }
 
+#[event]
+pub struct ReceiptVerified {
+    pub registry: Pubkey,
+    pub job_id: u64,
+    pub client: Pubkey,
+    pub verified_at: i64,
+}
+
 // ── Errors ──
 
 #[error_code]
@@ -359,4 +395,6 @@ pub enum RegistryError {
     JobNotChallenged,
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
+    #[msg("Receipt already verified")]
+    AlreadyVerified,
 }
