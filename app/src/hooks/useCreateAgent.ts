@@ -79,38 +79,45 @@ export function useCreateAgent() {
       console.log('[createAgent] Vault USDC account:', vaultUsdcAccount.toBase58());
 
       console.log('[createAgent] Building transaction...');
+      console.log('[createAgent] factoryProgram.methods:', Object.keys(factoryProgram.methods || {}));
 
-      const methodBuilder = factoryProgram.methods
-        .createAgent(
-          params.name,
-          params.githubHandle,
-          params.endpointUrl,
-          params.agentFeeBps,
-          params.protocolFeeBps,
-          new BN(params.challengeWindow),
-          new BN(params.maxTvl),
-          params.lockupEpochs,
-          new BN(params.epochLength),
-          params.targetApyBps,
-          params.lendingFloorBps,
-          new PublicKey(params.arbitrator)
-        )
-        .accountsStrict({
-          factoryState,
-          agentMetadata,
-          agentWallet,
-          vaultState,
-          shareMint,
-          usdcMint: USDC_MINT,
-          vaultUsdcAccount,
-          protocolTreasury: PROTOCOL_TREASURY,
-          registryState,
-          vaultProgram: PROGRAM_IDS.VAULT,
-          registryProgram: PROGRAM_IDS.REGISTRY,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        });
+      console.log('[createAgent] Calling createAgent method...');
+      const method = factoryProgram.methods.createAgent(
+        params.name,
+        params.githubHandle,
+        params.endpointUrl,
+        params.agentFeeBps,
+        params.protocolFeeBps,
+        new BN(params.challengeWindow),
+        new BN(params.maxTvl),
+        params.lockupEpochs,
+        new BN(params.epochLength),
+        params.targetApyBps,
+        params.lendingFloorBps,
+        new PublicKey(params.arbitrator)
+      );
+      console.log('[createAgent] Method created:', method);
+
+      console.log('[createAgent] Setting accounts...');
+      const accountsObj = {
+        factoryState,
+        agentMetadata,
+        agentWallet,
+        vaultState,
+        shareMint,
+        usdcMint: USDC_MINT,
+        vaultUsdcAccount,
+        protocolTreasury: PROTOCOL_TREASURY,
+        registryState,
+        vaultProgram: PROGRAM_IDS.VAULT,
+        registryProgram: PROGRAM_IDS.REGISTRY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      };
+      console.log('[createAgent] Accounts object keys:', Object.keys(accountsObj));
+      const methodBuilder = method.accountsStrict(accountsObj);
+      console.log('[createAgent] Method builder created');
 
       console.log('[createAgent] Getting transaction...');
       const transaction = await methodBuilder.transaction();
