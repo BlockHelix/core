@@ -23,9 +23,7 @@ export interface RegisterAgentResponse {
   };
 }
 
-const RUNTIME_URL = typeof window !== 'undefined'
-  ? process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001'
-  : '';
+const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
 
 export async function registerAgentWithRuntime(
   params: RegisterAgentParams

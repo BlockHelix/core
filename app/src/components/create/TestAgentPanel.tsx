@@ -32,7 +32,7 @@ export default function TestAgentPanel({ systemPrompt, name, apiKey }: TestAgent
     setTestOutput('');
 
     try {
-      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3002';
+      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
 
       const response = await fetch(`${runtimeBaseUrl}/v1/test`, {
         method: 'POST',

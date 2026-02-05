@@ -66,7 +66,7 @@ export default function CreateContent() {
     try {
       toast('Deploying agent on-chain...', 'info');
 
-      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3002';
+      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
       const agentWalletAddress = wallet?.address;
 
       if (!agentWalletAddress) {
