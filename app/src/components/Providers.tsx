@@ -2,8 +2,10 @@
 
 import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
+import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com';
+const WS_URL = RPC_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
 const solanaConnectors = toSolanaWalletConnectors({
   shouldAutoConnect: false,
@@ -28,6 +30,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
         loginMethods: ['wallet', 'email', 'google'],
         externalWallets: {
           solana: { connectors: solanaConnectors },
+        },
+        solana: {
+          rpcs: {
+            'solana:devnet': {
+              rpc: createSolanaRpc(RPC_URL),
+              rpcSubscriptions: createSolanaRpcSubscriptions(WS_URL),
+            },
+          },
         },
       }}
     >
