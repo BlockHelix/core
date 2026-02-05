@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 
 export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
-  const fullText = "Accelerating Agent Capitalism"
+  const fullText = "Capital Is Reputation"
 
   useEffect(() => {
     let i = 0
