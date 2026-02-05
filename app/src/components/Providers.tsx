@@ -29,6 +29,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         externalWallets: {
           solana: { connectors: solanaConnectors },
         },
+        solana: {
+          cluster: 'devnet',
+        },
       }}
     >
       {children}
