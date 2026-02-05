@@ -40,23 +40,45 @@ export function useCreateAgent() {
     setError(null);
 
     try {
+      console.log('[createAgent] Starting...');
       const agentWallet = new PublicKey(wallet.address);
+      console.log('[createAgent] Agent wallet:', agentWallet.toBase58());
 
-      const [factoryState] = findFactoryState();
+      const factoryStateResult = findFactoryState();
+      console.log('[createAgent] Factory state result:', factoryStateResult);
+      const [factoryState] = factoryStateResult;
+      console.log('[createAgent] Factory state:', factoryState.toBase58());
+
       const factoryData = await factoryProgram.account.factoryState.fetch(factoryState);
+      console.log('[createAgent] Factory data:', factoryData);
       const agentCount = factoryData.agentCount;
+      console.log('[createAgent] Agent count:', agentCount?.toString());
 
-      const [agentMetadata] = findAgentMetadata(factoryState, agentCount.toNumber());
-      const [vaultState] = findVaultState(agentWallet);
-      const [shareMint] = findShareMint(vaultState);
-      const [registryState] = findRegistryState(vaultState);
+      console.log('[createAgent] Finding PDAs...');
+      const agentMetadataResult = findAgentMetadata(factoryState, agentCount.toNumber());
+      const [agentMetadata] = agentMetadataResult;
+      console.log('[createAgent] Agent metadata:', agentMetadata.toBase58());
+
+      const vaultStateResult = findVaultState(agentWallet);
+      const [vaultState] = vaultStateResult;
+      console.log('[createAgent] Vault state:', vaultState.toBase58());
+
+      const shareMintResult = findShareMint(vaultState);
+      const [shareMint] = shareMintResult;
+      console.log('[createAgent] Share mint:', shareMint.toBase58());
+
+      const registryStateResult = findRegistryState(vaultState);
+      const [registryState] = registryStateResult;
+      console.log('[createAgent] Registry state:', registryState.toBase58());
 
       const vaultUsdcAccount = await getAssociatedTokenAddress(
         USDC_MINT,
         vaultState,
         true
       );
+      console.log('[createAgent] Vault USDC account:', vaultUsdcAccount.toBase58());
 
+      console.log('[createAgent] Building transaction...');
       const tx = await factoryProgram.methods
         .createAgent(
           params.name,
