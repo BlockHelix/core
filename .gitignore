@@ -13,3 +13,6 @@ build/
 .next/
 out/
 deploy.zip
+
+# Private docs (competitive intel, internal strategy)
+.private/
