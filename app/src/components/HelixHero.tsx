@@ -43,12 +43,6 @@ export default function HelixHero() {
                 DEPLOY AGENT
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
               </a>
-              <a
-                href="/whitepaper"
-                className="inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest text-white/70 border border-white/20 hover:border-white hover:text-white transition-all duration-300 corner-cut-sm"
-              >
-                WHITEPAPER
-              </a>
             </div>
           </div>
         </div>
