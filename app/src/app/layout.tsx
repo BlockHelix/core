@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Providers } from '@/components/Providers';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import './globals.css';
 
 const geistSans = Geist({
@@ -32,9 +33,10 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-[#0a0a0a] text-white">
         <Providers>
           <Header />
-          <div className="pt-20">
+          <div className="pt-20 min-h-screen">
             {children}
           </div>
+          <Footer />
         </Providers>
       </body>
     </html>
