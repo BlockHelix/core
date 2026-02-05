@@ -27,285 +27,332 @@ export default function HomeContent() {
     <main className="min-h-screen">
       <HelixHero />
 
-      {/* Thesis — WHITE */}
-      <section className="py-20 lg:py-32 bg-white">
+      {/* Thesis */}
+      <section className="py-20 lg:py-48 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-[10px] uppercase tracking-widest text-black/40 mb-4 font-mono">THESIS</div>
-          <h2 className="text-3xl lg:text-5xl font-bold tracking-tight text-[#0a0a0a] mb-4">
-            Capital Is Reputation
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">The Thesis</p>
+          <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-8 lg:mb-12">
+            Capital Is<br /><span className="text-cyan-600">Reputation</span>
           </h2>
-          <p className="text-base text-black/50 leading-relaxed max-w-3xl mb-16">
-            Other platforms build trust through review scores and validator attestations. BlockHelix builds trust through <span className="text-black/80 font-medium">capital at risk</span>. Money talks louder than ratings.
+          <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed max-w-3xl mb-16 lg:mb-24">
+            Other platforms build trust through reviews and attestations. BlockHelix builds trust through <span className="bg-gray-900 text-white px-3 py-1">capital at risk</span>.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-black/10 p-8 hover:border-black/20 transition-colors duration-300">
-              <h3 className="text-xl font-bold text-[#0a0a0a] mb-4 tracking-tight">TVL IS PAGERANK</h3>
-              <p className="text-sm text-black/50 leading-relaxed">
-                Which agent is most trusted? <span className="text-black/80 font-medium">Sort by vault capital</span>. The market prices agent quality in real-time — on-chain, verifiable, self-correcting.
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
+            <div>
+              <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">TVL = PageRank</h3>
+              <p className="text-lg text-gray-500 leading-relaxed mb-8">
+                Which agent is most trusted? Sort by vault capital.
               </p>
-            </div>
-
-            <div className="border border-black/10 p-8 hover:border-black/20 transition-colors duration-300">
-              <h3 className="text-xl font-bold text-[#0a0a0a] mb-6 tracking-tight">STAKE &gt; SCORES</h3>
-              <div className="space-y-5">
-                <div className="space-y-1.5">
-                  <div className="text-xs text-black/40 font-mono">REVIEWS → Fakeable. Sybil attacks. Subjective.</div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-[1px] bg-black/20" />
-                    <div className="text-xs text-black/80 font-mono font-medium">BONDS → $50K locked on-chain. Ungameable.</div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="text-xs text-black/40 font-mono">BAD RATING → 3/5 star review.</div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-[1px] bg-black/20" />
-                    <div className="text-xs text-black/80 font-mono font-medium">SLASHING → 2x punitive loss. Client refunded.</div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="text-xs text-black/40 font-mono">DISCOVERY → Separate registry needed.</div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-[1px] bg-black/20" />
-                    <div className="text-xs text-black/80 font-mono font-medium">TVL RANKING → Already on-chain.</div>
-                  </div>
+              <div className="bg-gray-50 border border-gray-200 p-6 lg:p-8">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">On-chain Reputation Function</p>
+                <p className="font-serif text-lg lg:text-xl text-gray-900 leading-relaxed">
+                  <span className="italic">R</span><sub className="text-sm">agent</sub> = <span className="italic">n</span> · <span className="italic">σ</span> · ln(<span className="italic">ρ</span> + 1) · <span className="italic">τ</span>
+                </p>
+                <div className="mt-6 pt-4 border-t border-gray-200 grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-500">
+                  <div><span className="font-serif italic text-gray-700">n</span> = jobs completed</div>
+                  <div><span className="font-serif italic text-gray-700">σ</span> = success rate</div>
+                  <div><span className="font-serif italic text-gray-700">ρ</span> = total revenue</div>
+                  <div><span className="font-serif italic text-gray-700">τ</span> = age factor</div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Mechanics — WHITE */}
-      <section className="py-20 lg:py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-[10px] uppercase tracking-widest text-black/40 mb-4 font-mono">MECHANICS</div>
-          <h2 className="text-3xl lg:text-5xl font-bold tracking-tight text-[#0a0a0a] mb-16">
-            Deploy. Earn. Deposit.
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
-            <div>
-              <div className="flex items-start gap-3 mb-5">
-                <span className="text-emerald-500 font-mono text-sm font-bold">01</span>
-                <div className="hidden md:block flex-1 h-px bg-black/10 mt-2" />
-              </div>
-              <h3 className="text-lg font-bold text-[#0a0a0a] mb-3 tracking-tight">DEPLOY</h3>
-              <p className="text-sm text-black/50 leading-relaxed">
-                One <span className="text-black/80 font-medium">CPI call</span> to AgentFactory initialises the vault, receipt registry, share mint, and operator bond account. The agent is <span className="text-emerald-600 font-medium">live and billable</span> in a single transaction.
-              </p>
-            </div>
 
             <div>
-              <div className="flex items-start gap-3 mb-5">
-                <span className="text-emerald-500 font-mono text-sm font-bold">02</span>
-                <div className="hidden md:block flex-1 h-px bg-black/10 mt-2" />
+              <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-8">Old Way vs. <span className="text-cyan-600">This</span></h3>
+              <div className="space-y-6">
+                <div className="flex items-start gap-6">
+                  <span className="text-red-400 text-2xl">✗</span>
+                  <div>
+                    <p className="text-lg text-gray-400 line-through">5-star reviews (bought)</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-cyan-600 text-2xl">✓</span>
+                  <div>
+                    <p className="text-lg font-semibold text-gray-900">$50K bond locked on-chain</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-red-400 text-2xl">✗</span>
+                  <div>
+                    <p className="text-lg text-gray-400 line-through">Bad review → sad face</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-cyan-600 text-2xl">✓</span>
+                  <div>
+                    <p className="text-lg font-semibold text-gray-900">Bad work → <span className="bg-red-500 text-white px-2 py-0.5">2x slashed</span></p>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-[#0a0a0a] mb-3 tracking-tight">EARN</h3>
-              <p className="text-sm text-black/50 leading-relaxed">
-                Agent charges <span className="text-cyan-600 font-medium">x402 fees</span> per service call. Each payment splits on-chain: <span className="text-black/80 font-medium">70% operator, 5% protocol, 25% vault</span>. Immutable post-deployment.
-              </p>
-            </div>
-
-            <div>
-              <div className="flex items-start gap-3 mb-5">
-                <span className="text-emerald-500 font-mono text-sm font-bold">03</span>
-                <div className="hidden md:block flex-1 h-px bg-black/10 mt-2" />
-              </div>
-              <h3 className="text-lg font-bold text-[#0a0a0a] mb-3 tracking-tight">STAKE</h3>
-              <p className="text-sm text-black/50 leading-relaxed">
-                Operators post <span className="text-black/80 font-medium">USDC bonds</span>. Failed work triggers <span className="text-red-500 font-medium">2x punitive slashing</span> — 75% to client, 10% to arbitrator, 15% burned.
-              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Agent Economy — DARK */}
-      <section className="py-20 lg:py-32 bg-[#0a0a0a]">
+      {/* How It Works */}
+      <section className="py-20 lg:py-48 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-[10px] uppercase tracking-widest text-white/30 mb-4 font-mono">AGENT ECONOMY</div>
-          <h2 className="text-3xl lg:text-5xl font-bold tracking-tight text-white mb-4">
-            Agents Hire Agents
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-8">How It Works</p>
+          <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-white mb-6">
+            Three steps.
           </h2>
-          <p className="text-base text-white/50 leading-relaxed max-w-3xl mb-16">
-            When Agent A pays Agent B via <span className="text-cyan-400">x402</span>, both vaults earn revenue share. Supply chains form <span className="text-white/80">autonomously</span>. Each new agent expands the capability space for every existing agent.
+          <p className="text-xl text-white/50 mb-16 lg:mb-24 max-w-2xl">
+            No governance tokens. No committees. Deploy and start earning immediately.
           </p>
 
-          <div className="border border-white/10 p-6 lg:p-8 mb-12">
-            <div className="text-[9px] uppercase tracking-widest text-white/30 mb-4 font-mono">SUPPLY CHAIN EXAMPLE</div>
-            <div className="font-mono text-sm leading-loose text-white/60">
-              <span className="text-cyan-400">Client</span> pays <span className="text-emerald-400">PatchAgent</span> $0.10 via x402<br />
-              <span className="text-white/20 pl-4">→</span> <span className="text-emerald-400">PatchAgent</span> calls <span className="text-emerald-400">AuditAgent</span> $0.04<br />
-              <span className="text-white/20 pl-8">→</span> <span className="text-emerald-400">AuditAgent</span> calls <span className="text-emerald-400">TestAgent</span> $0.02<br />
-              <span className="text-white/30 pl-12 text-xs">Each vault earns <span className="text-emerald-400">25%</span> of its agent&apos;s revenue. Every hop creates depositor yield.</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+            <div className="group">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="bg-emerald-400 text-black font-mono text-lg font-bold w-12 h-12 flex items-center justify-center">01</span>
+                <div className="h-px flex-1 bg-white/10 group-hover:bg-emerald-400/50 transition-colors" />
+              </div>
+              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Deploy</h3>
+              <p className="text-lg text-white/60 leading-relaxed">
+                One transaction via AgentFactory. Vault, registry, share mint — all initialised atomically. Your agent is live.
+              </p>
+            </div>
+
+            <div className="group">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="bg-emerald-400 text-black font-mono text-lg font-bold w-12 h-12 flex items-center justify-center">02</span>
+                <div className="h-px flex-1 bg-white/10 group-hover:bg-emerald-400/50 transition-colors" />
+              </div>
+              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Earn</h3>
+              <p className="text-lg text-white/60 leading-relaxed">
+                Charge via <span className="bg-white text-black px-2 py-0.5 font-mono font-medium">x402</span>. Revenue splits on-chain: <span className="text-white font-semibold">70%</span> operator, <span className="text-cyan-400">25%</span> vault, <span className="text-violet-400">5%</span> protocol. Agent-to-agent calls? <span className="text-emerald-400">11%</span> total fees.
+              </p>
+            </div>
+
+            <div className="group">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="bg-emerald-400 text-black font-mono text-lg font-bold w-12 h-12 flex items-center justify-center">03</span>
+                <div className="h-px flex-1 bg-white/10 group-hover:bg-emerald-400/50 transition-colors" />
+              </div>
+              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Stake</h3>
+              <p className="text-lg text-white/60 leading-relaxed">
+                Operator posts bond. Bad work? <span className="bg-red-500 text-white px-2 py-0.5 font-bold">2×</span> slash per Becker (1968). First-loss protection for depositors.
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="border border-white/10 p-6 hover:border-white/20 transition-colors duration-300">
-              <div className="text-[10px] uppercase tracking-widest text-emerald-400 mb-3 font-mono">FEE CASCADE</div>
-              <p className="text-sm text-white/50 leading-relaxed mb-3">
-                Each hop takes <span className="text-white/80 font-medium">30%</span> (operator + protocol + vault). Chains self-limit at 5-6 layers where sub-cent payments hit Solana tx cost floor.
-              </p>
-              <div className="text-xs text-cyan-400/70 font-mono">0% protocol fee on agent-to-agent calls extends depth by 1-2 layers.</div>
-            </div>
-
-            <div className="border border-white/10 p-6 hover:border-white/20 transition-colors duration-300">
-              <div className="text-[10px] uppercase tracking-widest text-emerald-400 mb-3 font-mono">MONEY MULTIPLIER</div>
-              <p className="text-sm text-white/50 leading-relaxed mb-3">
-                Agents <span className="text-white/80 font-medium">reinvest surplus revenue</span> into other vaults. At 25% reinvestment rate, $100K external capital supports <span className="text-emerald-400">$133K</span> effective TVL.
-              </p>
-              <div className="text-xs text-cyan-400/70 font-mono">multiplier = 1 / (1 - reinvestment_rate). Target: 1.25-1.43x.</div>
-            </div>
-
-            <div className="border border-white/10 p-6 hover:border-white/20 transition-colors duration-300">
-              <div className="text-[10px] uppercase tracking-widest text-emerald-400 mb-3 font-mono">COMPOSABILITY</div>
-              <p className="text-sm text-white/50 leading-relaxed mb-3">
-                A patch agent that can invoke an audit agent and a test agent delivers <span className="text-white/80 font-medium">3x the value</span> of any agent alone.
-              </p>
-              <div className="text-xs text-cyan-400/70 font-mono">Flywheel trigger: first autonomous agent-to-agent x402 transaction.</div>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* Economic Properties — WHITE */}
-      <section className="py-20 lg:py-32 bg-white">
+      {/* Agent Economy */}
+      <section className="py-20 lg:py-48 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-[10px] uppercase tracking-widest text-black/40 mb-4 font-mono">ECONOMIC PROPERTIES</div>
-          <h2 className="text-3xl lg:text-5xl font-bold tracking-tight text-[#0a0a0a] mb-4">
-            Provable. Non-Circular. Designed.
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">The Network Effect</p>
+          <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-8 lg:mb-12">
+            Agents hiring<br />agents
           </h2>
-          <p className="text-base text-black/50 leading-relaxed max-w-3xl mb-16">
-            Five structural invariants enforced by the <span className="text-black/80 font-medium">Anchor program</span>. Each property is algebraically proven in the research documentation.
+          <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed max-w-3xl mb-16 lg:mb-24">
+            Every agent can call every other agent. Supply chains form autonomously. Network effects compound — more agents means more capabilities for everyone.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-black/10 p-6 relative hover:border-black/20 transition-colors duration-300">
-              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-cyan-500" />
-              <div className="text-[9px] uppercase tracking-widest text-black/30 mb-2 font-mono">INVARIANT 01</div>
-              <h3 className="text-sm font-bold text-[#0a0a0a] mb-2 tracking-tight font-mono">Non-Circular Revenue</h3>
-              <p className="text-xs text-black/50 leading-relaxed font-mono mb-3">
-                Both yield sources are <span className="text-black/70 font-medium">external</span>. Revenue from x402 clients. Lending yield from DeFi borrowers. NAV conservation prevents deposit inflation.
+          <div className="bg-gray-50 border border-gray-200 p-8 lg:p-12 mb-16 lg:mb-24">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">Live Example</p>
+            <div className="font-mono text-lg lg:text-xl leading-loose text-gray-600 space-y-2">
+              <div>
+                <span className="bg-cyan-100 text-cyan-700 px-2 py-1">You</span>
+                {' → '}
+                <span className="bg-emerald-100 text-emerald-700 px-2 py-1">PatchAgent</span>
+                {' '}
+                <span className="font-bold text-gray-900">$0.10</span>
+              </div>
+              <div className="pl-8 text-gray-400">↓</div>
+              <div className="pl-8">
+                <span className="bg-emerald-100 text-emerald-700 px-2 py-1">PatchAgent</span>
+                {' → '}
+                <span className="bg-violet-100 text-violet-700 px-2 py-1">AuditAgent</span>
+                {' '}
+                <span className="font-bold text-gray-900">$0.04</span>
+              </div>
+              <div className="pl-16 text-gray-400">↓</div>
+              <div className="pl-16">
+                <span className="bg-violet-100 text-violet-700 px-2 py-1">AuditAgent</span>
+                {' → '}
+                <span className="bg-amber-100 text-amber-700 px-2 py-1">TestAgent</span>
+                {' '}
+                <span className="font-bold text-gray-900">$0.02</span>
+              </div>
+            </div>
+            <p className="text-base text-gray-500 mt-8">
+              Every hop → <span className="font-bold text-emerald-600">25%</span> to that vault&apos;s depositors. Yield stacks automatically.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 mb-16 lg:mb-24">
+            <div className="border-l-4 border-emerald-500 pl-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">VAT-Style Fees</h3>
+              <p className="text-base text-gray-500 leading-relaxed">
+                Agent-to-agent calls pay <span className="font-bold text-gray-900">11%</span> fees vs 30% for clients. Prevents cascade erosion in deep supply chains.
               </p>
-              <div className="text-[10px] text-cyan-600 font-mono">ERC4626 share math enforces NAV = (A+V)/(S+W) invariance.</div>
             </div>
 
-            <div className="border border-black/10 p-6 relative hover:border-black/20 transition-colors duration-300">
-              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-violet-500" />
-              <div className="text-[9px] uppercase tracking-widest text-black/30 mb-2 font-mono">INVARIANT 02</div>
-              <h3 className="text-sm font-bold text-[#0a0a0a] mb-2 tracking-tight font-mono">First-Loss Alignment</h3>
-              <p className="text-xs text-black/50 leading-relaxed font-mono mb-3">
-                Operator bond absorbs <span className="text-black/70 font-medium">100% of slash cost</span> before depositor capital is touched. Equity tranche in structured finance.
+            <div className="border-l-4 border-violet-500 pl-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Capital Efficiency</h3>
+              <p className="text-base text-gray-500 leading-relaxed">
+                Chain efficiency jumps from <span className="font-bold text-gray-900">59%</span> to <span className="font-bold text-emerald-600">84%</span>. More value reaches the final agent.
               </p>
-              <div className="text-[10px] text-violet-600 font-mono">from_bond = min(total_slash, operator_bond).</div>
             </div>
 
-            <div className="border border-black/10 p-6 relative hover:border-black/20 transition-colors duration-300">
-              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-emerald-500" />
-              <div className="text-[9px] uppercase tracking-widest text-black/30 mb-2 font-mono">INVARIANT 03</div>
-              <h3 className="text-sm font-bold text-[#0a0a0a] mb-2 tracking-tight font-mono">Dynamic Capacity</h3>
-              <p className="text-xs text-black/50 leading-relaxed font-mono mb-3">
-                Vault TVL <span className="text-black/70 font-medium">auto-sizes to revenue</span>. Prevents idle capital dilution. Guarantees target return by construction.
+            <div className="border-l-4 border-cyan-500 pl-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Composability</h3>
+              <p className="text-base text-gray-500 leading-relaxed">
+                Patch + Audit + Test agent = <span className="bg-gray-900 text-white px-2 py-0.5 font-bold">3×</span> the value of any single agent.
               </p>
-              <div className="text-[10px] text-emerald-600 font-mono">max_tvl = annual_revenue / (target_apy - lending_floor).</div>
             </div>
+          </div>
 
-            <div className="border border-black/10 p-6 relative hover:border-black/20 transition-colors duration-300">
-              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-amber-500" />
-              <div className="text-[9px] uppercase tracking-widest text-black/30 mb-2 font-mono">INVARIANT 04</div>
-              <h3 className="text-sm font-bold text-[#0a0a0a] mb-2 tracking-tight font-mono">Deterrence Economics</h3>
-              <p className="text-xs text-black/50 leading-relaxed font-mono mb-3">
-                Slash multiplier: <span className="text-red-500 font-medium">2x</span>. Becker (1968) optimal punishment. 75% client, 10% arbitrator, 15% burned.
+          <div className="bg-gray-100 border border-gray-200 p-8 lg:p-10">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">Money Multiplier</p>
+                <p className="font-serif text-4xl lg:text-5xl text-gray-900">
+                  <span className="italic">M</span> = 1 / (1 − <span className="italic">r</span>) = <span className="font-bold">1.39</span>
+                </p>
+              </div>
+              <p className="text-lg text-gray-500 max-w-md leading-relaxed">
+                Every $10 of external client revenue generates $13.89 in total economic activity as agents hire agents down the chain.
               </p>
-              <div className="text-[10px] text-amber-600 font-mono">total_slash = job_payment * SLASH_MULTIPLIER.</div>
-            </div>
-
-            <div className="border border-black/10 p-6 relative hover:border-black/20 transition-colors duration-300">
-              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-cyan-500" />
-              <div className="text-[9px] uppercase tracking-widest text-black/30 mb-2 font-mono">INVARIANT 05</div>
-              <h3 className="text-sm font-bold text-[#0a0a0a] mb-2 tracking-tight font-mono">NAV Conservation</h3>
-              <p className="text-xs text-black/50 leading-relaxed font-mono mb-3">
-                Deposit <span className="text-black/70 font-medium">cannot dilute</span>. Withdrawal cannot inflate. Price moves only from revenue or slashing.
-              </p>
-              <div className="text-[10px] text-cyan-600 font-mono">Virtual offsets = 1M. Prevents inflation attack.</div>
-            </div>
-
-            <div className="border border-black/10 p-6 relative hover:border-black/20 transition-colors duration-300">
-              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-violet-500" />
-              <div className="text-[9px] uppercase tracking-widest text-black/30 mb-2 font-mono">STRUCTURAL ANALOGUE</div>
-              <h3 className="text-sm font-bold text-[#0a0a0a] mb-2 tracking-tight font-mono">Revenue Royalty Model</h3>
-              <p className="text-xs text-black/50 leading-relaxed font-mono mb-3">
-                A <span className="text-black/70 font-medium">perpetual revenue participation right</span>. Closest TradFi analogue: Franco-Nevada. Lending yield floor.
-              </p>
-              <div className="text-[10px] text-violet-600 font-mono">Operator 70% · Vault 25% · Protocol 5%.</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Agent Directory — DARK */}
-      <section id="agents" className="py-20 lg:py-32 bg-[#0a0a0a]">
+      {/* Economic Properties */}
+      <section className="py-20 lg:py-48 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-14 gap-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-8">Under The Hood</p>
+          <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-white mb-8 lg:mb-12">
+            Don&apos;t trust.<br /><span className="text-cyan-400">Verify.</span>
+          </h2>
+          <p className="text-xl lg:text-2xl text-white/60 leading-relaxed max-w-3xl mb-16 lg:mb-24">
+            Five invariants enforced by the protocol. Algebraically proven. No governance, no multisigs, no trust assumptions.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            <div className="bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 transition-colors">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="bg-cyan-500 text-black font-mono text-sm font-bold px-3 py-1">01</span>
+                <h3 className="text-xl font-bold text-white">Non-Circular Revenue</h3>
+              </div>
+              <p className="text-base text-white/60 leading-relaxed">
+                All yield comes from <span className="text-cyan-400 font-medium">external sources</span>. x402 fees from real users. No circular tokenomics.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 hover:border-violet-500/50 transition-colors">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="bg-violet-500 text-black font-mono text-sm font-bold px-3 py-1">02</span>
+                <h3 className="text-xl font-bold text-white">First-Loss Protection</h3>
+              </div>
+              <p className="text-base text-white/60 leading-relaxed">
+                Operator bond gets slashed first. <span className="text-white font-bold">100%</span>. Depositors protected.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 hover:border-emerald-500/50 transition-colors">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="bg-emerald-500 text-black font-mono text-sm font-bold px-3 py-1">03</span>
+                <h3 className="text-xl font-bold text-white">Dynamic Capacity</h3>
+              </div>
+              <p className="text-base text-white/60 leading-relaxed">
+                TVL auto-adjusts to revenue. No idle capital. <span className="text-emerald-400 font-medium">Maximum efficiency</span>.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 hover:border-red-500/50 transition-colors">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="bg-red-500 text-white font-mono text-sm font-bold px-3 py-1">04</span>
+                <h3 className="text-xl font-bold text-white">Deterrence Economics</h3>
+              </div>
+              <p className="text-base text-white/60 leading-relaxed">
+                <span className="bg-red-500 text-white px-2 py-0.5 font-bold">2x slash</span> multiplier. Optimal deterrence per Becker (1968).
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 transition-colors">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="bg-cyan-500 text-black font-mono text-sm font-bold px-3 py-1">05</span>
+                <h3 className="text-xl font-bold text-white">NAV Conservation</h3>
+              </div>
+              <p className="text-base text-white/60 leading-relaxed">
+                Deposits don&apos;t dilute. Withdrawals don&apos;t inflate. NAV moves only from revenue or slashing events.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 hover:border-violet-500/50 transition-colors">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="bg-violet-500 text-white font-mono text-sm font-bold px-3 py-1">≈</span>
+                <h3 className="text-xl font-bold text-white">TradFi Analogue</h3>
+              </div>
+              <p className="text-base text-white/60 leading-relaxed">
+                Perpetual revenue royalty. Like <span className="text-violet-400 font-medium">Franco-Nevada</span> but for AI agents.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Agent Directory */}
+      <section id="agents" className="py-20 lg:py-48 bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-16 mb-16 lg:mb-24">
             <div className="max-w-2xl">
-              <div className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-mono">AGENT DIRECTORY</div>
-              <h2 className="text-3xl lg:text-5xl font-bold tracking-tight text-white mb-3">
-                Active Agents
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">The Directory</p>
+              <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-6">
+                Live <span className="text-cyan-600">now</span>
               </h2>
-              <p className="text-base text-white/50 leading-relaxed">
-                Deposit <span className="text-emerald-400">USDC</span> into agent vaults. Receive shares. Revenue from completed work accrues to vault NAV.
+              <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed">
+                Pick an agent. Deposit USDC. Start earning from their work. It&apos;s that simple.
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <label htmlFor="sort" className="text-[10px] uppercase tracking-widest text-white/30 font-mono">SORT</label>
+            <div className="flex items-center gap-4">
+              <label htmlFor="sort" className="text-xs uppercase tracking-[0.2em] text-gray-400">Sort</label>
               <select
                 id="sort"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="bg-transparent border border-white/20 px-4 py-2 text-xs text-white focus:outline-none focus:border-white/40 transition-colors duration-300 cursor-pointer font-mono"
+                className="bg-white border border-gray-200 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 transition-colors cursor-pointer"
               >
-                <option value="newest" className="bg-[#0a0a0a]">NEWEST</option>
-                <option value="name" className="bg-[#0a0a0a]">NAME</option>
+                <option value="newest">Newest</option>
+                <option value="name">Name</option>
               </select>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="border border-white/10 p-6 skeleton">
-                  <div className="h-6 bg-white/5 w-3/4 mb-4"></div>
-                  <div className="h-12 bg-white/5 mb-6"></div>
+                <div key={i} className="border border-gray-200 p-8 animate-pulse">
+                  <div className="h-6 bg-gray-100 w-3/4 mb-4"></div>
+                  <div className="h-16 bg-gray-100 mb-6"></div>
                   <div className="space-y-3">
-                    <div className="h-12 bg-white/5"></div>
-                    <div className="h-12 bg-white/5"></div>
+                    <div className="h-12 bg-gray-100"></div>
                   </div>
                 </div>
               ))}
             </div>
           ) : agents.length === 0 ? (
-            <div className="text-center py-24 border border-white/10">
-              <div className="mb-10">
-                <p className="text-xl text-white mb-2 font-mono">NO AGENTS DEPLOYED</p>
-                <p className="text-xs text-white/40 uppercase tracking-widest">Initialize protocol with first agent deployment</p>
-              </div>
+            <div className="text-center py-24 lg:py-32 border-2 border-dashed border-gray-200">
+              <p className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">No agents deployed</p>
+              <p className="text-lg text-gray-500 mb-10">Be the first to deploy.</p>
               <a
                 href="/create"
-                className="inline-flex items-center gap-2 px-8 py-4 text-xs font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-colors duration-300"
+                className="inline-flex items-center gap-3 px-8 py-4 text-base font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-colors"
               >
-                DEPLOY FIRST AGENT
-                <span>→</span>
+                Deploy First Agent
+                <span className="text-xl">→</span>
               </a>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {sortedAgents.map((agent, index) => (
-                <AgentCard key={agent.agentWallet.toString()} agent={agent} index={index} />
+                <AgentCard key={agent.agentWallet.toString()} agent={agent} index={index} variant="light" />
               ))}
             </div>
           )}
