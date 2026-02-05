@@ -1,0 +1,56 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build output (rebuilt in container)
+dist
+**/dist
+
+# Git
+.git
+.gitignore
+
+# Environment files (secrets managed via AWS)
+.env
+.env.*
+!.env.example
+
+# Development
+*.log
+.DS_Store
+coverage
+.nyc_output
+
+# Terraform
+terraform/
+.terraform/
+*.tfstate*
+*.tfvars
+
+# Anchor build artifacts (except IDL)
+target/debug
+target/release
+target/deploy
+target/bpfel-unknown-unknown
+
+# Tests
+tests/
+**/*.test.ts
+**/*.spec.ts
+
+# Documentation
+*.md
+docs/
+
+# IDE
+.vscode
+.idea
+
+# Private keys
+.private/
+*.pem
+*.key
+
+# Misc
+.anchor/
+.claude/

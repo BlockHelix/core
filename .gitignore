@@ -16,3 +16,11 @@ deploy.zip
 
 # Private docs (competitive intel, internal strategy)
 .private/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
