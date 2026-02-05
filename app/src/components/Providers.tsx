@@ -37,6 +37,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
               rpc: createSolanaRpc(RPC_URL),
               rpcSubscriptions: createSolanaRpcSubscriptions(WS_URL),
             },
+            'solana:mainnet': {
+              rpc: createSolanaRpc(RPC_URL),
+              rpcSubscriptions: createSolanaRpcSubscriptions(WS_URL),
+            },
           },
         },
       }}
