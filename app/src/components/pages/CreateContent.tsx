@@ -61,7 +61,7 @@ export default function CreateContent() {
     try {
       toast('Deploying agent on-chain...', 'info');
 
-      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
+      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3002';
       const agentWalletAddress = wallet?.address;
 
       if (!agentWalletAddress) {
@@ -101,7 +101,7 @@ export default function CreateContent() {
         toast('Agent registered with runtime!', 'success');
       } catch (runtimeError: any) {
         console.error('Runtime registration error:', runtimeError);
-        toast(`Warning: Agent created on-chain but runtime registration failed: ${runtimeError.message}`, 'warning');
+        toast(`Warning: Agent created on-chain but runtime registration failed: ${runtimeError.message}`, 'info');
       }
 
       setDeploySuccess(true);

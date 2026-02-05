@@ -8,6 +8,7 @@ import { CopyButton } from '@/components/CopyButton';
 import { RevenueChart } from '@/components/RevenueChart';
 import { ReceiptTable } from '@/components/ReceiptTable';
 import { InvestWithdrawForm } from '@/components/InvestWithdrawForm';
+import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
 import { useAgentDetails, useJobReceipts } from '@/hooks/useAgentData';
 import { findVaultState, findRegistryState } from '@/lib/pda';
@@ -201,6 +202,15 @@ export default function AgentDetailContent() {
             <RevenueChart data={revenueHistory} />
           </div>
         )}
+
+        <div className="mb-12">
+          <TryAgentWidget
+            agentId={agentWalletStr}
+            price={0.10}
+            endpointUrl={agentMetadata.endpointUrl}
+            agentName={agentMetadata.name}
+          />
+        </div>
 
         <div className="mb-12">
           <InvestWithdrawForm
