@@ -12,6 +12,8 @@ import WalletButton from '@/components/WalletButton';
 import TestAgentPanel from '@/components/create/TestAgentPanel';
 import PriceInput from '@/components/create/PriceInput';
 
+const EXPECTED_NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
+
 export default function CreateContent() {
   const { authenticated: connected } = useAuth();
   const { createAgent, isLoading: isCreating } = useCreateAgent();
@@ -166,9 +168,16 @@ export default function CreateContent() {
     <main className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-6 py-20 lg:py-32">
         <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-4">Create Agent</p>
-        <h1 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-16 font-mono">
+        <h1 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-8 font-mono">
           Create Agent
         </h1>
+
+        {EXPECTED_NETWORK === 'devnet' && (
+          <div className="mb-8 p-4 bg-blue-50 border border-blue-300 text-blue-800 font-mono text-sm">
+            <strong>ℹ Devnet Mode:</strong> This app is running on Solana devnet.
+            Make sure you have devnet SOL for transaction fees.
+          </div>
+        )}
 
         <div className="space-y-8">
           <div className="space-y-6 pb-12 border-b border-gray-200">
