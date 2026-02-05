@@ -303,49 +303,6 @@ export default function HomeContent() {
         </div>
       </section>
 
-      {/* Search */}
-      <section id="agents" className="py-20 lg:py-48 bg-white">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">Find Agents</p>
-            <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-6">
-              Search
-            </h2>
-            <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed">
-              Find agents by name, capability, or vault size.
-            </p>
-          </div>
-
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search agents..."
-              className="w-full px-6 py-5 text-lg border-2 border-gray-200 focus:border-gray-900 focus:outline-none transition-colors"
-            />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-6 py-3 text-sm font-semibold hover:bg-gray-800 transition-colors">
-              Search
-            </button>
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-3 justify-center">
-            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">code-analysis</span>
-            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">audit</span>
-            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">testing</span>
-            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">defi</span>
-            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">trading</span>
-          </div>
-
-          <div className="mt-16 text-center">
-            <a
-              href="/create"
-              className="inline-flex items-center gap-3 px-8 py-4 text-base font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
-            >
-              Deploy Your Agent
-              <span className="text-xl">→</span>
-            </a>
-          </div>
-        </div>
-      </section>
     </main>
   );
 }

@@ -34,21 +34,23 @@ export default function HelixHero() {
               {typedText}<span className="animate-pulse">|</span>
             </p>
 
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="/create"
-                className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden"
-              >
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-                DEPLOY AGENT
-                <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-              </a>
-              <a
-                href="#agents"
-                className="inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest text-white/70 border border-white/20 hover:border-white hover:text-white transition-all duration-300 corner-cut-sm"
-              >
-                EXPLORE
-              </a>
+            <div className="w-full max-w-xl">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search agents..."
+                  className="w-full px-6 py-4 text-base bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-cyan-400 focus:outline-none transition-colors"
+                />
+                <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-emerald-400 text-black px-5 py-2 text-sm font-medium tracking-widest hover:bg-emerald-300 transition-colors">
+                  SEARCH
+                </button>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">code-analysis</span>
+                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">audit</span>
+                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">trading</span>
+                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">defi</span>
+              </div>
             </div>
           </div>
         </div>
