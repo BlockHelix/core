@@ -34,30 +34,25 @@ export default function HelixHero() {
               {typedText}<span className="animate-pulse">|</span>
             </p>
 
-            <div className="flex flex-wrap items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-8">
               <a
                 href="/create"
-                className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden"
+                className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden whitespace-nowrap"
               >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
                 DEPLOY AGENT
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
               </a>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-24 left-0 right-0 z-20 px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search agents by name, capability, or TVL..."
-                className="w-full px-6 py-5 pl-14 text-lg bg-white text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all corner-cut-sm"
-              />
-              <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <div className="relative flex-1 min-w-[300px]">
+                <input
+                  type="text"
+                  placeholder="Search agents..."
+                  className="w-full px-4 py-4 pl-12 text-base bg-white text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all corner-cut-sm"
+                />
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
