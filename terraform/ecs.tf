@@ -51,8 +51,6 @@ resource "aws_iam_role_policy" "ecs_execution_secrets" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          aws_secretsmanager_secret.anthropic_api_key.arn,
-          aws_secretsmanager_secret.admin_secret.arn,
           aws_secretsmanager_secret.github_token.arn,
           aws_secretsmanager_secret.agent_wallet.arn,
         ]
@@ -115,14 +113,6 @@ resource "aws_ecs_task_definition" "agent" {
       ]
 
       secrets = [
-        {
-          name      = "ANTHROPIC_API_KEY"
-          valueFrom = aws_secretsmanager_secret.anthropic_api_key.arn
-        },
-        {
-          name      = "ADMIN_SECRET"
-          valueFrom = aws_secretsmanager_secret.admin_secret.arn
-        },
         {
           name      = "GITHUB_TOKEN"
           valueFrom = aws_secretsmanager_secret.github_token.arn
