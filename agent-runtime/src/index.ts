@@ -2,18 +2,14 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { createApp } from './server';
-import { loadAgentsFromStorage } from './services/storage';
+import './services/storage'; // Auto-loads agents from persistent storage
 
 const PORT = process.env.PORT || 3002;
-
-// Load agents from persistent storage (operator-created via dashboard)
-loadAgentsFromStorage();
 
 const app = createApp();
 
 app.listen(PORT, () => {
   console.log(`BlockHelix Agent Runtime running on port ${PORT}`);
-  console.log(`Network: ${NETWORK}`);
   console.log(`Endpoints:`);
   console.log(`  GET  /health               - Service health`);
   console.log(`  GET  /v1/agents            - List hosted agents`);
