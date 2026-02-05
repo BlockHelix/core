@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { paymentMiddleware } from '@x402/express';
 import { HTTPFacilitatorClient } from '@x402/core/server';
 import { x402ResourceServer } from '@x402/express';
@@ -22,6 +23,10 @@ const NETWORK = process.env.SOLANA_NETWORK === 'mainnet' ? SOLANA_MAINNET_CAIP2 
 
 export function createApp(): express.Application {
   const app = express();
+  app.use(cors({
+    origin: ['https://www.blockhelix.tech', 'https://blockhelix.tech', 'http://localhost:3000'],
+    credentials: true,
+  }));
   app.use(express.json({ limit: '1mb' }));
 
   initDefaultAgents();
