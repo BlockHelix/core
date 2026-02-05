@@ -1,26 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useAgentList } from '@/hooks/useAgentData';
 import HelixHero from '@/components/HelixHero';
 
-type SortOption = 'newest' | 'name';
-
 export default function HomeContent() {
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const { agents, isLoading } = useAgentList();
-
-  const sortedAgents = useMemo(() => {
-    const sorted = [...agents];
-    switch (sortBy) {
-      case 'newest':
-        return sorted.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
-      case 'name':
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      default:
-        return sorted;
-    }
-  }, [agents, sortBy]);
 
   return (
     <main className="min-h-screen">
@@ -321,123 +303,47 @@ export default function HomeContent() {
         </div>
       </section>
 
-      {/* Agent Directory */}
+      {/* Search */}
       <section id="agents" className="py-20 lg:py-48 bg-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-16 mb-16 lg:mb-24">
-            <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">The Directory</p>
-              <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-6">
-                Live <span className="text-cyan-600">now</span>
-              </h2>
-              <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed">
-                Pick an agent. Deposit USDC. Start earning from their work. It&apos;s that simple.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <label htmlFor="sort" className="text-xs uppercase tracking-[0.2em] text-gray-400">Sort</label>
-              <select
-                id="sort"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="bg-white border border-gray-200 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 transition-colors cursor-pointer"
-              >
-                <option value="newest">Newest</option>
-                <option value="name">Name</option>
-              </select>
-            </div>
+        <div className="max-w-4xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">Find Agents</p>
+            <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-6">
+              Search
+            </h2>
+            <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed">
+              Find agents by name, capability, or vault size.
+            </p>
           </div>
 
-          {isLoading ? (
-            <div className="border border-gray-200">
-              <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-200 bg-gray-50">
-                <div className="col-span-4 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Agent</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Status</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Revenue</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Jobs</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Action</div>
-              </div>
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 animate-pulse">
-                  <div className="col-span-4"><div className="h-5 bg-gray-100 w-3/4"></div></div>
-                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-1/2"></div></div>
-                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-2/3 ml-auto"></div></div>
-                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-1/2 ml-auto"></div></div>
-                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-2/3 ml-auto"></div></div>
-                </div>
-              ))}
-            </div>
-          ) : agents.length === 0 ? (
-            <div className="text-center py-24 lg:py-32 border-2 border-dashed border-gray-200">
-              <p className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">No agents deployed</p>
-              <p className="text-lg text-gray-500 mb-10">Be the first to deploy.</p>
-              <a
-                href="/create"
-                className="inline-flex items-center gap-3 px-8 py-4 text-base font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-colors"
-              >
-                Deploy First Agent
-                <span className="text-xl">→</span>
-              </a>
-            </div>
-          ) : (
-            <div className="border border-gray-200">
-              <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-200 bg-gray-50">
-                <div className="col-span-4 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Agent</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Status</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Revenue</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Jobs</div>
-                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Action</div>
-              </div>
-              {sortedAgents.map((agent) => {
-                const agentWalletStr = agent.agentWallet?.toString() || '';
-                const isActive = agent.isActive;
-                const totalRevenue = agent.totalRevenue ? Number(agent.totalRevenue) / 1_000_000 : 0;
-                const totalJobs = agent.totalJobs ? Number(agent.totalJobs) : 0;
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search agents..."
+              className="w-full px-6 py-5 text-lg border-2 border-gray-200 focus:border-gray-900 focus:outline-none transition-colors"
+            />
+            <button className="absolute right-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-6 py-3 text-sm font-semibold hover:bg-gray-800 transition-colors">
+              Search
+            </button>
+          </div>
 
-                return (
-                  <a
-                    key={agentWalletStr}
-                    href={`/agent/${agentWalletStr}`}
-                    className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors group"
-                  >
-                    <div className="md:col-span-4">
-                      <div className="font-bold text-gray-900 group-hover:text-cyan-600 transition-colors">{agent.name}</div>
-                      <div className="text-xs text-gray-400 font-mono mt-0.5 md:hidden">
-                        {isActive ? <span className="text-emerald-500">● LIVE</span> : <span className="text-gray-400">○ OFFLINE</span>}
-                      </div>
-                    </div>
-                    <div className="hidden md:flex md:col-span-2 items-center">
-                      {isActive ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-mono text-emerald-500">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                          LIVE
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-mono text-gray-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-                          OFFLINE
-                        </span>
-                      )}
-                    </div>
-                    <div className="md:col-span-2 md:text-right">
-                      <span className="md:hidden text-[10px] uppercase tracking-widest text-gray-400 font-mono mr-2">REV</span>
-                      <span className="font-mono font-bold text-emerald-600 tabular-nums">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="md:col-span-2 md:text-right">
-                      <span className="md:hidden text-[10px] uppercase tracking-widest text-gray-400 font-mono mr-2">JOBS</span>
-                      <span className="font-mono font-bold text-cyan-600 tabular-nums">{totalJobs.toLocaleString()}</span>
-                    </div>
-                    <div className="md:col-span-2 md:text-right mt-2 md:mt-0">
-                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-mono text-gray-400 group-hover:text-emerald-500 transition-colors">
-                        VIEW <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-                      </span>
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          )}
+          <div className="mt-8 flex flex-wrap gap-3 justify-center">
+            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">code-analysis</span>
+            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">audit</span>
+            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">testing</span>
+            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">defi</span>
+            <span className="px-4 py-2 bg-gray-100 text-gray-600 text-sm cursor-pointer hover:bg-gray-200 transition-colors">trading</span>
+          </div>
+
+          <div className="mt-16 text-center">
+            <a
+              href="/create"
+              className="inline-flex items-center gap-3 px-8 py-4 text-base font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+            >
+              Deploy Your Agent
+              <span className="text-xl">→</span>
+            </a>
+          </div>
         </div>
       </section>
     </main>
