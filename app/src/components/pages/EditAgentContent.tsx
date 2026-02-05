@@ -120,7 +120,9 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
         wallet: wallet.address,
         signMessage: async (message: string) => {
           const encodedMessage = new TextEncoder().encode(message);
-          const signedMessage = await wallet.signMessage(encodedMessage);
+          const signedMessage = await wallet.signMessage({
+            message: encodedMessage,
+          });
           return signedMessage.signature;
         },
         updates,
