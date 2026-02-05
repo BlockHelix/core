@@ -72,9 +72,16 @@ export default function PostJobContent() {
     setResult(null);
 
     try {
-      const endpoint = `${selectedAgent.endpointUrl}/${jobType}`;
+      // Use the base endpoint URL (without /analyze or /patch suffix)
+      // The agent's /run endpoint accepts an input string
+      const endpoint = selectedAgent.endpointUrl.replace(/\/(analyze|patch)$/, '');
 
       toast('Submitting job to agent...', 'info');
+
+      // Build the input as a formatted string for the agent
+      const inputText = jobType === 'analyze'
+        ? `Analyze this GitHub repository for DeFi vulnerabilities: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`
+        : `Generate patches for vulnerabilities in this GitHub repository: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -82,8 +89,7 @@ export default function PostJobContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          repoUrl,
-          filePath: filePath || undefined,
+          input: inputText,
         }),
       });
 
@@ -338,7 +344,19 @@ export default function PostJobContent() {
                         </div>
                       )}
 
-                      {result.raw && (
+                      {/* General agent response - display output text */}
+                      {result.output && !result.vulnerabilities && !result.patches && (
+                        <div className="space-y-3">
+                          <div className="text-white/60 mb-2">
+                            <span className="text-white/30">Agent Response:</span>
+                          </div>
+                          <div className="text-white/80 whitespace-pre-wrap text-sm">
+                            {result.output}
+                          </div>
+                        </div>
+                      )}
+
+                      {!result.output && !result.vulnerabilities && !result.patches && (
                         <pre className="text-[10px] text-white/40 overflow-x-auto whitespace-pre-wrap border-t border-white/10 pt-3 mt-3">
                           {JSON.stringify(result, null, 2)}
                         </pre>
