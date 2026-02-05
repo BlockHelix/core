@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { useWallets } from '@privy-io/react-auth/solana';
 import { PROGRAM_IDS, RPC_URL } from '@/lib/anchor';
 import { AgentVault } from '@/lib/idl/agent_vault';
@@ -28,6 +28,7 @@ export function usePrograms() {
 
       return {
         connection,
+        wallet: null,
         vaultProgram: new Program(AgentVaultIDL as AgentVault, dummyProvider),
         factoryProgram: new Program(AgentFactoryIDL as AgentFactory, dummyProvider),
         registryProgram: new Program(ReceiptRegistryIDL as ReceiptRegistry, dummyProvider),
@@ -36,31 +37,39 @@ export function usePrograms() {
 
     const anchorWallet = {
       publicKey: new PublicKey(wallet.address),
-      signTransaction: async (tx: any) => {
-        const result: any = await wallet.signTransaction({
-          transaction: tx as any,
-        });
-        return (result.transaction || result);
+      signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T): Promise<T> => {
+        console.log('[anchorWallet] signTransaction called');
+        try {
+          const serialized = tx.serialize({ requireAllSignatures: false });
+          const result = await wallet.signTransaction({ transaction: serialized });
+          const signedTx = Transaction.from(result.signedTransaction);
+          console.log('[anchorWallet] signTransaction complete');
+          return signedTx as T;
+        } catch (err) {
+          console.error('[anchorWallet] signTransaction error:', err);
+          throw err;
+        }
       },
-      signAllTransactions: async (txs: any[]) => {
-        const results: any[] = await Promise.all(
-          txs.map((tx) =>
-            wallet.signTransaction({
-              transaction: tx as any,
-            })
-          )
-        );
-        return results.map((r) => r.transaction || r);
+      signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => {
+        console.log('[anchorWallet] signAllTransactions called');
+        const results = await Promise.all(txs.map(async (tx) => {
+          const serialized = tx.serialize({ requireAllSignatures: false });
+          const result = await wallet.signTransaction({ transaction: serialized });
+          return Transaction.from(result.signedTransaction) as T;
+        }));
+        return results;
       },
     };
 
     const provider = new AnchorProvider(connection, anchorWallet, {
       commitment: 'confirmed',
+      skipPreflight: false,
     });
 
     return {
       connection,
       provider,
+      wallet,
       vaultProgram: new Program(AgentVaultIDL as AgentVault, provider),
       factoryProgram: new Program(AgentFactoryIDL as AgentFactory, provider),
       registryProgram: new Program(ReceiptRegistryIDL as ReceiptRegistry, provider),

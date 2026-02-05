@@ -79,7 +79,8 @@ export function useCreateAgent() {
       console.log('[createAgent] Vault USDC account:', vaultUsdcAccount.toBase58());
 
       console.log('[createAgent] Building transaction...');
-      const tx = await factoryProgram.methods
+
+      const methodBuilder = factoryProgram.methods
         .createAgent(
           params.name,
           params.githubHandle,
@@ -94,7 +95,7 @@ export function useCreateAgent() {
           params.lendingFloorBps,
           new PublicKey(params.arbitrator)
         )
-        .accountsPartial({
+        .accountsStrict({
           factoryState,
           agentMetadata,
           agentWallet,
@@ -109,10 +110,33 @@ export function useCreateAgent() {
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-        })
-        .rpc();
+        });
 
-      await connection.confirmTransaction(tx, 'confirmed');
+      console.log('[createAgent] Getting transaction...');
+      const transaction = await methodBuilder.transaction();
+      console.log('[createAgent] Transaction built:', transaction);
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = agentWallet;
+
+      console.log('[createAgent] Signing transaction...');
+      const serializedTx = transaction.serialize({ requireAllSignatures: false });
+      const signResult = await wallet.signTransaction({ transaction: serializedTx });
+      console.log('[createAgent] Transaction signed');
+
+      console.log('[createAgent] Sending transaction...');
+      const txSig = await connection.sendRawTransaction(signResult.signedTransaction);
+      console.log('[createAgent] Transaction sent:', txSig);
+
+      await connection.confirmTransaction({
+        signature: txSig,
+        blockhash,
+        lastValidBlockHeight,
+      }, 'confirmed');
+      console.log('[createAgent] Transaction confirmed');
+
+      const tx = txSig;
 
       return {
         signature: tx,
