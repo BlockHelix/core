@@ -79,7 +79,31 @@ export function useCreateAgent() {
       console.log('[createAgent] Vault USDC account:', vaultUsdcAccount.toBase58());
 
       console.log('[createAgent] Building transaction...');
-      console.log('[createAgent] factoryProgram.methods:', Object.keys(factoryProgram.methods || {}));
+      console.log('[createAgent] factoryProgram:', factoryProgram);
+      console.log('[createAgent] factoryProgram.methods:', factoryProgram?.methods);
+      console.log('[createAgent] factoryProgram.idl:', factoryProgram?.idl);
+
+      const dump = (x: any) => ({
+        t: typeof x,
+        isArray: Array.isArray(x),
+        ctor: x?.constructor?.name,
+        val: String(x).slice(0, 50),
+      });
+
+      console.log('[createAgent] args dump', {
+        name: dump(params.name),
+        githubHandle: dump(params.githubHandle),
+        endpointUrl: dump(params.endpointUrl),
+        agentFeeBps: dump(params.agentFeeBps),
+        protocolFeeBps: dump(params.protocolFeeBps),
+        challengeWindow: dump(params.challengeWindow),
+        maxTvl: dump(params.maxTvl),
+        lockupEpochs: dump(params.lockupEpochs),
+        epochLength: dump(params.epochLength),
+        targetApyBps: dump(params.targetApyBps),
+        lendingFloorBps: dump(params.lendingFloorBps),
+        arbitrator: dump(params.arbitrator),
+      });
 
       console.log('[createAgent] Calling createAgent method...');
       const method = factoryProgram.methods.createAgent(
@@ -118,6 +142,14 @@ export function useCreateAgent() {
       console.log('[createAgent] Accounts object keys:', Object.keys(accountsObj));
       const methodBuilder = method.accountsStrict(accountsObj);
       console.log('[createAgent] Method builder created');
+
+      console.log('[createAgent] Trying instruction() first...');
+      try {
+        const ix = await methodBuilder.instruction();
+        console.log('[createAgent] instruction() succeeded:', ix);
+      } catch (ixErr: any) {
+        console.error('[createAgent] instruction() failed:', ixErr?.message);
+      }
 
       console.log('[createAgent] Getting transaction...');
       const transaction = await methodBuilder.transaction();
