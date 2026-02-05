@@ -9,6 +9,7 @@ export interface RegisterAgentParams {
   registry?: string;
   isActive?: boolean;
   apiKey: string;
+  ownerWallet?: string;
 }
 
 export interface RegisterAgentResponse {
@@ -26,10 +27,6 @@ const RUNTIME_URL = typeof window !== 'undefined'
   ? process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001'
   : '';
 
-const ADMIN_SECRET = typeof window !== 'undefined'
-  ? process.env.NEXT_PUBLIC_ADMIN_SECRET
-  : undefined;
-
 export async function registerAgentWithRuntime(
   params: RegisterAgentParams
 ): Promise<RegisterAgentResponse> {
@@ -41,7 +38,6 @@ export async function registerAgentWithRuntime(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(ADMIN_SECRET ? { 'Authorization': `Bearer ${ADMIN_SECRET}` } : {}),
     },
     body: JSON.stringify({
       agentId: params.agentId,
@@ -54,6 +50,7 @@ export async function registerAgentWithRuntime(
       registry: params.registry || '',
       isActive: params.isActive ?? true,
       apiKey: params.apiKey,
+      ownerWallet: params.ownerWallet,
     }),
   });
 
@@ -75,5 +72,109 @@ export async function checkRuntimeHealth(): Promise<boolean> {
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+export interface AgentSummary {
+  agentId: string;
+  name: string;
+  priceUsdcMicro: number;
+  model: string;
+  agentWallet: string;
+  vault: string;
+  isActive: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AgentDetail extends AgentSummary {
+  systemPrompt: string;
+  registry: string;
+  ownerWallet: string;
+}
+
+export interface UpdateAgentParams {
+  agentId: string;
+  wallet: string;
+  signMessage: (message: string) => Promise<Uint8Array>;
+  updates: {
+    systemPrompt?: string;
+    apiKey?: string;
+    priceUsdcMicro?: number;
+    model?: string;
+    isActive?: boolean;
+  };
+}
+
+export async function getAgentsByOwner(wallet: string): Promise<AgentSummary[]> {
+  if (!RUNTIME_URL) {
+    throw new Error('Runtime URL not configured');
+  }
+
+  const response = await fetch(`${RUNTIME_URL}/admin/agents/by-owner?wallet=${wallet}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to fetch agents: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.agents;
+}
+
+export async function getAgentDetail(agentId: string, wallet?: string): Promise<AgentDetail> {
+  if (!RUNTIME_URL) {
+    throw new Error('Runtime URL not configured');
+  }
+
+  const url = wallet
+    ? `${RUNTIME_URL}/admin/agents/${agentId}?wallet=${wallet}`
+    : `${RUNTIME_URL}/admin/agents/${agentId}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to fetch agent: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function updateAgentConfig(params: UpdateAgentParams): Promise<void> {
+  if (!RUNTIME_URL) {
+    throw new Error('Runtime URL not configured');
+  }
+
+  const message = `BlockHelix: update agent ${params.agentId} at ${Date.now()}`;
+  const signatureBytes = await params.signMessage(message);
+  const signature = Buffer.from(signatureBytes).toString('base64');
+
+  const response = await fetch(`${RUNTIME_URL}/admin/agents/${params.agentId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message,
+      signature,
+      wallet: params.wallet,
+      updates: params.updates,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to update agent: ${response.status}`);
   }
 }

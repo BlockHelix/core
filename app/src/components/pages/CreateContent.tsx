@@ -102,6 +102,7 @@ export default function CreateContent() {
           vault: result.vaultState.toString(),
           registry: '',
           apiKey,
+          ownerWallet: wallet?.address,
         });
 
         toast('Agent registered with runtime!', 'success');

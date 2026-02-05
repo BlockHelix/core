@@ -2,25 +2,25 @@ import * as anchor from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import fs from 'fs';
 import type { AgentConfig, OnChainAgentMetadata } from '../types';
+import { agentStorage } from './storage';
 
 const FACTORY_PROGRAM_ID = new PublicKey(
   process.env.FACTORY_PROGRAM_ID || '7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j'
 );
 const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'https://api.devnet.solana.com';
 
-const hostedAgentConfigs: Map<string, AgentConfig> = new Map();
-
-export function registerHostedAgent(config: AgentConfig): void {
-  hostedAgentConfigs.set(config.agentId, config);
+export function registerHostedAgent(config: AgentConfig, ownerWallet?: string): void {
+  agentStorage.create(config, ownerWallet || config.agentWallet);
   console.log(`[config] Registered hosted agent: ${config.agentId} (${config.name})`);
 }
 
 export function getHostedAgent(agentId: string): AgentConfig | undefined {
-  return hostedAgentConfigs.get(agentId);
+  const stored = agentStorage.get(agentId);
+  return stored || undefined;
 }
 
 export function getAllHostedAgents(): AgentConfig[] {
-  return Array.from(hostedAgentConfigs.values());
+  return agentStorage.getAll();
 }
 
 function getFactoryPda(): PublicKey {
@@ -84,7 +84,7 @@ export async function loadAgentFromChain(agentId: number): Promise<OnChainAgentM
 }
 
 export async function getAgentConfig(agentId: string): Promise<AgentConfig | null> {
-  const hosted = hostedAgentConfigs.get(agentId);
+  const hosted = agentStorage.get(agentId);
   if (hosted) return hosted;
 
   const numericId = parseInt(agentId, 10);
@@ -93,7 +93,7 @@ export async function getAgentConfig(agentId: string): Promise<AgentConfig | nul
   const onChain = await loadAgentFromChain(numericId);
   if (!onChain || !onChain.isActive) return null;
 
-  const hosted2 = hostedAgentConfigs.get(onChain.agentWallet);
+  const hosted2 = agentStorage.get(onChain.agentWallet);
   if (hosted2) return hosted2;
 
   return null;

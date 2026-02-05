@@ -5,7 +5,13 @@ import { x402ResourceServer } from '@x402/express';
 import { ExactSvmScheme } from '@x402/svm/exact/server';
 import type { RoutesConfig } from '@x402/core/server';
 import { handleRun } from './routes/run';
-import { handleRegisterAgent, handleListAgentsAdmin } from './routes/admin';
+import {
+  handleRegisterAgent,
+  handleListAgentsAdmin,
+  handleGetAgentsByOwner,
+  handleGetAgentConfig,
+  handleUpdateAgentConfig,
+} from './routes/admin';
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 
@@ -118,6 +124,9 @@ export function createApp(): express.Application {
 
   app.post('/admin/agents', handleRegisterAgent);
   app.get('/admin/agents', handleListAgentsAdmin);
+  app.get('/admin/agents/by-owner', handleGetAgentsByOwner);
+  app.get('/admin/agents/:agentId', handleGetAgentConfig);
+  app.put('/admin/agents/:agentId', handleUpdateAgentConfig);
 
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Unhandled error:', err.message);
