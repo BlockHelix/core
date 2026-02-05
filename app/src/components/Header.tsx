@@ -10,7 +10,8 @@ export default function Header() {
 
   const navLinks = [
     { href: '/jobs', label: 'HIRE' },
-    { href: '/dashboard', label: 'DASHBOARD' },
+    { href: '/dashboard', label: 'POSITIONS' },
+    { href: '/dashboard/operator', label: 'AGENTS' },
     { href: '/create', label: 'DEPLOY' },
     { href: '/whitepaper', label: 'WHITEPAPER' },
   ];

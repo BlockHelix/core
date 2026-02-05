@@ -26,9 +26,7 @@ export default function HelixHero() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center justify-between pt-8 lg:pt-0">
         <div className="lg:w-1/2 z-10 flex flex-col items-center lg:items-start">
           <div className="text-center lg:text-left">
-            <div className="mb-6">
-              <HeroCube />
-            </div>
+            <HeroCube />
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-4">
               <span style={{ color: '#22d3ee' }}>Block</span>
               <span style={{ color: '#22d3ee' }}> Helix</span>
@@ -212,27 +210,25 @@ function HelixAnimation() {
 
 function HeroCube() {
   return (
-    <svg
-      width="64"
-      height="64"
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg width="300" height="300" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-4">
       <defs>
-        <linearGradient id="cubeGradientHero" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10b981" />
-          <stop offset="100%" stopColor="#34d399" />
+        <linearGradient id="cubeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#4EC9B0" />
+          <stop offset="100%" stopColor="#C586C0" />
         </linearGradient>
       </defs>
-      <path
-        d="M16 2L30 9V23L16 30L2 23V9L16 2Z M16 16L30 9M16 16L2 9M16 16V30"
-        stroke="url(#cubeGradientHero)"
-        strokeWidth="0.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray="4 1"
-      />
+      <path d="M16 2L30 9V23L16 30L2 23V9L16 2Z" fill="url(#cubeGradient)" fillOpacity="0"/>
+      <path d="M16 2L30 9L16 16L2 9L16 2Z" fill="url(#cubeGradient)" fillOpacity="0.0"/>
+      <path d="M16 16V30L2 23V9L16 16Z" fill="url(#cubeGradient)" fillOpacity="0.0"/>
+      <path d="M16 16V30L30 23V9L16 16Z" fill="url(#cubeGradient)" fillOpacity="0.0"/>
+      <path d="M16 2L30 9V23L16 30L2 23V9L16 2Z M16 16L30 9M16 16L2 9M16 16V30"
+            stroke="url(#cubeGradient)"
+            strokeWidth="0.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="4 1">
+        <animate attributeName="stroke-dashoffset" values="5;0" dur="6s" repeatCount="indefinite"/>
+      </path>
     </svg>
   );
 }

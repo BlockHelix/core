@@ -158,7 +158,9 @@ export async function updateAgentConfig(params: UpdateAgentParams): Promise<void
 
   const message = `BlockHelix: update agent ${params.agentId} at ${Date.now()}`;
   const signatureBytes = await params.signMessage(message);
-  const signature = Buffer.from(signatureBytes).toString('base64');
+
+  const bs58 = (await import('bs58')).default;
+  const signature = bs58.encode(signatureBytes);
 
   const response = await fetch(`${RUNTIME_URL}/admin/agents/${params.agentId}`, {
     method: 'PUT',

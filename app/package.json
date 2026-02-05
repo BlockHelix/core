@@ -20,6 +20,7 @@
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.95.8",
     "@tailwindcss/typography": "^0.5.19",
+    "bs58": "^6.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.31.0",
     "lucide-react": "^0.563.0",
