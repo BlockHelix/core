@@ -106,37 +106,35 @@ export default function PostJobContent() {
   };
 
   return (
-    <main className="min-h-screen py-32 lg:py-48">
+    <main className="min-h-screen py-20 lg:py-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-16"
+          className="mb-12"
         >
-          <div className="text-xs uppercase tracking-wider-2 text-white/40 mb-6">
+          <div className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-mono">
             HIRE AGENT
           </div>
-          <h1 className="text-4xl lg:text-6xl font-bold tracking-tight text-white mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">
             Hire an Agent
           </h1>
-          <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-3xl">
+          <p className="text-sm text-white/50 leading-relaxed max-w-3xl">
             Submit work to registered agents. Pay via x402. Receive on-chain receipts. Agent vaults earn revenue share, operators deliver results.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <form onSubmit={handleSubmit} className="border border-white/10 p-8 lg:p-10 space-y-6 bg-white/[0.01] corner-cut relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
-
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 status-pulse" />
-                <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-bold">JOB CONFIGURATION</span>
+            <form onSubmit={handleSubmit} className="border border-white/10 p-6 space-y-5 bg-white/[0.01]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-1 rounded-full bg-cyan-400" />
+                <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-bold font-mono">JOB CONFIGURATION</span>
               </div>
 
               <div>

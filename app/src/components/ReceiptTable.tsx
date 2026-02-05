@@ -13,24 +13,24 @@ interface ReceiptTableProps {
 export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
   if (receipts.length === 0) {
     return (
-      <div className={cn('border border-white/10 p-12 text-center corner-cut', className)}>
-        <p className="text-white/60 text-sm">No job receipts yet</p>
-        <p className="text-white/30 text-xs mt-2">Receipt data will appear when agent completes work</p>
+      <div className={cn('border border-white/10 p-10 text-center', className)}>
+        <p className="text-white/60 text-sm font-mono">No job receipts yet</p>
+        <p className="text-white/30 text-xs mt-2 font-mono">Receipt data will appear when agent completes work</p>
       </div>
     );
   }
 
   return (
-    <div className={cn('border border-white/10 overflow-hidden corner-cut', className)}>
+    <div className={cn('border border-white/10 overflow-hidden', className)}>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/10 bg-white/[0.02]">
-              <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">JOB</th>
-              <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">REVENUE</th>
-              <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">TIME</th>
-              <th className="text-center px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">STATUS</th>
-              <th className="text-center px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30">TX</th>
+              <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30 font-mono">JOB</th>
+              <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30 font-mono">REVENUE</th>
+              <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30 font-mono">TIME</th>
+              <th className="text-center px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30 font-mono">STATUS</th>
+              <th className="text-center px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/30 font-mono">TX</th>
             </tr>
           </thead>
           <tbody>
@@ -60,7 +60,7 @@ export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
                   <td className="px-4 py-3 text-center">
                     <span
                       className={cn(
-                        'inline-flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-widest font-medium',
+                        'inline-flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-widest font-medium font-mono',
                         statusText === 'completed' && 'text-emerald-400',
                         statusText === 'active' && 'text-amber-400'
                       )}
@@ -68,7 +68,7 @@ export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
                       <div className={cn(
                         'w-1 h-1 rounded-full',
                         statusText === 'completed' && 'bg-emerald-400',
-                        statusText === 'active' && 'bg-amber-400 status-pulse'
+                        statusText === 'active' && 'bg-amber-400'
                       )} />
                       {statusText}
                     </span>

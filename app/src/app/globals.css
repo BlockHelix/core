@@ -163,13 +163,9 @@ html::after {
 @keyframes status-pulse {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 16px currentColor, 0 0 8px currentColor;
-    transform: scale(1);
   }
   50% {
-    opacity: 0.6;
-    box-shadow: 0 0 8px currentColor, 0 0 4px currentColor;
-    transform: scale(0.95);
+    opacity: 0.5;
   }
 }
 

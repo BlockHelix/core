@@ -69,40 +69,40 @@ export default function DashboardContent() {
   }
 
   return (
-    <main className="min-h-screen py-32 lg:py-48">
+    <main className="min-h-screen py-20 lg:py-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="text-xs uppercase tracking-wider-2 text-white/40 mb-6">
+          <div className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-mono">
             DASHBOARD
           </div>
-          <h1 className="text-4xl lg:text-6xl font-bold tracking-tight text-white mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">
             Vault Positions
           </h1>
-          <p className="text-lg lg:text-xl text-white/60 leading-relaxed mb-20">
+          <p className="text-sm text-white/50 leading-relaxed mb-12">
             Share balances, current NAV, and revenue accrual across your deposits
           </p>
 
-          <div className="mb-16">
-            <div className="text-xs uppercase tracking-wider-2 text-white/40 mb-8">AGGREGATE POSITION</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="border border-white/10 p-10 bg-white/[0.01]">
-                <div className="text-xs uppercase tracking-wider-2 text-white/40 mb-5">CURRENT NAV</div>
-                <div className="text-4xl lg:text-5xl font-bold text-white font-mono tabular-nums">${formatUSDC(totalValue)}</div>
+          <div className="mb-10">
+            <div className="text-[10px] uppercase tracking-widest text-white/40 mb-6 font-mono">AGGREGATE POSITION</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="border border-white/10 p-6 bg-white/[0.01]">
+                <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">CURRENT NAV</div>
+                <div className="text-2xl lg:text-3xl font-bold text-white font-mono tabular-nums">${formatUSDC(totalValue)}</div>
               </div>
-              <div className="border border-white/10 p-10 bg-white/[0.01]">
-                <div className="text-xs uppercase tracking-wider-2 text-white/40 mb-5">DEPOSITED</div>
-                <div className="text-4xl lg:text-5xl font-bold text-white font-mono tabular-nums">${formatUSDC(totalDeposited)}</div>
+              <div className="border border-white/10 p-6 bg-white/[0.01]">
+                <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">DEPOSITED</div>
+                <div className="text-2xl lg:text-3xl font-bold text-white font-mono tabular-nums">${formatUSDC(totalDeposited)}</div>
               </div>
-              <div className="border border-white/10 p-10 bg-white/[0.01]">
-                <div className="text-xs uppercase tracking-wider-2 text-white/40 mb-5">GAIN/LOSS</div>
-                <div className={`text-4xl lg:text-5xl font-bold font-mono tabular-nums ${totalGain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className="border border-white/10 p-6 bg-white/[0.01]">
+                <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">GAIN/LOSS</div>
+                <div className={`text-2xl lg:text-3xl font-bold font-mono tabular-nums ${totalGain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {totalGain >= 0 ? '+' : ''}${formatUSDC(totalGain)}
                 </div>
-                <div className={`text-sm mt-3 font-mono ${totalGain >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
+                <div className={`text-xs mt-2 font-mono ${totalGain >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
                   ({gainPercent >= 0 ? '+' : ''}{gainPercent.toFixed(2)}%)
                 </div>
               </div>
@@ -111,16 +111,16 @@ export default function DashboardContent() {
 
           {positions.length === 0 ? (
             <section>
-              <div className="border border-white/10 p-20 text-center">
-                <h2 className="text-2xl font-bold text-white mb-4 font-mono">
+              <div className="border border-white/10 p-16 text-center">
+                <h2 className="text-lg font-bold text-white mb-3 font-mono">
                   NO OPEN POSITIONS
                 </h2>
-                <p className="text-white/60 mb-8">
+                <p className="text-white/60 mb-6 text-sm">
                   Deposit USDC into an agent vault to acquire shares
                 </p>
                 <Link href="/">
-                  <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-6 py-4 text-sm hover:bg-emerald-400 transition-colors duration-300">
-                    <TrendingUp className="w-5 h-5" />
+                  <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-6 py-3 text-xs uppercase tracking-widest hover:bg-emerald-400 transition-colors duration-300">
+                    <TrendingUp className="w-4 h-4" />
                     <span>EXPLORE AGENTS</span>
                   </button>
                 </Link>
@@ -128,18 +128,18 @@ export default function DashboardContent() {
             </section>
           ) : (
             <section>
-              <h2 className="text-xs uppercase tracking-wider-2 text-white/40 mb-8">MY POSITIONS</h2>
+              <h2 className="text-[10px] uppercase tracking-widest text-white/40 mb-6 font-mono">MY POSITIONS</h2>
               <div className="border border-white/10 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="text-left px-6 py-4 text-xs uppercase tracking-wider-2 font-medium text-white/40">AGENT</th>
-                        <th className="text-right px-6 py-4 text-xs uppercase tracking-wider-2 font-medium text-white/40">SHARES</th>
-                        <th className="text-right px-6 py-4 text-xs uppercase tracking-wider-2 font-medium text-white/40">VALUE</th>
-                        <th className="text-right px-6 py-4 text-xs uppercase tracking-wider-2 font-medium text-white/40">DEPOSITED</th>
-                        <th className="text-right px-6 py-4 text-xs uppercase tracking-wider-2 font-medium text-white/40">GAIN/LOSS</th>
-                        <th className="text-center px-6 py-4 text-xs uppercase tracking-wider-2 font-medium text-white/40">WALLET</th>
+                      <tr className="border-b border-white/10 bg-white/[0.01]">
+                        <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/40 font-mono">AGENT</th>
+                        <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/40 font-mono">SHARES</th>
+                        <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/40 font-mono">VALUE</th>
+                        <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/40 font-mono">DEPOSITED</th>
+                        <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/40 font-mono">GAIN/LOSS</th>
+                        <th className="text-center px-4 py-3 text-[10px] uppercase tracking-widest font-medium text-white/40 font-mono">WALLET</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -151,27 +151,27 @@ export default function DashboardContent() {
                             key={position.vaultState.toString()}
                             className="border-b border-white/10 last:border-b-0 hover:bg-white/[0.02] transition-colors duration-300"
                           >
-                            <td className="px-6 py-4">
+                            <td className="px-4 py-3">
                               <Link
                                 href={`/agent/${position.agentWallet.toString()}`}
-                                className="text-emerald-400 hover:text-emerald-300 transition-colors duration-300"
+                                className="text-emerald-400 hover:text-emerald-300 transition-colors duration-300 text-sm"
                               >
                                 {position.agentName}
                               </Link>
                             </td>
-                            <td className="px-6 py-4 text-right font-mono tabular-nums text-white">
+                            <td className="px-4 py-3 text-right font-mono tabular-nums text-white text-sm">
                               {formatShares(position.shareBalance)}
                             </td>
-                            <td className="px-6 py-4 text-right font-mono tabular-nums text-white">
+                            <td className="px-4 py-3 text-right font-mono tabular-nums text-white text-sm">
                               ${formatUSDC(position.usdcValue)}
                             </td>
-                            <td className="px-6 py-4 text-right font-mono tabular-nums text-white/60">
+                            <td className="px-4 py-3 text-right font-mono tabular-nums text-white/60 text-sm">
                               ${formatUSDC(position.deposited)}
                             </td>
-                            <td className={`px-6 py-4 text-right font-mono tabular-nums ${gain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                              {gain >= 0 ? '+' : ''}${formatUSDC(gain)} <span className="text-sm">({gainPct >= 0 ? '+' : ''}{gainPct.toFixed(2)}%)</span>
+                            <td className={`px-4 py-3 text-right font-mono tabular-nums text-sm ${gain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {gain >= 0 ? '+' : ''}${formatUSDC(gain)} <span className="text-xs">({gainPct >= 0 ? '+' : ''}{gainPct.toFixed(2)}%)</span>
                             </td>
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-4 py-3 text-center">
                               <CopyButton value={position.agentWallet.toString()} />
                             </td>
                           </tr>
