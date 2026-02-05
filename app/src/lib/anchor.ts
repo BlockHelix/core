@@ -8,8 +8,8 @@ export const PROGRAM_IDS = {
 
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com';
 export const USDC_MINT = new PublicKey(
-  process.env.NEXT_PUBLIC_USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'
+  process.env.NEXT_PUBLIC_USDC_MINT || 'BSjQ9jamHdSaWzgTueKsDBKNWZ74ZW73gkHPvd5qPs53'
 );
 export const PROTOCOL_TREASURY = new PublicKey(
-  process.env.NEXT_PUBLIC_PROTOCOL_TREASURY || 'HeLixZqQKZyBFXXEYEPWdPYg7YQkRZBVRU7mwXvxoS1'
+  process.env.NEXT_PUBLIC_PROTOCOL_TREASURY || '8MYvV1Z1CkNwi8BC9R9Lz71Ag59LWwzTBiui6QpHr1Tg'
 );

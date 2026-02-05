@@ -98,7 +98,14 @@ export function useCreateAgent() {
         vaultState,
       };
     } catch (err: any) {
-      const errorMsg = err?.message || 'Failed to create agent';
+      let errorMsg = err?.message || 'Failed to create agent';
+      if (errorMsg.includes('User rejected')) {
+        errorMsg = 'Transaction rejected by user';
+      } else if (errorMsg.includes('0x1')) {
+        errorMsg = 'Insufficient SOL balance for transaction fee';
+      } else if (errorMsg.includes('already in use')) {
+        errorMsg = 'Agent already exists for this wallet';
+      }
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {

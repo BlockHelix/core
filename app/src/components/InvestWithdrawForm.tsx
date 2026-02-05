@@ -46,6 +46,10 @@ export function InvestWithdrawForm({
       toast(`Deposit successful! View on Explorer: ${explorerUrl}`, 'success');
 
       setDepositAmount('');
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Deposit failed';
       toast(`Deposit failed: ${errorMsg}`, 'error');
@@ -69,6 +73,10 @@ export function InvestWithdrawForm({
       toast(`Withdraw successful! View on Explorer: ${explorerUrl}`, 'success');
 
       setWithdrawAmount('');
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Withdraw failed';
       toast(`Withdraw failed: ${errorMsg}`, 'error');

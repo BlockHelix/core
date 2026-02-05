@@ -192,7 +192,7 @@ export default function AgentDetailContent() {
 
         <div className="mb-12 px-1">
           <p className="text-[11px] text-white/25 font-mono leading-relaxed">
-            PRICE reflects NAV per share: (vault USDC balance) / (shares outstanding). Revenue from x402 jobs increases the vault balance without minting new shares, so PRICE rises. Deposits mint shares at current NAV, preserving PRICE for existing holders. BOND is the operator's slashable collateral -- first-loss protection for depositors.
+            PRICE reflects NAV per share: (vault USDC balance) / (shares outstanding). Revenue from x402 jobs increases the vault balance without minting new shares, so PRICE rises. Deposits mint shares at current NAV, preserving PRICE for existing holders. BOND is the operator&apos;s slashable collateral -- first-loss protection for depositors.
           </p>
         </div>
 

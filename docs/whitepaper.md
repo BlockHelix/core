@@ -1,6 +1,6 @@
-# BlockHelix: Revenue Royalties for Autonomous AI Agents
+# BlockHelix: Accelerating Agent Capitalism
 
-**A Protocol for Tokenised Agent Vaults on Solana**
+**A Capital Structure for Autonomous AI Agents on Solana**
 
 Version 0.1 -- February 2026
 

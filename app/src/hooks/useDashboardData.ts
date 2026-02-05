@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { usePrograms } from './usePrograms';
@@ -22,8 +22,10 @@ export function useDashboardData() {
   const [positions, setPositions] = useState<UserPosition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    if (fetchedRef.current) return;
     if (!wallet || !vaultProgram || !factoryProgram) {
       setIsLoading(false);
       return;
@@ -31,53 +33,62 @@ export function useDashboardData() {
 
     const fetchDashboardData = async () => {
       try {
+        fetchedRef.current = true;
         const userPubkey = new PublicKey(wallet.address);
 
-        const depositRecords = await vaultProgram.account.depositRecord.all([
-          {
-            memcmp: {
-              offset: 8 + 32,
-              bytes: userPubkey.toBase58(),
+        const [depositRecords, agentAccounts] = await Promise.all([
+          vaultProgram.account.depositRecord.all([
+            {
+              memcmp: {
+                offset: 8 + 32,
+                bytes: userPubkey.toBase58(),
+              },
             },
-          },
+          ]),
+          factoryProgram.account.agentMetadata.all(),
         ]);
 
-        const agentAccounts = await factoryProgram.account.agentMetadata.all();
+        if (depositRecords.length === 0) {
+          setPositions([]);
+          return;
+        }
+
+        const vaultPubkeys = depositRecords.map((r) => (r.account as any).vault as PublicKey);
+        const vaultInfos = await vaultProgram.account.vaultState.fetchMultiple(vaultPubkeys);
 
         const positionsData = await Promise.all(
-          depositRecords.map(async (record) => {
+          depositRecords.map(async (record, i) => {
             const recordData = record.account as any;
-            const vaultState = recordData.vault;
-
-            const vaultData = await vaultProgram.account.vaultState.fetch(vaultState);
-            const shareMint = (vaultData as any).shareMint;
+            const vaultData = vaultInfos[i] as any;
+            if (!vaultData) return null;
 
             const agent = agentAccounts.find(
-              (a) => (a.account as any).vault.toString() === vaultState.toString()
+              (a) => (a.account as any).vault.toString() === vaultPubkeys[i].toString()
             );
 
             try {
               const userShareAccount = await getAssociatedTokenAddress(
-                shareMint,
+                vaultData.shareMint,
                 userPubkey
               );
 
-              const shareBalanceInfo = await connection.getTokenAccountBalance(userShareAccount);
-              const balance = parseFloat(shareBalanceInfo.value.amount) / 1_000_000;
+              const [shareBalanceInfo, vaultUsdcInfo, shareMintInfo] = await Promise.all([
+                connection.getTokenAccountBalance(userShareAccount),
+                connection.getTokenAccountBalance(vaultData.vaultUsdcAccount),
+                connection.getTokenSupply(vaultData.shareMint),
+              ]);
 
-              const vaultUsdcAccountInfo = await connection.getTokenAccountBalance((vaultData as any).vaultUsdcAccount);
-              const totalAssets = parseFloat(vaultUsdcAccountInfo.value.amount) / 1_000_000;
-              const shareMintInfo = await connection.getTokenSupply(shareMint);
+              const balance = parseFloat(shareBalanceInfo.value.amount) / 1_000_000;
+              const totalAssets = parseFloat(vaultUsdcInfo.value.amount) / 1_000_000;
               const totalShares = parseFloat(shareMintInfo.value.amount) / 1_000_000;
               const sharePrice = totalShares > 0 ? totalAssets / totalShares : 1;
-              const usdcValue = balance * sharePrice;
 
               return {
-                vaultState,
+                vaultState: vaultPubkeys[i],
                 agentName: agent ? (agent.account as any).name : 'Unknown Agent',
-                agentWallet: (vaultData as any).agentWallet,
+                agentWallet: vaultData.agentWallet,
                 shareBalance: balance,
-                usdcValue,
+                usdcValue: balance * sharePrice,
                 deposited: Number(recordData.totalDeposited) / 1_000_000,
               };
             } catch {

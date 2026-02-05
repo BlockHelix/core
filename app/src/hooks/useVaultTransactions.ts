@@ -63,7 +63,14 @@ export function useDeposit() {
 
       return { signature: tx };
     } catch (err: any) {
-      const errorMsg = err?.message || 'Failed to deposit';
+      let errorMsg = err?.message || 'Failed to deposit';
+      if (errorMsg.includes('insufficient funds')) {
+        errorMsg = 'Insufficient USDC balance in wallet';
+      } else if (errorMsg.includes('User rejected')) {
+        errorMsg = 'Transaction rejected by user';
+      } else if (errorMsg.includes('0x1')) {
+        errorMsg = 'Insufficient account balance for transaction fee';
+      }
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {
@@ -129,7 +136,14 @@ export function useWithdraw() {
 
       return { signature: tx };
     } catch (err: any) {
-      const errorMsg = err?.message || 'Failed to withdraw';
+      let errorMsg = err?.message || 'Failed to withdraw';
+      if (errorMsg.includes('insufficient funds')) {
+        errorMsg = 'Insufficient share balance';
+      } else if (errorMsg.includes('User rejected')) {
+        errorMsg = 'Transaction rejected by user';
+      } else if (errorMsg.includes('0x1')) {
+        errorMsg = 'Insufficient account balance for transaction fee';
+      }
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {

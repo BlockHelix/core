@@ -5,7 +5,30 @@ import { useState, useEffect } from 'react'
 
 export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
-  const fullText = "Accelerating Agent Capitalism"
+  const fullText = "Programmable Liquidity For DeFi"
+
+  const ModernCubeIcon = () => (
+    <svg width="300" height="300" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-4">
+      <defs>
+        <linearGradient id="cubeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#4EC9B0" />
+          <stop offset="100%" stopColor="#C586C0" />
+        </linearGradient>
+      </defs>
+      <path d="M16 2L30 9V23L16 30L2 23V9L16 2Z" fill="url(#cubeGradient)" fillOpacity="0"/>
+      <path d="M16 2L30 9L16 16L2 9L16 2Z" fill="url(#cubeGradient)" fillOpacity="0.0"/>
+      <path d="M16 16V30L2 23V9L16 16Z" fill="url(#cubeGradient)" fillOpacity="0.0"/>
+      <path d="M16 16V30L30 23V9L16 16Z" fill="url(#cubeGradient)" fillOpacity="0.0"/>
+      <path d="M16 2L30 9V23L16 30L2 23V9L16 2Z M16 16L30 9M16 16L2 9M16 16V30"
+            stroke="url(#cubeGradient)"
+            strokeWidth="0.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="4 1">
+        <animate attributeName="stroke-dashoffset" values="5;0" dur="6s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  )
 
   useEffect(() => {
     let i = 0
@@ -22,40 +45,23 @@ export default function HelixHero() {
   }, [])
 
   return (
-    <section className="relative bg-[#0a0a0a] min-h-screen flex items-start lg:items-center pt-20 lg:pt-0">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center justify-between pt-8 lg:pt-0">
+    <section className="relative bg-black min-h-screen flex items-start lg:items-center pt-20 lg:pt-0">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-between pt-8 lg:pt-0">
         <div className="lg:w-1/2 z-10 flex flex-col items-center lg:items-start">
+          <ModernCubeIcon />
           <div className="text-center lg:text-left">
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-4">
-              <span style={{ color: '#22d3ee' }}>Block</span>
-              <span style={{ color: '#22d3ee' }}> Helix</span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-4">
+              <span style={{ color: 'rgb(78, 201, 176)' }}>Block Helix</span>
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-white/30 font-mono mb-10">
+            <p className="mt-3 text-xl sm:text-2xl md:text-3xl text-white font-mono max-w-xl">
               {typedText}<span className="animate-pulse">|</span>
             </p>
-
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="/create"
-                className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden"
-              >
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-                DEPLOY AGENT
-                <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-              </a>
-              <a
-                href="#agents"
-                className="inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest text-white/70 border border-white/20 hover:border-white hover:text-white transition-all duration-300 corner-cut-sm"
-              >
-                EXPLORE
-              </a>
-            </div>
           </div>
         </div>
         <div className="lg:w-1/2 h-full absolute top-0 right-0 bottom-0 z-0">
           <div className="relative w-full h-full">
             <HelixAnimation />
-            <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#0a0a0a] to-transparent"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-black to-transparent"></div>
           </div>
         </div>
       </div>
@@ -65,12 +71,12 @@ export default function HelixHero() {
 
 
 function HelixAnimation() {
-  const totalStrands = 2;
+  const totalStrands = 4;
   const pointsPerStrand = 200;
   const radius = 100;
   const height = 1000;
   const rotations = 6;
-  const paintSpinLines = 3;
+  const paintSpinLines = 8;
 
   const generateHelix = (strandIndex: number) => {
     return Array.from({ length: pointsPerStrand }, (_, i) => {
@@ -97,14 +103,14 @@ function HelixAnimation() {
   const helices = Array.from({ length: totalStrands }, (_, i) => generateHelix(i));
   const paintSpins = Array.from({ length: paintSpinLines }, (_, i) => generatePaintSpin(i));
 
-  const getStrandColorCyan = (_index: number, t: number) => {
-    const fadeOpacity = Math.min(1, Math.sin(t * Math.PI) * 1.4);
-    return `rgba(34, 211, 238, ${fadeOpacity})`;
+  const getStrandColorGreen = (_index: number, t: number) => {
+    const fadeOpacity = Math.sin(t * Math.PI);
+    return `rgba(78, 201, 176, ${fadeOpacity})`;
   };
 
-  const getStrandColorViolet = (_index: number, t: number) => {
-    const fadeOpacity = Math.min(1, Math.sin(t * Math.PI) * 1.4);
-    return `rgba(167, 139, 250, ${fadeOpacity})`;
+  const getStrandColorPurple = (_index: number, t: number) => {
+    const fadeOpacity = Math.sin(t * Math.PI);
+    return `rgba(197, 134, 192, ${fadeOpacity})`;
   };
 
   return (
@@ -115,7 +121,7 @@ function HelixAnimation() {
     >
       <defs>
         <filter id="glow">
-          <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+          <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
           <feMerge>
             <feMergeNode in="coloredBlur" />
             <feMergeNode in="SourceGraphic" />
@@ -131,15 +137,15 @@ function HelixAnimation() {
           stroke={`url(#paintGradient${lineIndex})`}
           strokeWidth="1"
           style={{
-            filter: 'url(#glow)',
+            filter: 'drop-shadow(0 0 6px rgba(197, 134, 192, 1))',
           }}
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{
             pathLength: [0, 1, 1],
-            opacity: [0, 0.4, 0],
+            opacity: [0, 1, 0],
             y: ["0%", "100%", "0%"],
           }}
-          strokeDasharray={lineIndex % 2 === 0 ? '6,3' : 'none'}
+          strokeDasharray={lineIndex % 2 === 0 ? '4,2' : 'none'}
           transition={{
             duration: 6,
             ease: 'easeInOut',
@@ -155,15 +161,15 @@ function HelixAnimation() {
           d={helix.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}
           fill="none"
           style={{
-            filter: 'url(#glow)',
+            filter: 'drop-shadow(0 0 6px rgba(78, 201, 176, 1))',
           }}
           stroke={`url(#helixGradient${strandIndex})`}
-          strokeWidth={strandIndex === 0 ? '3' : '1.5'}
-          strokeDasharray={strandIndex % 2 === 0 ? '8,4' : 'none'}
+          strokeWidth={strandIndex === 0 ? '3' : '1'}
+          strokeDasharray={strandIndex % 2 === 0 ? '5,5' : 'none'}
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{
             pathLength: [0, 1, 1],
-            opacity: [0, 0.8, 0],
+            opacity: [0, 1, 0],
             y: ["0%", "100%", "0%"],
           }}
           transition={{
@@ -179,14 +185,14 @@ function HelixAnimation() {
         {paintSpins.map((line, lineIndex) => (
           <linearGradient key={`paintGradient${lineIndex}`} id={`paintGradient${lineIndex}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={height}>
             {line.map((p, i) => (
-              <stop key={i} offset={`${(i / (line.length - 1)) * 100}%`} stopColor={getStrandColorViolet(lineIndex, p.t)} />
+              <stop key={i} offset={`${(i / (line.length - 1)) * 100}%`} stopColor={getStrandColorPurple(lineIndex, p.t)} />
             ))}
           </linearGradient>
         ))}
         {helices.map((helix, strandIndex) => (
           <linearGradient key={`helixGradient${strandIndex}`} id={`helixGradient${strandIndex}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={height}>
             {helix.map((p, i) => (
-              <stop key={i} offset={`${(i / (helix.length - 1)) * 100}%`} stopColor={getStrandColorCyan(strandIndex, p.t)} />
+              <stop key={i} offset={`${(i / (helix.length - 1)) * 100}%`} stopColor={getStrandColorGreen(strandIndex, p.t)} />
             ))}
           </linearGradient>
         ))}

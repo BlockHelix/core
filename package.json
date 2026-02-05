@@ -5,7 +5,8 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "initialize-factory": "ts-node scripts/initialize-factory.ts"
+    "initialize-factory": "ts-node scripts/initialize-factory.ts",
+    "devnet-init": "ANCHOR_PROVIDER_URL=https://api.devnet.solana.com ANCHOR_WALLET=~/.config/solana/id.json ts-node scripts/devnet-init.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",
