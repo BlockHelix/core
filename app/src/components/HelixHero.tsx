@@ -28,8 +28,8 @@ export default function HelixHero() {
           <div className="text-center lg:text-left">
             <HeroCube />
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-4">
-              <span style={{ color: '#22d3ee' }}>Block</span>
-              <span style={{ color: '#22d3ee' }}> Helix</span>
+              <span style={{ color: '#22d3ee' }}>BLOCK</span>
+              <span style={{ color: '#22d3ee' }}> HELIX</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-white/30 font-mono mb-10">
               {typedText}<span className="animate-pulse">|</span>
