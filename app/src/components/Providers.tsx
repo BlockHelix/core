@@ -3,6 +3,8 @@
 import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com';
+
 const solanaConnectors = toSolanaWalletConnectors({
   shouldAutoConnect: false,
 });
@@ -27,6 +29,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         externalWallets: {
           solana: { connectors: solanaConnectors },
         },
+        solanaClusters: [
+          { name: 'devnet', rpcUrl: RPC_URL },
+        ],
       }}
     >
       {children}
