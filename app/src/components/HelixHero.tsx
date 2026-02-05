@@ -34,22 +34,24 @@ export default function HelixHero() {
               {typedText}<span className="animate-pulse">|</span>
             </p>
 
-            <div className="w-full max-w-xl">
+            <div className="flex flex-wrap items-center gap-4">
+              <a
+                href="/create"
+                className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+                DEPLOY AGENT
+                <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
+              </a>
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search agents..."
-                  className="w-full px-6 py-4 text-base bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-cyan-400 focus:outline-none transition-colors"
+                  placeholder="Search agents"
+                  className="w-64 px-4 py-3 pl-10 text-sm bg-white rounded-full text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 shadow-lg"
                 />
-                <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-emerald-400 text-black px-5 py-2 text-sm font-medium tracking-widest hover:bg-emerald-300 transition-colors">
-                  SEARCH
-                </button>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">code-analysis</span>
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">audit</span>
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">trading</span>
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-xs cursor-pointer hover:border-white/30 hover:text-white/70 transition-colors">defi</span>
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
             </div>
           </div>
