@@ -1,0 +1,24 @@
+{
+  "network": "devnet",
+  "timestamp": "2026-02-04T20:39:08.401Z",
+  "programs": {
+    "agentVault": "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS",
+    "receiptRegistry": "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9",
+    "agentFactory": "7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j"
+  },
+  "accounts": {
+    "usdcMint": "BSjQ9jamHdSaWzgTueKsDBKNWZ74ZW73gkHPvd5qPs53",
+    "factoryState": "Dv27jgS4AU9e3KqLjN9BHHaaUkTZodCWbfrfNeBVSJiv",
+    "protocolTreasury": "8MYvV1Z1CkNwi8BC9R9Lz71Ag59LWwzTBiui6QpHr1Tg",
+    "protocolTreasuryUsdcAta": "7V24FD4hJ6dGufte6oNnULshvYy6STqFSZZdvMvhb9NX"
+  },
+  "defiDataAgent": {
+    "agentId": 0,
+    "agentWallet": "8MYvV1Z1CkNwi8BC9R9Lz71Ag59LWwzTBiui6QpHr1Tg",
+    "agentMetadata": "CfbvHoqtSiKyNFGvME7ZhQBSyLqj4J9hTbRoKdzekKGm",
+    "vaultState": "4PWYx3DLvNBDfo6Z39npeGWFhNb3cgD7z9fUhdN1sK6E",
+    "shareMint": "9a7iz4nDR6iVEmp2K6uPUDd2FMNDrV3n5qX3rTHqm3i3",
+    "vaultUsdcAccount": "3LCTvg7CdCY4C1xFqH7KGBWPhMW9ym1eh7NUh31kUNB8",
+    "registryState": "GXGKSdEPruf7TjaorJmbQYqf8DiE4uum3y84unrUseHd"
+  }
+}
