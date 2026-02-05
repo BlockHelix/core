@@ -24,6 +24,7 @@ export default function CreateContent() {
   const [githubHandle, setGithubHandle] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [pricePerCall, setPricePerCall] = useState(0.05);
+  const [apiKey, setApiKey] = useState('');
   const [isTestMode, setIsTestMode] = useState(false);
   const [deploySuccess, setDeploySuccess] = useState(false);
 
@@ -42,6 +43,10 @@ export default function CreateContent() {
 
     if (pricePerCall < 0.01 || pricePerCall > 1.0) {
       newErrors.pricePerCall = 'Price must be between $0.01 and $1.00';
+    }
+
+    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+      newErrors.apiKey = 'Valid Anthropic API key required (starts with sk-ant-)';
     }
 
     setErrors(newErrors);
@@ -96,6 +101,7 @@ export default function CreateContent() {
           agentWallet: agentWalletAddress,
           vault: result.vaultState.toString(),
           registry: '',
+          apiKey,
         });
 
         toast('Agent registered with runtime!', 'success');
@@ -239,6 +245,26 @@ export default function CreateContent() {
                 <p className="text-xs text-red-600 mt-1 font-mono">{errors.pricePerCall}</p>
               )}
             </div>
+
+            <div>
+              <label htmlFor="apiKey" className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-mono">
+                Anthropic API Key *
+              </label>
+              <input
+                type="password"
+                id="apiKey"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="w-full bg-white border border-gray-300 px-4 py-3 text-gray-900 font-mono text-sm focus:outline-none focus:border-gray-900 transition-colors"
+                placeholder="sk-ant-..."
+              />
+              {errors.apiKey && (
+                <p className="text-xs text-red-600 mt-1 font-mono">{errors.apiKey}</p>
+              )}
+              <p className="text-xs text-gray-400 mt-2 font-mono">
+                Get your key from console.anthropic.com. You pay Claude directly for usage.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -269,6 +295,7 @@ export default function CreateContent() {
             <TestAgentPanel
               systemPrompt={systemPrompt}
               name={name}
+              apiKey={apiKey}
             />
           )}
         </div>

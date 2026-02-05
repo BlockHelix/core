@@ -5,9 +5,10 @@ import { useState } from 'react';
 interface TestAgentPanelProps {
   systemPrompt: string;
   name: string;
+  apiKey: string;
 }
 
-export default function TestAgentPanel({ systemPrompt, name }: TestAgentPanelProps) {
+export default function TestAgentPanel({ systemPrompt, name, apiKey }: TestAgentPanelProps) {
   const [testInput, setTestInput] = useState('');
   const [testOutput, setTestOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +20,11 @@ export default function TestAgentPanel({ systemPrompt, name }: TestAgentPanelPro
 
     if (!systemPrompt.trim()) {
       setTestOutput('Error: Please provide a system prompt before testing.');
+      return;
+    }
+
+    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+      setTestOutput('Error: Please provide a valid Anthropic API key before testing.');
       return;
     }
 
@@ -36,6 +42,7 @@ export default function TestAgentPanel({ systemPrompt, name }: TestAgentPanelPro
         body: JSON.stringify({
           systemPrompt,
           input: testInput,
+          apiKey,
         }),
       });
 
@@ -61,7 +68,7 @@ export default function TestAgentPanel({ systemPrompt, name }: TestAgentPanelPro
           Test Your Agent
         </p>
         <p className="text-sm text-gray-600 mb-6">
-          Try a sample query to validate your prompt configuration before deploying.
+          Try a sample query to validate your prompt configuration before deploying. Uses your API key.
         </p>
       </div>
 
@@ -86,7 +93,7 @@ export default function TestAgentPanel({ systemPrompt, name }: TestAgentPanelPro
 
       <button
         onClick={handleTest}
-        disabled={isLoading || !testInput.trim()}
+        disabled={isLoading || !testInput.trim() || !apiKey}
         className="px-6 py-3 bg-cyan-600 text-white text-[10px] uppercase tracking-widest font-mono hover:bg-cyan-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? 'Running...' : 'Run Test'}

@@ -8,6 +8,7 @@ export interface RegisterAgentParams {
   vault: string;
   registry?: string;
   isActive?: boolean;
+  apiKey: string;
 }
 
 export interface RegisterAgentResponse {
@@ -52,6 +53,7 @@ export async function registerAgentWithRuntime(
       vault: params.vault,
       registry: params.registry || '',
       isActive: params.isActive ?? true,
+      apiKey: params.apiKey,
     }),
   });
 

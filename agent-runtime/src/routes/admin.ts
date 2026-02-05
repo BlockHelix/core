@@ -22,9 +22,9 @@ export function handleRegisterAgent(req: Request, res: Response): void {
 
   const config = req.body as Partial<AgentConfig>;
 
-  if (!config.agentId || !config.name || !config.systemPrompt || !config.agentWallet) {
+  if (!config.agentId || !config.name || !config.systemPrompt || !config.agentWallet || !config.apiKey) {
     res.status(400).json({
-      error: 'Missing required fields: agentId, name, systemPrompt, agentWallet',
+      error: 'Missing required fields: agentId, name, systemPrompt, agentWallet, apiKey',
     });
     return;
   }
@@ -45,6 +45,7 @@ export function handleRegisterAgent(req: Request, res: Response): void {
     vault: config.vault || '',
     registry: config.registry || '',
     isActive: config.isActive ?? true,
+    apiKey: config.apiKey,
   };
 
   registerHostedAgent(fullConfig);

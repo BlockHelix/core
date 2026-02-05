@@ -8,6 +8,7 @@ export interface AgentConfig {
   vault: string;
   registry: string;
   isActive: boolean;
+  apiKey: string;
 }
 
 export interface RunRequest {

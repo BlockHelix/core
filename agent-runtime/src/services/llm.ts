@@ -1,10 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AgentConfig } from '../types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 export interface LLMRequest {
   agent: AgentConfig;
   input: string;
@@ -20,6 +16,10 @@ export interface LLMResponse {
 
 export async function runAgent(request: LLMRequest): Promise<LLMResponse> {
   const { agent, input, context } = request;
+
+  const anthropic = new Anthropic({
+    apiKey: agent.apiKey,
+  });
 
   let userMessage = input;
   if (context && Object.keys(context).length > 0) {

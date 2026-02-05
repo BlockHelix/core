@@ -106,7 +106,8 @@ export function initDefaultAgents(): void {
   const defaultAgentVault = process.env.DEFAULT_AGENT_VAULT;
   const defaultAgentRegistry = process.env.DEFAULT_AGENT_REGISTRY;
 
-  if (defaultAgentPrompt && defaultAgentWallet) {
+  const defaultAgentApiKey = process.env.DEFAULT_AGENT_API_KEY || process.env.ANTHROPIC_API_KEY;
+  if (defaultAgentPrompt && defaultAgentWallet && defaultAgentApiKey) {
     registerHostedAgent({
       agentId: 'default',
       name: 'Default Agent',
@@ -117,6 +118,7 @@ export function initDefaultAgents(): void {
       vault: defaultAgentVault || '',
       registry: defaultAgentRegistry || '',
       isActive: true,
+      apiKey: defaultAgentApiKey,
     });
   }
 

@@ -1,15 +1,12 @@
 import { Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 const rateLimits = new Map<string, { count: number; resetTime: number }>();
 
 interface TestRequest {
   systemPrompt: string;
   input: string;
+  apiKey: string;
 }
 
 interface TestResponse {
@@ -54,7 +51,12 @@ export async function handleTest(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const { systemPrompt, input } = req.body as TestRequest;
+  const { systemPrompt, input, apiKey } = req.body as TestRequest;
+
+  if (!apiKey || typeof apiKey !== 'string') {
+    res.status(400).json({ error: 'apiKey is required and must be a string' });
+    return;
+  }
 
   if (!systemPrompt || typeof systemPrompt !== 'string') {
     res.status(400).json({ error: 'systemPrompt is required and must be a string' });
@@ -80,6 +82,10 @@ export async function handleTest(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
 
   try {
+    const anthropic = new Anthropic({
+      apiKey,
+    });
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 500,
