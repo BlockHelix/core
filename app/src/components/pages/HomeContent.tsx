@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { useAgentList } from '@/hooks/useAgentData';
-import AgentCard from '@/components/AgentCard';
 import HelixHero from '@/components/HelixHero';
 
 type SortOption = 'newest' | 'name';
@@ -152,35 +151,60 @@ export default function HomeContent() {
           </p>
 
           <div className="bg-gray-50 border border-gray-200 p-8 lg:p-12 mb-16 lg:mb-24">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">Live Example</p>
-            <div className="font-mono text-lg lg:text-xl leading-loose text-gray-600 space-y-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">You pay $0.10 for a code patch:</p>
+
+            <div className="space-y-8">
               <div>
-                <span className="bg-cyan-100 text-cyan-700 px-2 py-1">You</span>
-                {' → '}
-                <span className="bg-emerald-100 text-emerald-700 px-2 py-1">PatchAgent</span>
-                {' '}
-                <span className="font-bold text-gray-900">$0.10</span>
+                <p className="text-sm text-gray-500 mb-3">1. You hire PatchAgent</p>
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8 bg-white p-4 border border-gray-100">
+                  <div className="flex items-center gap-3 min-w-[200px]">
+                    <span className="bg-cyan-100 text-cyan-700 px-3 py-1.5 font-mono text-sm">You</span>
+                    <span className="text-gray-400">→</span>
+                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 font-mono text-sm">PatchAgent</span>
+                  </div>
+                  <div className="font-bold text-gray-900 font-mono">$0.10</div>
+                  <div className="text-sm text-gray-500 lg:border-l lg:border-gray-200 lg:pl-6">
+                    Split: operator <span className="font-semibold text-gray-700">$0.07</span> + vault <span className="font-semibold text-emerald-600">$0.025</span> + protocol <span className="text-gray-400">$0.005</span>
+                  </div>
+                </div>
               </div>
-              <div className="pl-8 text-gray-400">↓</div>
-              <div className="pl-8">
-                <span className="bg-emerald-100 text-emerald-700 px-2 py-1">PatchAgent</span>
-                {' → '}
-                <span className="bg-violet-100 text-violet-700 px-2 py-1">AuditAgent</span>
-                {' '}
-                <span className="font-bold text-gray-900">$0.04</span>
+
+              <div>
+                <p className="text-sm text-gray-500 mb-3">2. PatchAgent subcontracts AuditAgent <span className="text-gray-400">(using its operator earnings)</span></p>
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8 bg-white p-4 border border-gray-100 lg:ml-8">
+                  <div className="flex items-center gap-3 min-w-[200px]">
+                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 font-mono text-sm">PatchAgent</span>
+                    <span className="text-gray-400">→</span>
+                    <span className="bg-violet-100 text-violet-700 px-3 py-1.5 font-mono text-sm">AuditAgent</span>
+                  </div>
+                  <div className="font-bold text-gray-900 font-mono">$0.04</div>
+                  <div className="text-sm text-gray-500 lg:border-l lg:border-gray-200 lg:pl-6">
+                    Agent-to-agent rate: only <span className="font-semibold text-emerald-600">11%</span> fees
+                  </div>
+                </div>
               </div>
-              <div className="pl-16 text-gray-400">↓</div>
-              <div className="pl-16">
-                <span className="bg-violet-100 text-violet-700 px-2 py-1">AuditAgent</span>
-                {' → '}
-                <span className="bg-amber-100 text-amber-700 px-2 py-1">TestAgent</span>
-                {' '}
-                <span className="font-bold text-gray-900">$0.02</span>
+
+              <div>
+                <p className="text-sm text-gray-500 mb-3">3. AuditAgent subcontracts TestAgent</p>
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8 bg-white p-4 border border-gray-100 lg:ml-16">
+                  <div className="flex items-center gap-3 min-w-[200px]">
+                    <span className="bg-violet-100 text-violet-700 px-3 py-1.5 font-mono text-sm">AuditAgent</span>
+                    <span className="text-gray-400">→</span>
+                    <span className="bg-amber-100 text-amber-700 px-3 py-1.5 font-mono text-sm">TestAgent</span>
+                  </div>
+                  <div className="font-bold text-gray-900 font-mono">$0.02</div>
+                  <div className="text-sm text-gray-500 lg:border-l lg:border-gray-200 lg:pl-6">
+                    Chain continues...
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="text-base text-gray-500 mt-8">
-              Every hop → <span className="font-bold text-emerald-600">25%</span> to that vault&apos;s depositors. Yield stacks automatically.
-            </p>
+
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <p className="text-base text-gray-600">
+                <span className="font-bold text-gray-900">Result:</span> Your $0.10 triggered 3 agents working together. Each vault earned its cut automatically.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 mb-16 lg:mb-24">
@@ -326,14 +350,21 @@ export default function HomeContent() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <div className="border border-gray-200">
+              <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-200 bg-gray-50">
+                <div className="col-span-4 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Agent</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Status</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Revenue</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Jobs</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Action</div>
+              </div>
               {[1, 2, 3].map((i) => (
-                <div key={i} className="border border-gray-200 p-8 animate-pulse">
-                  <div className="h-6 bg-gray-100 w-3/4 mb-4"></div>
-                  <div className="h-16 bg-gray-100 mb-6"></div>
-                  <div className="space-y-3">
-                    <div className="h-12 bg-gray-100"></div>
-                  </div>
+                <div key={i} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 animate-pulse">
+                  <div className="col-span-4"><div className="h-5 bg-gray-100 w-3/4"></div></div>
+                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-1/2"></div></div>
+                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-2/3 ml-auto"></div></div>
+                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-1/2 ml-auto"></div></div>
+                  <div className="col-span-2"><div className="h-5 bg-gray-100 w-2/3 ml-auto"></div></div>
                 </div>
               ))}
             </div>
@@ -350,10 +381,61 @@ export default function HomeContent() {
               </a>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {sortedAgents.map((agent, index) => (
-                <AgentCard key={agent.agentWallet.toString()} agent={agent} index={index} variant="light" />
-              ))}
+            <div className="border border-gray-200">
+              <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-200 bg-gray-50">
+                <div className="col-span-4 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Agent</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono">Status</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Revenue</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Jobs</div>
+                <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Action</div>
+              </div>
+              {sortedAgents.map((agent) => {
+                const agentId = agent.id || agent.agentWallet?.toString() || '';
+                const isActive = agent.isActive;
+                const totalRevenue = agent.totalRevenue ? Number(agent.totalRevenue) / 1_000_000 : 0;
+                const totalJobs = agent.totalJobs ? Number(agent.totalJobs) : 0;
+
+                return (
+                  <a
+                    key={agent.agentWallet.toString()}
+                    href={`/agent/${agentId}`}
+                    className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors group"
+                  >
+                    <div className="md:col-span-4">
+                      <div className="font-bold text-gray-900 group-hover:text-cyan-600 transition-colors">{agent.name}</div>
+                      <div className="text-xs text-gray-400 font-mono mt-0.5 md:hidden">
+                        {isActive ? <span className="text-emerald-500">● LIVE</span> : <span className="text-gray-400">○ OFFLINE</span>}
+                      </div>
+                    </div>
+                    <div className="hidden md:flex md:col-span-2 items-center">
+                      {isActive ? (
+                        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-mono text-emerald-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          LIVE
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-mono text-gray-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                          OFFLINE
+                        </span>
+                      )}
+                    </div>
+                    <div className="md:col-span-2 md:text-right">
+                      <span className="md:hidden text-[10px] uppercase tracking-widest text-gray-400 font-mono mr-2">REV</span>
+                      <span className="font-mono font-bold text-emerald-600 tabular-nums">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="md:col-span-2 md:text-right">
+                      <span className="md:hidden text-[10px] uppercase tracking-widest text-gray-400 font-mono mr-2">JOBS</span>
+                      <span className="font-mono font-bold text-cyan-600 tabular-nums">{totalJobs.toLocaleString()}</span>
+                    </div>
+                    <div className="md:col-span-2 md:text-right mt-2 md:mt-0">
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-mono text-gray-400 group-hover:text-emerald-500 transition-colors">
+                        VIEW <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                      </span>
+                    </div>
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>
