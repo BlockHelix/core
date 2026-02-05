@@ -4,217 +4,274 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateAgent } from '@/hooks/useCreateAgent';
+import { useWallets } from '@privy-io/react-auth/solana';
+import { toast } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
-import { motion } from 'framer-motion';
+import { registerAgentWithRuntime } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
+import TestAgentPanel from '@/components/create/TestAgentPanel';
+import PriceInput from '@/components/create/PriceInput';
 
 export default function CreateContent() {
-  const router = useRouter();
   const { authenticated: connected } = useAuth();
-  const { createAgent, isLoading } = useCreateAgent();
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    githubHandle: '',
-    endpoint: '',
-    agentFee: '2.0',
-    protocolFee: '0.5',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { createAgent, isLoading: isCreating } = useCreateAgent();
+  const { wallets } = useWallets();
+  const wallet = wallets[0];
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [githubHandle, setGithubHandle] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [pricePerCall, setPricePerCall] = useState(0.05);
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [deploySuccess, setDeploySuccess] = useState(false);
 
-    try {
-      const agentFeeBps = Math.floor(parseFloat(formData.agentFee) * 100);
-      const protocolFeeBps = Math.floor(parseFloat(formData.protocolFee) * 100);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-      const result = await createAgent({
-        name: formData.name,
-        githubHandle: formData.githubHandle,
-        endpointUrl: formData.endpoint,
-        agentFeeBps,
-        protocolFeeBps,
-        challengeWindow: 86400,
-        maxTvl: 1_000_000_000_000,
-        lockupEpochs: 0,
-        epochLength: 86400,
-        targetApyBps: 1000,
-        lendingFloorBps: 200,
-        arbitrator: PROTOCOL_TREASURY.toBase58(),
-      });
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
 
-      router.push(`/agent/${result.agentWallet.toString()}`);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsSubmitting(false);
+    if (!name || name.length < 3 || name.length > 50) {
+      newErrors.name = 'Name must be 3-50 characters';
     }
+
+    if (!systemPrompt || systemPrompt.length < 10) {
+      newErrors.systemPrompt = 'System prompt must be at least 10 characters';
+    }
+
+    if (pricePerCall < 0.01 || pricePerCall > 1.0) {
+      newErrors.pricePerCall = 'Price must be between $0.01 and $1.00';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+  const handleDeploy = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!connected) {
+      toast('Please connect your wallet to deploy an agent', 'error');
+      return;
+    }
+
+    try {
+      toast('Deploying agent on-chain...', 'info');
+
+      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
+      const agentWalletAddress = wallet?.address;
+
+      if (!agentWalletAddress) {
+        throw new Error('Wallet address not available');
+      }
+
+      const result = await createAgent({
+        name,
+        githubHandle: githubHandle || 'blockhelix',
+        endpointUrl: `${runtimeBaseUrl}/v1/agent/${agentWalletAddress}/run`,
+        agentFeeBps: 200,
+        protocolFeeBps: 50,
+        challengeWindow: 86400,
+        maxTvl: 10_000_000,
+        lockupEpochs: 1,
+        epochLength: 86400,
+        targetApyBps: 1000,
+        lendingFloorBps: 300,
+        arbitrator: PROTOCOL_TREASURY.toString(),
+      });
+
+      toast('Agent deployed on-chain! Registering with runtime...', 'success');
+
+      try {
+        const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
+
+        await registerAgentWithRuntime({
+          agentId: agentWalletAddress,
+          name,
+          systemPrompt,
+          priceUsdcMicro,
+          agentWallet: agentWalletAddress,
+          vault: result.vaultState.toString(),
+          registry: '',
+        });
+
+        toast('Agent registered with runtime!', 'success');
+      } catch (runtimeError: any) {
+        console.error('Runtime registration error:', runtimeError);
+        toast(`Warning: Agent created on-chain but runtime registration failed: ${runtimeError.message}`, 'warning');
+      }
+
+      setDeploySuccess(true);
+
+      setTimeout(() => {
+        router.push(`/agent/${result.vaultState.toString()}`);
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Deploy error:', error);
+      toast(error.message || 'Failed to deploy agent', 'error');
+    }
   };
 
   if (!connected) {
     return (
-      <main className="min-h-screen py-32 lg:py-48">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-2xl mx-auto"
-          >
-            <div className="text-xs uppercase tracking-wider-2 text-white/40 mb-6">
-              DEPLOY AGENT
-            </div>
-            <h1 className="text-4xl lg:text-6xl font-bold tracking-tight text-white mb-6">
-              Deploy Agent
-            </h1>
-            <p className="text-lg lg:text-xl text-white/60 leading-relaxed mb-16">
-              Register an autonomous agent on Solana. Post your operator bond. Set your x402 pricing. Depositors fund your vault and receive revenue shares. You retain 70%.
-            </p>
+      <main className="min-h-screen bg-white">
+        <div className="max-w-3xl mx-auto px-6 py-32">
+          <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-4">Create Agent</p>
+          <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 font-mono">
+            Deploy Your Agent
+          </h1>
+          <p className="text-lg text-gray-500 mb-12 max-w-xl">
+            Connect your wallet to create a hosted inference agent. Set your prompt, price, and start earning from every call.
+          </p>
 
-            <div className="border border-white/10 p-16 text-center bg-white/[0.02] corner-cut relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
-              <p className="text-sm text-white/50 mb-8 uppercase tracking-wider">
-                Wallet connection required for deployment
-              </p>
-              <WalletButton />
-            </div>
-          </motion.div>
+          <div className="border border-gray-200 bg-gray-50 p-12 text-center">
+            <p className="text-sm text-gray-500 mb-6 uppercase tracking-widest">
+              Wallet Required
+            </p>
+            <WalletButton />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (deploySuccess) {
+    return (
+      <main className="min-h-screen bg-white">
+        <div className="max-w-3xl mx-auto px-6 py-32">
+          <div className="border border-emerald-500 bg-emerald-50 p-12 text-center">
+            <div className="text-6xl mb-6">✓</div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4 font-mono">Agent Deployed</h2>
+            <p className="text-lg text-gray-600">
+              Your agent is now live and ready to accept calls.
+            </p>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen py-20 lg:py-24">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-mono">
-            DEPLOY AGENT
-          </div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">
-            Deploy Agent
-          </h1>
-          <p className="text-sm text-white/50 leading-relaxed mb-12">
-            Register an autonomous agent on Solana. Post your operator bond. Set your x402 pricing. Depositors fund your vault and receive revenue shares. You retain 70%.
-          </p>
+    <main className="min-h-screen bg-white">
+      <div className="max-w-3xl mx-auto px-6 py-20 lg:py-32">
+        <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-4">Create Agent</p>
+        <h1 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-16 font-mono">
+          Create Agent
+        </h1>
 
-          <form onSubmit={handleSubmit} className="border border-white/10 p-8 space-y-6 bg-white/[0.01]">
-
+        <div className="space-y-8">
+          <div className="space-y-6 pb-12 border-b border-gray-200">
             <div>
-              <label htmlFor="name" className="block text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">
-                Agent Name *
+              <label htmlFor="name" className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-mono">
+                Name *
               </label>
               <input
                 type="text"
                 id="name"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full bg-black/30 border border-white/30 px-4 py-3 text-white text-sm focus:border-white/20 focus:outline-none transition-colors duration-300"
-                placeholder="DeFi Code Analyzer"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-white border border-gray-300 px-4 py-3 text-gray-900 focus:outline-none focus:border-gray-900 transition-colors"
+                placeholder="Research Assistant"
               />
+              {errors.name && (
+                <p className="text-xs text-red-600 mt-1 font-mono">{errors.name}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="githubHandle" className="block text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">
-                GitHub Handle *
+              <label htmlFor="githubHandle" className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-mono">
+                GitHub Handle
               </label>
               <input
                 type="text"
                 id="githubHandle"
-                name="githubHandle"
-                required
-                value={formData.githubHandle}
-                onChange={handleChange}
-                className="w-full bg-black/30 border border-white/30 px-4 py-3 text-white text-sm focus:border-white/20 focus:outline-none transition-colors duration-300"
-                placeholder="defi-optimizer-ai"
+                value={githubHandle}
+                onChange={(e) => setGithubHandle(e.target.value)}
+                className="w-full bg-white border border-gray-300 px-4 py-3 text-gray-900 focus:outline-none focus:border-gray-900 transition-colors"
+                placeholder="blockhelix"
               />
             </div>
 
             <div>
-              <label htmlFor="endpoint" className="block text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">
-                Service Endpoint URL *
+              <label htmlFor="description" className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-mono">
+                Description
               </label>
-              <input
-                type="url"
-                id="endpoint"
-                name="endpoint"
-                required
-                value={formData.endpoint}
-                onChange={handleChange}
-                className="w-full bg-black/30 border border-white/30 px-4 py-3 text-white focus:border-white/20 focus:outline-none transition-colors duration-300 font-mono text-sm"
-                placeholder="https://api.example.com/agent"
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                className="w-full bg-white border border-gray-300 px-4 py-3 text-gray-900 resize-none focus:outline-none focus:border-gray-900 transition-colors"
+                placeholder="What does your agent do?"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="agentFee" className="block text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">
-                  Agent Fee (%)
-                </label>
-                <input
-                  type="number"
-                  id="agentFee"
-                  name="agentFee"
-                  step="0.1"
-                  min="0"
-                  max="50"
-                  value={formData.agentFee}
-                  onChange={handleChange}
-                  className="w-full bg-black/30 border border-white/30 px-4 py-3 text-white font-mono text-sm tabular-nums focus:border-white/20 focus:outline-none transition-colors duration-300"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="protocolFee" className="block text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">
-                  Protocol Fee (%)
-                </label>
-                <input
-                  type="number"
-                  id="protocolFee"
-                  name="protocolFee"
-                  step="0.1"
-                  min="0.5"
-                  max="10"
-                  value={formData.protocolFee}
-                  onChange={handleChange}
-                  className="w-full bg-black/30 border border-white/30 px-4 py-3 text-white font-mono text-sm tabular-nums focus:border-white/20 focus:outline-none transition-colors duration-300"
-                />
-              </div>
+            <div>
+              <label htmlFor="systemPrompt" className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-mono">
+                System Prompt * (this is your alpha)
+              </label>
+              <textarea
+                id="systemPrompt"
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                rows={6}
+                className="w-full bg-white border border-gray-300 px-4 py-3 text-gray-900 font-mono text-sm resize-none focus:outline-none focus:border-gray-900 transition-colors"
+                placeholder="You are a research assistant specialized in..."
+              />
+              {errors.systemPrompt && (
+                <p className="text-xs text-red-600 mt-1 font-mono">{errors.systemPrompt}</p>
+              )}
+              <p className="text-xs text-gray-400 mt-2 font-mono">
+                Tip: Be specific. Good prompts make good agents.
+              </p>
             </div>
 
-            {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-                <span className="text-[10px] uppercase tracking-widest font-bold font-mono">ERROR:</span> {error}
-              </div>
-            )}
+            <div>
+              <label htmlFor="price" className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-mono">
+                Price per call *
+              </label>
+              <PriceInput value={pricePerCall} onChange={setPricePerCall} />
+              {errors.pricePerCall && (
+                <p className="text-xs text-red-600 mt-1 font-mono">{errors.pricePerCall}</p>
+              )}
+            </div>
+          </div>
 
+          <div className="flex items-center gap-4">
             <button
-              type="submit"
-              disabled={isSubmitting || isLoading}
-              className="w-full mt-4 bg-emerald-400 text-black font-bold px-6 py-3 text-xs uppercase tracking-widest hover:bg-emerald-300 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() => {
+                if (validateForm()) {
+                  setIsTestMode(!isTestMode);
+                }
+              }}
+              className="px-6 py-3 border border-gray-900 text-gray-900 text-[10px] uppercase tracking-widest font-mono hover:bg-gray-50 transition-colors"
             >
-              {isSubmitting ? 'DEPLOYING...' : 'DEPLOY AGENT'}
+              {isTestMode ? 'Hide Test' : 'Test Agent'}
             </button>
-          </form>
-        </motion.div>
+            <button
+              onClick={handleDeploy}
+              disabled={isCreating}
+              className="px-6 py-3 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-mono hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isCreating ? 'Deploying...' : (
+                <>
+                  Deploy Agent <span>→</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {isTestMode && (
+            <TestAgentPanel
+              systemPrompt={systemPrompt}
+              name={name}
+            />
+          )}
+        </div>
       </div>
     </main>
   );

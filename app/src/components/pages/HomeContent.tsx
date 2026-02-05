@@ -390,15 +390,15 @@ export default function HomeContent() {
                 <div className="col-span-2 text-[10px] uppercase tracking-widest text-gray-400 font-mono text-right">Action</div>
               </div>
               {sortedAgents.map((agent) => {
-                const agentId = agent.id || agent.agentWallet?.toString() || '';
+                const agentWalletStr = agent.agentWallet?.toString() || '';
                 const isActive = agent.isActive;
                 const totalRevenue = agent.totalRevenue ? Number(agent.totalRevenue) / 1_000_000 : 0;
                 const totalJobs = agent.totalJobs ? Number(agent.totalJobs) : 0;
 
                 return (
                   <a
-                    key={agent.agentWallet.toString()}
-                    href={`/agent/${agentId}`}
+                    key={agentWalletStr}
+                    href={`/agent/${agentWalletStr}`}
                     className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors group"
                   >
                     <div className="md:col-span-4">
