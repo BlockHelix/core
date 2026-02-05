@@ -1,6 +1,7 @@
 version: 1
 applications:
   - appRoot: app
+    framework: nextjs
     frontend:
       phases:
         preBuild:
@@ -10,7 +11,7 @@ applications:
           commands:
             - npm run build
       artifacts:
-        baseDirectory: .
+        baseDirectory: .next
         files:
           - '**/*'
       cache:
