@@ -35,46 +35,24 @@ export function createApp(): express.Application {
   const resourceServer = new x402ResourceServer(facilitatorClient)
     .register(NETWORK, new ExactSvmScheme());
 
-  const dynamicRoutes: RoutesConfig = new Proxy({} as RoutesConfig, {
-    get(_target, prop: string) {
-      const match = prop.match(/^POST \/v1\/agent\/([^/]+)\/run$/);
-      if (!match) return undefined;
+  // Use wildcard route for x402 - all agent runs require payment
+  // Default to $0.05 USDC, actual price checked in handler
+  const AGENT_WALLET = process.env.AGENT_WALLET || process.env.DEFAULT_AGENT_WALLET || '97hcopf5v277jJhDD91DzXMwCJs5UR6659Lzdny14oYm';
+  const staticRoutes: RoutesConfig = {
+    'POST /v1/agent/*/run': {
+      accepts: {
+        scheme: 'exact',
+        price: '$0.05',
+        network: NETWORK,
+        payTo: AGENT_WALLET,
+      },
+      description: 'Run BlockHelix agent',
+      mimeType: 'application/json',
+    },
+  };
 
-      const agentId = match[1];
-      const agent = getAllHostedAgents().find(a => a.agentId === agentId);
-      if (!agent) return undefined;
-
-      const priceFormatted = `$${(agent.priceUsdcMicro / 1_000_000).toFixed(2)}`;
-      return {
-        accepts: {
-          scheme: 'exact',
-          price: priceFormatted,
-          network: NETWORK,
-          payTo: agent.agentWallet,
-        },
-        description: `Run ${agent.name} agent`,
-        mimeType: 'application/json',
-      };
-    },
-    has(_target, prop: string) {
-      const match = prop.match(/^POST \/v1\/agent\/([^/]+)\/run$/);
-      if (!match) return false;
-      const agentId = match[1];
-      return getAllHostedAgents().some(a => a.agentId === agentId);
-    },
-    ownKeys() {
-      return getAllHostedAgents().map(a => `POST /v1/agent/${a.agentId}/run`);
-    },
-    getOwnPropertyDescriptor(_target, prop) {
-      const match = String(prop).match(/^POST \/v1\/agent\/([^/]+)\/run$/);
-      if (!match) return undefined;
-      const agentId = match[1];
-      if (!getAllHostedAgents().some(a => a.agentId === agentId)) return undefined;
-      return { configurable: true, enumerable: true };
-    },
-  });
-
-  app.use(paymentMiddleware(dynamicRoutes, resourceServer));
+  console.log('[x402] Configured payment route: POST /v1/agent/*/run, payTo:', AGENT_WALLET);
+  app.use(paymentMiddleware(staticRoutes, resourceServer));
 
   app.get('/health', (_req, res) => {
     const agents = getAllHostedAgents();

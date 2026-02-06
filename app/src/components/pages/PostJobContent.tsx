@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { PublicKey } from '@solana/web3.js';
 import { motion } from 'framer-motion';
 import { useAgentList } from '@/hooks/useAgentData';
+import { useX402 } from '@/hooks/useX402';
+import { useAuth } from '@/hooks/useAuth';
 import { formatUSDC } from '@/lib/format';
 import { toast } from '@/lib/toast';
 
@@ -37,6 +39,8 @@ export default function PostJobContent() {
   const preselectedAgent = searchParams.get('agent');
 
   const { agents, isLoading: agentsLoading } = useAgentList();
+  const { authenticated } = useAuth();
+  const { fetchWithPayment, isReady: walletReady } = useX402();
   const activeAgents = useMemo(() => agents.filter(a => a.isActive), [agents]);
 
   const [selectedAgentId, setSelectedAgentId] = useState<string>(preselectedAgent || '');
@@ -44,6 +48,7 @@ export default function PostJobContent() {
   const [repoUrl, setRepoUrl] = useState('');
   const [filePath, setFilePath] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +61,11 @@ export default function PostJobContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!authenticated || !walletReady) {
+      toast('Please connect your wallet first', 'error');
+      return;
+    }
 
     if (!selectedAgent) {
       toast('Please select an agent', 'error');
@@ -72,18 +82,16 @@ export default function PostJobContent() {
     setResult(null);
 
     try {
-      // Use the base endpoint URL (without /analyze or /patch suffix)
-      // The agent's /run endpoint accepts an input string
       const endpoint = selectedAgent.endpointUrl.replace(/\/(analyze|patch)$/, '');
 
-      toast('Submitting job to agent...', 'info');
-
-      // Build the input as a formatted string for the agent
       const inputText = jobType === 'analyze'
         ? `Analyze this GitHub repository for DeFi vulnerabilities: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`
         : `Generate patches for vulnerabilities in this GitHub repository: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`;
 
-      const response = await fetch(endpoint, {
+      toast('Requesting agent service (payment required)...', 'info');
+      setIsPaying(true);
+
+      const response = await fetchWithPayment(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,6 +100,8 @@ export default function PostJobContent() {
           input: inputText,
         }),
       });
+
+      setIsPaying(false);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -103,6 +113,7 @@ export default function PostJobContent() {
 
       toast('Job completed successfully!', 'success');
     } catch (err: any) {
+      setIsPaying(false);
       const errorMsg = err.message || 'Job submission failed';
       setError(errorMsg);
       toast(`Job failed: ${errorMsg}`, 'error');
@@ -293,8 +304,17 @@ export default function PostJobContent() {
                 {isProcessing && (
                   <div className="space-y-2 text-white/50">
                     <div><span className="text-cyan-400">→</span> Connecting to agent endpoint...</div>
-                    <div><span className="text-cyan-400">→</span> Submitting job request...</div>
-                    <div><span className="text-cyan-400">→</span> Agent processing<span className="inline-block w-2 h-4 bg-cyan-400/50 ml-1 animate-pulse" /></div>
+                    {isPaying ? (
+                      <>
+                        <div><span className="text-amber-400">→</span> x402 Payment required - approve in wallet...</div>
+                        <div><span className="text-amber-400">→</span> Transferring $0.05 USDC<span className="inline-block w-2 h-4 bg-amber-400/50 ml-1 animate-pulse" /></div>
+                      </>
+                    ) : (
+                      <>
+                        <div><span className="text-emerald-400">✓</span> Payment confirmed</div>
+                        <div><span className="text-cyan-400">→</span> Agent processing<span className="inline-block w-2 h-4 bg-cyan-400/50 ml-1 animate-pulse" /></div>
+                      </>
+                    )}
                   </div>
                 )}
 
