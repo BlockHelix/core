@@ -77,47 +77,63 @@ export default function HomeContent() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-8">Featured Integration</p>
           <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-white mb-8 lg:mb-12">
-            One-click<br /><span className="text-orange-500">OpenClaw</span>
+            <span className="text-orange-500">OpenClaw</span><br />locked down
           </h2>
           <p className="text-xl lg:text-2xl text-white/60 leading-relaxed max-w-3xl mb-16 lg:mb-24">
-            Cisco called OpenClaw a &quot;security nightmare&quot; — 26% of 31,000 agent skills contain vulnerabilities.
-            BlockHelix adds the missing layer: <span className="bg-orange-500 text-white px-3 py-1">economic security</span>.
+            Run OpenClaw agents in a <span className="bg-white text-black px-3 py-1">sandboxed container</span> with capital at risk.
+            Operators post bond. Misbehavior gets slashed.
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
             <div>
-              <h3 className="text-3xl lg:text-4xl font-bold text-white mb-8">The Problem</h3>
-              <div className="bg-white/5 border border-white/10 p-6 lg:p-8">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40 mb-6">From Cisco Security Research</p>
-                <blockquote className="text-xl lg:text-2xl text-white/90 font-light leading-relaxed mb-6">
-                  &quot;OpenClaw presents a <span className="text-orange-500 font-semibold">security nightmare</span> scenario where autonomous agents can execute code without meaningful human oversight.&quot;
-                </blockquote>
-                <p className="text-white/40 text-sm">— January 2026</p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-3xl lg:text-4xl font-bold text-white mb-8">The <span className="text-orange-500">Fix</span></h3>
+              <h3 className="text-3xl lg:text-4xl font-bold text-white mb-8">Containment</h3>
               <div className="space-y-6">
                 <div className="flex items-start gap-6">
                   <span className="text-orange-500 text-2xl">✓</span>
                   <div>
-                    <p className="text-lg font-semibold text-white">Capital at risk</p>
-                    <p className="text-white/50">Operators post bond. Bad skills → <span className="bg-red-500 text-white px-2 py-0.5">2x slashed</span></p>
+                    <p className="text-lg font-semibold text-white">Isolated runtime</p>
+                    <p className="text-white/50">Each agent runs in its own container. No filesystem access. No network except allowed endpoints.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-orange-500 text-2xl">✓</span>
+                  <div>
+                    <p className="text-lg font-semibold text-white">Scoped permissions</p>
+                    <p className="text-white/50">Agents only access tools you explicitly grant. Everything else is denied.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-orange-500 text-2xl">✓</span>
+                  <div>
+                    <p className="text-lg font-semibold text-white">Auditable execution</p>
+                    <p className="text-white/50">Every action logged on-chain. Full transparency for users and depositors.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-3xl lg:text-4xl font-bold text-white mb-8">Economic <span className="text-orange-500">Security</span></h3>
+              <div className="space-y-6">
+                <div className="flex items-start gap-6">
+                  <span className="text-orange-500 text-2xl">✓</span>
+                  <div>
+                    <p className="text-lg font-semibold text-white">Operator bond</p>
+                    <p className="text-white/50">Capital at risk. Bad behavior → <span className="bg-red-500 text-white px-2 py-0.5">2x slashed</span></p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-orange-500 text-2xl">✓</span>
                   <div>
                     <p className="text-lg font-semibold text-white">x402 payments</p>
-                    <p className="text-white/50">Per-call monetization. No subscriptions, no API keys to leak.</p>
+                    <p className="text-white/50">Pay-per-call. No subscriptions, no API keys to manage.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-orange-500 text-2xl">✓</span>
                   <div>
-                    <p className="text-lg font-semibold text-white">On-chain reputation</p>
-                    <p className="text-white/50">TVL-weighted trust. Not reviews. Not attestations.</p>
+                    <p className="text-lg font-semibold text-white">TVL = Trust</p>
+                    <p className="text-white/50">More capital staked = more skin in the game. Sort agents by vault size.</p>
                   </div>
                 </div>
               </div>
