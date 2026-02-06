@@ -36,16 +36,28 @@ export function createApp(): express.Application {
     .register(NETWORK, new ExactSvmScheme());
 
   // Use wildcard route for x402 - all agent runs require payment
-  // Default to $0.05 USDC, actual price checked in handler
+  // Accept both USDC ($0.05) and SOL (0.0003 SOL ≈ $0.05 at ~$170/SOL)
   const AGENT_WALLET = process.env.AGENT_WALLET || process.env.DEFAULT_AGENT_WALLET || '97hcopf5v277jJhDD91DzXMwCJs5UR6659Lzdny14oYm';
+  const USDC_DEVNET = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+  const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
   const staticRoutes: RoutesConfig = {
     'POST /v1/agent/*/run': {
-      accepts: {
-        scheme: 'exact',
-        price: '$0.05',
-        network: NETWORK,
-        payTo: AGENT_WALLET,
-      },
+      accepts: [
+        {
+          scheme: 'exact',
+          price: '$0.05',
+          network: NETWORK,
+          payTo: AGENT_WALLET,
+          asset: USDC_DEVNET,
+        },
+        {
+          scheme: 'exact',
+          price: '300000', // 0.0003 SOL in lamports
+          network: NETWORK,
+          payTo: AGENT_WALLET,
+          asset: NATIVE_SOL,
+        },
+      ],
       description: 'Run BlockHelix agent',
       mimeType: 'application/json',
     },
