@@ -22,7 +22,7 @@ export default function HelixHero() {
   }, [])
 
   return (
-    <section className="relative bg-[#0a0a0a] min-h-screen flex items-start lg:items-center pt-20 lg:pt-0">
+    <section className="relative bg-[#0a0a0a] min-h-screen flex items-start lg:items-center pt-8 lg:pt-0">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center justify-between pt-8 lg:pt-0">
         <div className="lg:w-1/2 z-10 flex flex-col items-center lg:items-start">
           <div className="text-center lg:text-left">

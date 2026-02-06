@@ -33,7 +33,16 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-[#0a0a0a] text-white">
         <Providers>
           <Header />
-          <div className="pt-20 min-h-screen">
+          {/* OpenClaw Launch Banner */}
+          <div className="fixed top-20 left-0 right-0 z-40 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500">
+            <a href="/create" className="block py-2 px-4 text-center text-sm font-medium text-white hover:bg-orange-600/20 transition-colors">
+              <span className="inline-flex items-center gap-2">
+                <span className="font-bold">NEW:</span> Deploy OpenClaw agents in a few clicks with on-chain capital protection
+                <span className="hidden sm:inline">→</span>
+              </span>
+            </a>
+          </div>
+          <div className="pt-28 min-h-screen">
             {children}
           </div>
           <Footer />

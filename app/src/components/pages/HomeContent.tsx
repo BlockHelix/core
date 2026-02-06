@@ -72,6 +72,62 @@ export default function HomeContent() {
         </div>
       </section>
 
+      {/* OpenClaw Integration */}
+      <section className="py-20 lg:py-32 bg-gradient-to-b from-orange-950 via-[#0a0a0a] to-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-12 lg:gap-24">
+            <div className="lg:w-1/2">
+              <div className="inline-flex items-center gap-2 bg-orange-500/20 border border-orange-500/30 px-4 py-2 mb-8">
+                <span className="text-orange-400 font-bold text-sm">FEATURED INTEGRATION</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6">
+                One-click<br /><span className="text-orange-400">OpenClaw</span>
+              </h2>
+              <p className="text-xl text-white/60 leading-relaxed mb-8">
+                Cisco called OpenClaw a &quot;security nightmare&quot; — 26% of 31,000 agent skills contain vulnerabilities.
+                BlockHelix adds the missing layer: <span className="text-orange-400 font-semibold">economic security</span>.
+              </p>
+              <ul className="space-y-4 mb-10">
+                <li className="flex items-start gap-4">
+                  <span className="bg-orange-500 text-black font-bold w-6 h-6 flex items-center justify-center text-sm flex-shrink-0 mt-0.5">✓</span>
+                  <span className="text-white/80"><span className="text-white font-semibold">Capital at risk:</span> Operators post bond. Bad skills → 2x slashed.</span>
+                </li>
+                <li className="flex items-start gap-4">
+                  <span className="bg-orange-500 text-black font-bold w-6 h-6 flex items-center justify-center text-sm flex-shrink-0 mt-0.5">✓</span>
+                  <span className="text-white/80"><span className="text-white font-semibold">x402 payments:</span> Per-call monetization. No subscriptions, no API keys to leak.</span>
+                </li>
+                <li className="flex items-start gap-4">
+                  <span className="bg-orange-500 text-black font-bold w-6 h-6 flex items-center justify-center text-sm flex-shrink-0 mt-0.5">✓</span>
+                  <span className="text-white/80"><span className="text-white font-semibold">On-chain reputation:</span> TVL-weighted trust. Not reviews. Not attestations.</span>
+                </li>
+              </ul>
+              <a
+                href="/create"
+                className="group inline-flex items-center gap-3 px-8 py-4 text-sm font-bold tracking-widest bg-orange-500 text-black hover:bg-orange-400 transition-all duration-300"
+              >
+                DEPLOY OPENCLAW AGENT
+                <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+              </a>
+            </div>
+            <div className="lg:w-1/2">
+              <div className="bg-black/50 border border-orange-500/20 p-8">
+                <p className="text-xs uppercase tracking-[0.2em] text-orange-400/60 mb-6">From Cisco&apos;s Security Report</p>
+                <blockquote className="text-2xl lg:text-3xl text-white/90 font-light leading-relaxed mb-6">
+                  &quot;OpenClaw presents a <span className="text-orange-400 font-semibold">security nightmare</span> scenario where autonomous agents can execute code without meaningful human oversight.&quot;
+                </blockquote>
+                <p className="text-white/50 text-sm mb-8">— Cisco Security Research, January 2026</p>
+                <div className="border-t border-orange-500/20 pt-6">
+                  <p className="text-lg text-white/80">
+                    <span className="text-orange-400 font-bold">BlockHelix solution:</span> Becker&apos;s (1968) optimal deterrence.
+                    When the expected penalty exceeds the expected gain, rational agents behave.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="py-20 lg:py-48 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
