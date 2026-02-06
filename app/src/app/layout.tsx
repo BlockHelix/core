@@ -37,8 +37,9 @@ export default function RootLayout({
           <div className="fixed top-20 left-0 right-0 z-40 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500">
             <a href="/create" className="block py-2 px-4 text-center text-sm font-medium text-white hover:bg-orange-600/20 transition-colors">
               <span className="inline-flex items-center gap-2">
-                <span className="font-bold">NEW:</span> Deploy OpenClaw agents in a few clicks with on-chain capital protection
-                <span className="hidden sm:inline">→</span>
+                <span className="font-bold">NEW:</span> Deploy OpenClaw agents in a few clicks
+                <span className="hidden sm:inline">— Cisco called it a &quot;security nightmare&quot;. We fixed it.</span>
+                <span className="ml-1">→</span>
               </span>
             </a>
           </div>
