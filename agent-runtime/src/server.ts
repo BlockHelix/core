@@ -45,17 +45,15 @@ export function createApp(): express.Application {
       accepts: [
         {
           scheme: 'exact',
-          price: '$0.05',
+          price: { asset: USDC_DEVNET, amount: '50000' } as any,
           network: NETWORK,
           payTo: AGENT_WALLET,
-          asset: USDC_DEVNET,
         },
         {
           scheme: 'exact',
-          price: '300000', // 0.0003 SOL in lamports
+          price: { asset: NATIVE_SOL, amount: '300000' } as any,
           network: NETWORK,
           payTo: AGENT_WALLET,
-          asset: NATIVE_SOL,
         },
       ],
       description: 'Run BlockHelix agent',
