@@ -9,6 +9,8 @@ export interface AgentConfig {
   registry: string;
   isActive: boolean;
   apiKey: string;
+  agentWallet?: string;
+  walletSecretKey?: string;
   isContainerized?: boolean;
 }
 

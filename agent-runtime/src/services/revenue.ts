@@ -15,22 +15,6 @@ const USDC_MINT = new PublicKey(
 );
 const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'https://api.devnet.solana.com';
 
-const AGENT_WALLET_PRIVATE_KEY = process.env.AGENT_WALLET_PRIVATE_KEY;
-let cachedKeypair: Keypair | null = null;
-
-function loadKeypair(walletPath: string): Keypair {
-  if (cachedKeypair) return cachedKeypair;
-
-  if (AGENT_WALLET_PRIVATE_KEY) {
-    const secretKey = Uint8Array.from(JSON.parse(AGENT_WALLET_PRIVATE_KEY));
-    cachedKeypair = Keypair.fromSecretKey(secretKey);
-  } else {
-    const raw = fs.readFileSync(walletPath, 'utf-8');
-    cachedKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
-  }
-  return cachedKeypair;
-}
-
 function getProvider(keypair: Keypair): anchor.AnchorProvider {
   const connection = new Connection(RPC_URL, 'confirmed');
   const wallet = new anchor.Wallet(keypair);
@@ -77,15 +61,15 @@ export interface ReceiptResult {
 }
 
 export async function routeRevenueToVault(
-  operatorWalletPath: string,
+  agentKeypair: Keypair,
+  operatorPubkey: PublicKey,
   amount: number,
   jobId: number
 ): Promise<RevenueResult | null> {
   try {
-    const operatorKeypair = loadKeypair(operatorWalletPath);
-    const provider = getProvider(operatorKeypair);
+    const provider = getProvider(agentKeypair);
     anchor.setProvider(provider);
-    const operator = operatorKeypair.publicKey;
+    const operator = operatorPubkey;
 
     const [vaultState] = getVaultPda(operator);
     const vaultUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, vaultState, true);
@@ -128,19 +112,18 @@ export async function routeRevenueToVault(
 }
 
 export async function recordJobOnChain(
-  operatorWalletPath: string,
+  agentKeypair: Keypair,
+  operatorPubkey: PublicKey,
   artifactHash: Buffer,
   paymentAmount: number,
   paymentTx: string,
   clientPubkey?: string
 ): Promise<ReceiptResult | null> {
   try {
-    const operatorKeypair = loadKeypair(operatorWalletPath);
-    const provider = getProvider(operatorKeypair);
+    const provider = getProvider(agentKeypair);
     anchor.setProvider(provider);
-    const operator = operatorKeypair.publicKey;
 
-    const [vaultState] = getVaultPda(operator);
+    const [vaultState] = getVaultPda(operatorPubkey);
     const [registryState] = getRegistryPda(vaultState);
 
     const connection = new Connection(RPC_URL, 'confirmed');
@@ -172,14 +155,14 @@ export async function recordJobOnChain(
     }
     while (paymentTxBytes.length < 64) paymentTxBytes.push(0);
 
-    const client = clientPubkey ? new PublicKey(clientPubkey) : operator;
+    const client = clientPubkey ? new PublicKey(clientPubkey) : agentKeypair.publicKey;
 
     const tx: string = await (registryProgram.methods as any)
       .recordJob(hashArray, new anchor.BN(paymentAmount), paymentTxBytes)
       .accounts({
         registryState,
         jobReceipt,
-        operator,
+        operator: agentKeypair.publicKey,
         client,
         systemProgram: anchor.web3.SystemProgram.programId,
       })

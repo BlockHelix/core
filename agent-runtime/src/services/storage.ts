@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Keypair } from '@solana/web3.js';
 import type { AgentConfig } from '../types';
 import { encrypt, decrypt, isEncrypted } from './crypto';
 
@@ -111,16 +112,28 @@ class AgentStorage {
   }
 
   async create(agent: AgentConfig, ownerWallet: string): Promise<StoredAgent> {
+    let agentWallet = agent.agentWallet;
+    let walletSecretKey = agent.walletSecretKey;
+
+    if (!agentWallet || !walletSecretKey) {
+      const keypair = Keypair.generate();
+      agentWallet = keypair.publicKey.toBase58();
+      walletSecretKey = JSON.stringify(Array.from(keypair.secretKey));
+      console.log(`[storage] Generated new wallet for agent ${agent.agentId}: ${agentWallet}`);
+    }
+
     const stored: StoredAgent = {
       ...agent,
       apiKey: agent.apiKey ? encrypt(agent.apiKey) : '',
+      agentWallet,
+      walletSecretKey: encrypt(walletSecretKey),
       ownerWallet,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
     this.agents.set(agent.agentId, stored);
     await this.save();
-    return { ...stored, apiKey: agent.apiKey };
+    return { ...stored, apiKey: agent.apiKey, walletSecretKey };
   }
 
   async update(agentId: string, updates: Partial<AgentConfig>): Promise<StoredAgent | null> {
@@ -143,15 +156,35 @@ class AgentStorage {
   }
 
   private decryptAgent(agent: StoredAgent): StoredAgent {
-    if (!agent.apiKey) return agent;
+    const result = { ...agent };
     try {
-      return {
-        ...agent,
-        apiKey: isEncrypted(agent.apiKey) ? decrypt(agent.apiKey) : agent.apiKey,
-      };
+      if (agent.apiKey && isEncrypted(agent.apiKey)) {
+        result.apiKey = decrypt(agent.apiKey);
+      }
     } catch {
       console.error(`[storage] Failed to decrypt apiKey for agent ${agent.agentId}`);
-      return { ...agent, apiKey: '' };
+      result.apiKey = '';
+    }
+    try {
+      if (agent.walletSecretKey && isEncrypted(agent.walletSecretKey)) {
+        result.walletSecretKey = decrypt(agent.walletSecretKey);
+      }
+    } catch {
+      console.error(`[storage] Failed to decrypt walletSecretKey for agent ${agent.agentId}`);
+      result.walletSecretKey = '';
+    }
+    return result;
+  }
+
+  getKeypair(agentId: string): Keypair | null {
+    const agent = this.get(agentId);
+    if (!agent?.walletSecretKey) return null;
+    try {
+      const secretKey = Uint8Array.from(JSON.parse(agent.walletSecretKey));
+      return Keypair.fromSecretKey(secretKey);
+    } catch {
+      console.error(`[storage] Failed to load keypair for agent ${agentId}`);
+      return null;
     }
   }
 

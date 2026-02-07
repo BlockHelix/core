@@ -1,35 +1,14 @@
 import { Request, Response } from 'express';
-import { Keypair } from '@solana/web3.js';
-import fs from 'fs';
+import { PublicKey } from '@solana/web3.js';
 import { getAgentConfig } from '../services/agent-config';
 import { runAgent } from '../services/llm';
 import { routeRevenueToVault, recordJobOnChain, hashArtifact } from '../services/revenue';
 import { swapSolToUsdc } from '../services/jupiter';
 import { containerManager } from '../services/container-manager';
+import { agentStorage } from '../services/storage';
 import type { RunRequest, RunResponse } from '../types';
 
-const AGENT_WALLET_PATH = process.env.AGENT_WALLET_PATH || `${process.env.HOME}/.config/solana/id.json`;
-const AGENT_WALLET_PRIVATE_KEY = process.env.AGENT_WALLET_PRIVATE_KEY;
 const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
-
-let cachedKeypair: Keypair | null = null;
-
-function getAgentKeypair(): Keypair {
-  if (cachedKeypair) return cachedKeypair;
-
-  if (AGENT_WALLET_PRIVATE_KEY) {
-    const secretKey = Uint8Array.from(JSON.parse(AGENT_WALLET_PRIVATE_KEY));
-    cachedKeypair = Keypair.fromSecretKey(secretKey);
-  } else {
-    const raw = fs.readFileSync(AGENT_WALLET_PATH, 'utf-8');
-    cachedKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
-  }
-  return cachedKeypair;
-}
-
-function loadKeypair(path: string): Keypair {
-  return getAgentKeypair();
-}
 
 export async function handleRun(req: Request, res: Response): Promise<void> {
   const { agentId } = req.params;
@@ -90,11 +69,14 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
       } catch { /* ignore parse errors */ }
     }
 
+    // Get agent's keypair for signing on-chain txs
+    const agentKeypair = agentStorage.getKeypair(agentId);
+    const operatorPubkey = agent.operator ? new PublicKey(agent.operator) : null;
+
     // If paid in SOL, swap to USDC for vault routing
     let usdcAmount = agent.priceUsdcMicro;
-    if (paymentAsset === 'sol') {
+    if (paymentAsset === 'sol' && agentKeypair) {
       console.log(`[run] SOL payment detected (${paymentAmount} lamports), swapping to USDC...`);
-      const agentKeypair = loadKeypair(AGENT_WALLET_PATH);
       const swapResult = await swapSolToUsdc(agentKeypair, paymentAmount);
       if (swapResult) {
         usdcAmount = swapResult.outputAmount;
@@ -107,13 +89,19 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
 
     const jobTimestamp = Date.now();
 
-    const [revenueResult, receiptResult] = await Promise.allSettled([
-      usdcAmount > 0 ? routeRevenueToVault(AGENT_WALLET_PATH, usdcAmount, jobTimestamp) : Promise.resolve(null),
-      recordJobOnChain(AGENT_WALLET_PATH, artifactHash, agent.priceUsdcMicro, paymentTx),
-    ]);
+    let revenueResult = null;
+    let receiptResult = null;
 
-    const revenue = revenueResult.status === 'fulfilled' ? revenueResult.value : null;
-    const receipt = receiptResult.status === 'fulfilled' ? receiptResult.value : null;
+    if (agentKeypair && operatorPubkey) {
+      const [revResult, recResult] = await Promise.allSettled([
+        usdcAmount > 0 ? routeRevenueToVault(agentKeypair, operatorPubkey, usdcAmount, jobTimestamp) : Promise.resolve(null),
+        recordJobOnChain(agentKeypair, operatorPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
+      ]);
+      revenueResult = revResult.status === 'fulfilled' ? revResult.value : null;
+      receiptResult = recResult.status === 'fulfilled' ? recResult.value : null;
+    } else {
+      console.log('[run] No agent keypair or operator, skipping on-chain recording');
+    }
 
     const elapsed = Date.now() - startTime;
     console.log(`[run] Completed in ${elapsed}ms, tokens: ${llmResponse.inputTokens}+${llmResponse.outputTokens}`);
@@ -121,9 +109,9 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     const response: RunResponse = {
       output: llmResponse.output,
       agentId,
-      jobId: receipt?.jobId ?? null,
-      receiptTx: receipt?.txSignature ?? null,
-      revenueTx: revenue?.txSignature ?? null,
+      jobId: receiptResult?.jobId ?? null,
+      receiptTx: receiptResult?.txSignature ?? null,
+      revenueTx: revenueResult?.txSignature ?? null,
     };
 
     res.json(response);
