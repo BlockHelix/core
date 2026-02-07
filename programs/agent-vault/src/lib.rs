@@ -12,6 +12,7 @@ const CLIENT_SHARE_BPS: u64 = 7_500;
 const ARBITRATOR_SHARE_BPS: u64 = 1_000;
 const MIN_OPERATOR_BOND: u64 = 100_000_000;
 const SECONDS_PER_YEAR: u128 = 31_536_000;
+const BOND_COOLDOWN_SECONDS: i64 = 604_800; // 7 days
 
 #[program]
 pub mod agent_vault {
@@ -59,6 +60,7 @@ pub mod agent_vault {
         vault.epoch_length = epoch_length;
         vault.nav_high_water_mark = 1_000_000;
         vault.paused = false;
+        vault.paused_at = 0;
         vault.target_apy_bps = target_apy_bps;
         vault.lending_floor_bps = lending_floor_bps;
         vault.bump = ctx.bumps.vault_state;
@@ -490,7 +492,9 @@ pub mod agent_vault {
 
     pub fn pause(ctx: Context<Pause>) -> Result<()> {
         let vault_key = ctx.accounts.vault_state.key();
+        let now = Clock::get()?.unix_timestamp;
         ctx.accounts.vault_state.paused = true;
+        ctx.accounts.vault_state.paused_at = now;
         emit!(VaultPausedEvent { vault: vault_key });
         Ok(())
     }
@@ -498,7 +502,58 @@ pub mod agent_vault {
     pub fn unpause(ctx: Context<Unpause>) -> Result<()> {
         let vault_key = ctx.accounts.vault_state.key();
         ctx.accounts.vault_state.paused = false;
+        ctx.accounts.vault_state.paused_at = 0;
         emit!(VaultUnpausedEvent { vault: vault_key });
+        Ok(())
+    }
+
+    pub fn unstake_bond(ctx: Context<UnstakeBond>, amount: u64) -> Result<()> {
+        require!(amount > 0, VaultError::ZeroAmount);
+
+        let vault = &ctx.accounts.vault_state;
+        require!(vault.paused, VaultError::VaultNotPaused);
+        require!(vault.paused_at > 0, VaultError::VaultNotPaused);
+
+        let now = Clock::get()?.unix_timestamp;
+        let cooldown_end = vault.paused_at.checked_add(BOND_COOLDOWN_SECONDS)
+            .ok_or(VaultError::ArithmeticOverflow)?;
+        require!(now >= cooldown_end, VaultError::CooldownNotMet);
+
+        require!(amount <= vault.operator_bond, VaultError::InsufficientBond);
+
+        let agent_wallet = ctx.accounts.vault_state.agent_wallet;
+        let vault_seeds: &[&[u8]] = &[
+            b"vault",
+            agent_wallet.as_ref(),
+            &[ctx.accounts.vault_state.bump],
+        ];
+
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault_usdc_account.to_account_info(),
+                    to: ctx.accounts.agent_usdc_account.to_account_info(),
+                    authority: ctx.accounts.vault_state.to_account_info(),
+                },
+            )
+            .with_signer(&[vault_seeds]),
+            amount,
+        )?;
+
+        let vault_key = ctx.accounts.vault_state.key();
+        let vault = &mut ctx.accounts.vault_state;
+        vault.operator_bond = vault
+            .operator_bond
+            .checked_sub(amount)
+            .ok_or(VaultError::ArithmeticOverflow)?;
+
+        emit!(BondUnstaked {
+            vault: vault_key,
+            amount,
+            remaining_bond: vault.operator_bond,
+        });
+
         Ok(())
     }
 }
@@ -796,6 +851,31 @@ pub struct Unpause<'info> {
     pub agent_wallet: Signer<'info>,
 }
 
+#[derive(Accounts)]
+pub struct UnstakeBond<'info> {
+    #[account(
+        mut,
+        has_one = agent_wallet,
+        has_one = vault_usdc_account,
+    )]
+    pub vault_state: Account<'info, VaultState>,
+
+    #[account(mut)]
+    pub agent_wallet: Signer<'info>,
+
+    #[account(mut)]
+    pub vault_usdc_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = agent_usdc_account.owner == agent_wallet.key(),
+        constraint = agent_usdc_account.mint == vault_state.usdc_mint,
+    )]
+    pub agent_usdc_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct VaultState {
@@ -826,6 +906,7 @@ pub struct VaultState {
     pub epoch_length: i64,
     pub nav_high_water_mark: u64,
     pub paused: bool,
+    pub paused_at: i64,
     pub target_apy_bps: u16,
     pub lending_floor_bps: u16,
 }
@@ -864,6 +945,10 @@ pub enum VaultError {
     SlashExceedsAssets,
     #[msg("Output below minimum slippage tolerance")]
     SlippageExceeded,
+    #[msg("Vault must be paused to unstake bond")]
+    VaultNotPaused,
+    #[msg("7-day cooldown period not met")]
+    CooldownNotMet,
 }
 
 #[event]
@@ -879,6 +964,13 @@ pub struct BondStaked {
     pub vault: Pubkey,
     pub amount: u64,
     pub total_bond: u64,
+}
+
+#[event]
+pub struct BondUnstaked {
+    pub vault: Pubkey,
+    pub amount: u64,
+    pub remaining_bond: u64,
 }
 
 #[event]
