@@ -17,6 +17,7 @@ import {
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
+import { agentStorage } from './services/storage';
 
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
@@ -73,7 +74,8 @@ export function createApp(): express.Application {
 
   initDefaultAgents();
 
-  replayFromChain()
+  agentStorage.init()
+    .then(() => replayFromChain())
     .then((stats) => {
       lastReplay = stats;
       subscribeToFactory();

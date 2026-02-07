@@ -114,7 +114,7 @@ export async function replayFromChain(): Promise<ReplayStats> {
       apiKey: DEFAULT_API_KEY,
     };
 
-    agentStorage.create(config, operator);
+    await agentStorage.create(config, operator);
     console.log(`[replay] Synced agent ${agentId} (${name}) from chain`);
     stats.agentsSynced++;
   }
@@ -179,7 +179,7 @@ export function subscribeToFactory(): void {
 
   subscriptionId = connection.onProgramAccountChange(
     FACTORY_PROGRAM_ID,
-    (accountInfo, context) => {
+    async (accountInfo, context) => {
       const data = accountInfo.accountInfo.data;
       if (!data || data.length < 8) return;
 
@@ -208,7 +208,7 @@ export function subscribeToFactory(): void {
           apiKey: DEFAULT_API_KEY,
         };
 
-        agentStorage.create(config, operator);
+        await agentStorage.create(config, operator);
         console.log(`[factory-ws] New agent detected: ${agentId} (${name}) by ${operator}`);
       } catch (err) {
         console.error('[factory-ws] Failed to decode account:', err instanceof Error ? err.message : err);

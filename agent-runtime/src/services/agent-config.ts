@@ -14,8 +14,8 @@ const DEFAULT_PRICE = parseInt(process.env.DEFAULT_AGENT_PRICE || '50000', 10);
 const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
 const API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
-export function registerHostedAgent(config: AgentConfig, ownerWallet?: string): void {
-  agentStorage.create(config, ownerWallet || config.operator);
+export async function registerHostedAgent(config: AgentConfig, ownerWallet?: string): Promise<void> {
+  await agentStorage.create(config, ownerWallet || config.operator);
   console.log(`[config] Registered hosted agent: ${config.agentId} (${config.name})`);
 }
 

@@ -144,6 +144,12 @@ export type AgentVault = {
           }
         },
         {
+          "name": "operatorShareAccount",
+          "docs": [
+            "Operator's share account to check minimum"
+          ]
+        },
+        {
           "name": "depositRecord",
           "writable": true,
           "pda": {
@@ -225,7 +231,11 @@ export type AgentVault = {
               },
               {
                 "kind": "account",
-                "path": "agentWallet"
+                "path": "operator"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
               }
             ]
           }
@@ -254,7 +264,7 @@ export type AgentVault = {
           }
         },
         {
-          "name": "agentWallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -389,16 +399,12 @@ export type AgentVault = {
           "type": "i64"
         },
         {
-          "name": "targetApyBps",
-          "type": "u16"
-        },
-        {
-          "name": "lendingFloorBps",
-          "type": "u16"
-        },
-        {
           "name": "arbitrator",
           "type": "pubkey"
+        },
+        {
+          "name": "nonce",
+          "type": "u64"
         }
       ]
     },
@@ -420,11 +426,8 @@ export type AgentVault = {
           "writable": true
         },
         {
-          "name": "agentWallet",
-          "signer": true,
-          "relations": [
-            "vaultState"
-          ]
+          "name": "operator",
+          "signer": true
         }
       ],
       "args": []
@@ -447,12 +450,9 @@ export type AgentVault = {
           "writable": true
         },
         {
-          "name": "agentWallet",
+          "name": "payer",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "vaultState"
-          ]
+          "signer": true
         },
         {
           "name": "vaultUsdcAccount",
@@ -462,11 +462,7 @@ export type AgentVault = {
           ]
         },
         {
-          "name": "shareMint",
-          "writable": true
-        },
-        {
-          "name": "agentUsdcAccount",
+          "name": "payerUsdcAccount",
           "writable": true
         },
         {
@@ -518,15 +514,35 @@ export type AgentVault = {
           ]
         },
         {
-          "name": "claimantUsdcAccount",
+          "name": "shareMint",
+          "writable": true,
+          "relations": [
+            "vaultState"
+          ]
+        },
+        {
+          "name": "operatorShareAccount",
           "writable": true
         },
         {
-          "name": "arbitratorUsdcAccount",
+          "name": "clientUsdcAccount",
+          "docs": [
+            "1x refund to the client who was wronged"
+          ],
           "writable": true
         },
         {
-          "name": "protocolUsdcAccount",
+          "name": "ecosystemFundAccount",
+          "docs": [
+            "0.75x to ecosystem fund"
+          ],
+          "writable": true
+        },
+        {
+          "name": "validatorUsdcAccount",
+          "docs": [
+            "0.25x bounty to the reporting validator"
+          ],
           "writable": true
         },
         {
@@ -536,59 +552,11 @@ export type AgentVault = {
       ],
       "args": [
         {
-          "name": "amount",
+          "name": "jobPayment",
           "type": "u64"
         },
         {
           "name": "jobId",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "stakeBond",
-      "discriminator": [
-        14,
-        142,
-        49,
-        222,
-        52,
-        70,
-        70,
-        204
-      ],
-      "accounts": [
-        {
-          "name": "vaultState",
-          "writable": true
-        },
-        {
-          "name": "agentWallet",
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "vaultState"
-          ]
-        },
-        {
-          "name": "vaultUsdcAccount",
-          "writable": true,
-          "relations": [
-            "vaultState"
-          ]
-        },
-        {
-          "name": "agentUsdcAccount",
-          "writable": true
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
           "type": "u64"
         }
       ]
@@ -611,11 +579,11 @@ export type AgentVault = {
           "writable": true
         },
         {
-          "name": "agentWallet",
-          "signer": true,
-          "relations": [
-            "vaultState"
-          ]
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "operatorShareAccount"
         }
       ],
       "args": []
@@ -739,19 +707,6 @@ export type AgentVault = {
   ],
   "events": [
     {
-      "name": "bondStaked",
-      "discriminator": [
-        152,
-        57,
-        210,
-        94,
-        172,
-        130,
-        236,
-        200
-      ]
-    },
-    {
       "name": "deposited",
       "discriminator": [
         111,
@@ -804,29 +759,29 @@ export type AgentVault = {
       ]
     },
     {
-      "name": "vaultPausedEvent",
+      "name": "vaultPaused",
       "discriminator": [
-        75,
-        189,
-        120,
-        167,
-        117,
-        229,
-        155,
-        60
+        198,
+        157,
+        22,
+        151,
+        68,
+        100,
+        162,
+        35
       ]
     },
     {
-      "name": "vaultUnpausedEvent",
+      "name": "vaultUnpaused",
       "discriminator": [
-        131,
-        193,
-        72,
-        96,
-        27,
-        110,
-        75,
-        199
+        116,
+        95,
+        48,
+        104,
+        229,
+        9,
+        64,
+        84
       ]
     },
     {
@@ -871,56 +826,36 @@ export type AgentVault = {
     },
     {
       "code": 6005,
-      "name": "noBondStaked",
-      "msg": "No operator bond staked"
-    },
-    {
-      "code": 6006,
       "name": "tvlCapExceeded",
       "msg": "Deposit would exceed TVL cap"
     },
     {
-      "code": 6007,
+      "code": 6006,
       "name": "lockupNotExpired",
       "msg": "Lockup period has not expired"
     },
     {
+      "code": 6007,
+      "name": "insufficientOperatorShares",
+      "msg": "Operator must hold minimum shares"
+    },
+    {
       "code": 6008,
-      "name": "insufficientBond",
-      "msg": "Operator bond below minimum required"
+      "name": "operatorMinSharesRequired",
+      "msg": "Operator cannot withdraw below minimum while active"
     },
     {
       "code": 6009,
-      "name": "slashExceedsAssets",
-      "msg": "Slash amount exceeds vault assets"
+      "name": "slippageExceeded",
+      "msg": "Output below minimum slippage tolerance"
     },
     {
       "code": 6010,
-      "name": "slippageExceeded",
-      "msg": "Output below minimum slippage tolerance"
+      "name": "insufficientVaultBalance",
+      "msg": "Vault balance insufficient for 2x slash"
     }
   ],
   "types": [
-    {
-      "name": "bondStaked",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "totalBond",
-            "type": "u64"
-          }
-        ]
-      }
-    },
     {
       "name": "depositRecord",
       "type": {
@@ -1011,7 +946,11 @@ export type AgentVault = {
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "jobPayment",
+            "type": "u64"
+          },
+          {
+            "name": "slashTotal",
             "type": "u64"
           },
           {
@@ -1019,11 +958,27 @@ export type AgentVault = {
             "type": "u64"
           },
           {
-            "name": "bondSlash",
+            "name": "clientRefund",
             "type": "u64"
           },
           {
-            "name": "depositorSlash",
+            "name": "ecosystemFundAmount",
+            "type": "u64"
+          },
+          {
+            "name": "validatorBounty",
+            "type": "u64"
+          },
+          {
+            "name": "validator",
+            "type": "pubkey"
+          },
+          {
+            "name": "operatorSharesBurned",
+            "type": "u64"
+          },
+          {
+            "name": "depositorSharesBurned",
             "type": "u64"
           }
         ]
@@ -1039,7 +994,7 @@ export type AgentVault = {
             "type": "pubkey"
           },
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -1054,7 +1009,7 @@ export type AgentVault = {
       }
     },
     {
-      "name": "vaultPausedEvent",
+      "name": "vaultPaused",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1071,7 +1026,7 @@ export type AgentVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -1091,6 +1046,10 @@ export type AgentVault = {
             "type": "pubkey"
           },
           {
+            "name": "protocolTreasury",
+            "type": "pubkey"
+          },
+          {
             "name": "agentFeeBps",
             "type": "u16"
           },
@@ -1099,31 +1058,11 @@ export type AgentVault = {
             "type": "u16"
           },
           {
-            "name": "protocolTreasury",
-            "type": "pubkey"
-          },
-          {
             "name": "totalRevenue",
             "type": "u64"
           },
           {
             "name": "totalJobs",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "shareMintBump",
-            "type": "u8"
-          },
-          {
-            "name": "createdAt",
-            "type": "i64"
-          },
-          {
-            "name": "operatorBond",
             "type": "u64"
           },
           {
@@ -1136,22 +1075,6 @@ export type AgentVault = {
           },
           {
             "name": "maxTvl",
-            "type": "u64"
-          },
-          {
-            "name": "totalDeposited",
-            "type": "u64"
-          },
-          {
-            "name": "totalWithdrawn",
-            "type": "u64"
-          },
-          {
-            "name": "deployedCapital",
-            "type": "u64"
-          },
-          {
-            "name": "yieldEarned",
             "type": "u64"
           },
           {
@@ -1171,26 +1094,30 @@ export type AgentVault = {
             "type": "i64"
           },
           {
-            "name": "navHighWaterMark",
-            "type": "u64"
-          },
-          {
             "name": "paused",
             "type": "bool"
           },
           {
-            "name": "targetApyBps",
-            "type": "u16"
+            "name": "bump",
+            "type": "u8"
           },
           {
-            "name": "lendingFloorBps",
-            "type": "u16"
+            "name": "shareMintBump",
+            "type": "u8"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "vaultUnpausedEvent",
+      "name": "vaultUnpaused",
       "type": {
         "kind": "struct",
         "fields": [

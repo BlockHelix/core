@@ -5,7 +5,7 @@ import { verifyWalletSignature, parseSignMessage, isMessageRecent } from '../ser
 import { containerManager } from '../services/container-manager';
 import type { AgentConfig } from '../types';
 
-export function handleRegisterAgent(req: Request, res: Response): void {
+export async function handleRegisterAgent(req: Request, res: Response): Promise<void> {
   const config = req.body as Partial<AgentConfig> & { ownerWallet?: string };
 
   if (!config.agentId || !config.name || !config.systemPrompt || !config.operator || !config.apiKey) {
@@ -34,7 +34,7 @@ export function handleRegisterAgent(req: Request, res: Response): void {
     apiKey: config.apiKey,
   };
 
-  registerHostedAgent(fullConfig, config.ownerWallet || config.operator);
+  await registerHostedAgent(fullConfig, config.ownerWallet || config.operator);
 
   res.status(201).json({
     message: 'Agent registered',
@@ -130,7 +130,7 @@ export function handleGetAgentConfig(req: Request, res: Response): void {
   });
 }
 
-export function handleUpdateAgentConfig(req: Request, res: Response): void {
+export async function handleUpdateAgentConfig(req: Request, res: Response): Promise<void> {
   const { agentId } = req.params;
   const { message, signature, wallet, updates } = req.body;
 
@@ -174,7 +174,7 @@ export function handleUpdateAgentConfig(req: Request, res: Response): void {
   if (updates.model !== undefined) allowedUpdates.model = updates.model;
   if (updates.isActive !== undefined) allowedUpdates.isActive = updates.isActive;
 
-  const updated = agentStorage.update(agentId, allowedUpdates);
+  const updated = await agentStorage.update(agentId, allowedUpdates);
   if (!updated) {
     res.status(500).json({ error: 'Failed to update agent' });
     return;
@@ -231,7 +231,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       isContainerized: true,
     };
 
-    agentStorage.create(fullConfig, ownerWallet || operator || '');
+    await agentStorage.create(fullConfig, ownerWallet || operator || '');
 
     res.status(201).json({
       message: 'OpenClaw agent deployed',
@@ -257,7 +257,7 @@ export async function handleStopOpenClaw(req: Request, res: Response): Promise<v
 
   try {
     await containerManager.stopAgent(agentId);
-    agentStorage.update(agentId, { isActive: false });
+    await agentStorage.update(agentId, { isActive: false });
     res.json({ message: `Agent ${agentId} stopped` });
   } catch (err) {
     console.error('[openclaw] Stop failed:', err);

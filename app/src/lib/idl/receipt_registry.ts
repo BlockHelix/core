@@ -124,7 +124,7 @@ export type ReceiptRegistry = {
           "name": "protocolAuthority"
         },
         {
-          "name": "agentWallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -183,7 +183,7 @@ export type ReceiptRegistry = {
           }
         },
         {
-          "name": "agentWallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -693,7 +693,7 @@ export type ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -717,7 +717,7 @@ export type ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {

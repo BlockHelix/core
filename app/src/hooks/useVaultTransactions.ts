@@ -27,7 +27,8 @@ export function useDeposit() {
       const depositor = new PublicKey(wallet.address);
 
       const vaultData = await vaultProgram.account.vaultState.fetch(vaultState);
-      const usdcMint = vaultData.usdcMint;
+      const usdcMint = vaultData.usdcMint as PublicKey;
+      const operator = vaultData.operator as PublicKey;
 
       const depositorUsdcAccount = await getAssociatedTokenAddress(
         usdcMint,
@@ -45,6 +46,11 @@ export function useDeposit() {
         true
       );
 
+      const operatorShareAccount = await getAssociatedTokenAddress(
+        shareMint,
+        operator
+      );
+
       const [depositRecord] = findDepositRecord(vaultState, depositor);
 
       const amountMicroUsdc = new BN(Math.floor(usdcAmount * 1_000_000));
@@ -53,9 +59,16 @@ export function useDeposit() {
         .deposit(amountMicroUsdc, new BN(0))
         .accountsPartial({
           vaultState,
+          shareMint,
+          vaultUsdcAccount,
           depositor,
           depositorUsdcAccount,
           depositorShareAccount,
+          operatorShareAccount,
+          depositRecord,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
         .rpc();
 
@@ -100,7 +113,7 @@ export function useWithdraw() {
       const withdrawer = new PublicKey(wallet.address);
 
       const vaultData = await vaultProgram.account.vaultState.fetch(vaultState);
-      const usdcMint = vaultData.usdcMint;
+      const usdcMint = vaultData.usdcMint as PublicKey;
 
       const withdrawerUsdcAccount = await getAssociatedTokenAddress(
         usdcMint,
@@ -126,9 +139,13 @@ export function useWithdraw() {
         .withdraw(shareMicroAmount, new BN(0))
         .accountsPartial({
           vaultState,
+          shareMint,
+          vaultUsdcAccount,
           withdrawer,
           withdrawerUsdcAccount,
           withdrawerShareAccount,
+          depositRecord,
+          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
 

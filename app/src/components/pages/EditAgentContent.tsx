@@ -105,14 +105,26 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
     try {
       setIsSaving(true);
 
-      const updates: any = {
-        systemPrompt,
-        priceUsdcMicro: Math.floor(pricePerCall * 1_000_000),
-        isActive,
-      };
+      const updates: any = {};
 
+      // Only include fields that actually changed
+      if (systemPrompt !== agent.systemPrompt) {
+        updates.systemPrompt = systemPrompt;
+      }
+      if (Math.floor(pricePerCall * 1_000_000) !== agent.priceUsdcMicro) {
+        updates.priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
+      }
+      if (isActive !== agent.isActive) {
+        updates.isActive = isActive;
+      }
       if (apiKey) {
         updates.apiKey = apiKey;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        toast('No changes to save', 'info');
+        setIsSaving(false);
+        return;
       }
 
       await updateAgentConfig({

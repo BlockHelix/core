@@ -9,11 +9,26 @@ import { containerManager } from '../services/container-manager';
 import type { RunRequest, RunResponse } from '../types';
 
 const AGENT_WALLET_PATH = process.env.AGENT_WALLET_PATH || `${process.env.HOME}/.config/solana/id.json`;
+const AGENT_WALLET_PRIVATE_KEY = process.env.AGENT_WALLET_PRIVATE_KEY;
 const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
 
+let cachedKeypair: Keypair | null = null;
+
+function getAgentKeypair(): Keypair {
+  if (cachedKeypair) return cachedKeypair;
+
+  if (AGENT_WALLET_PRIVATE_KEY) {
+    const secretKey = Uint8Array.from(JSON.parse(AGENT_WALLET_PRIVATE_KEY));
+    cachedKeypair = Keypair.fromSecretKey(secretKey);
+  } else {
+    const raw = fs.readFileSync(AGENT_WALLET_PATH, 'utf-8');
+    cachedKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
+  }
+  return cachedKeypair;
+}
+
 function loadKeypair(path: string): Keypair {
-  const raw = fs.readFileSync(path, 'utf-8');
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
+  return getAgentKeypair();
 }
 
 export async function handleRun(req: Request, res: Response): Promise<void> {

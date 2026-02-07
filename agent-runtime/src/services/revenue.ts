@@ -15,16 +15,20 @@ const USDC_MINT = new PublicKey(
 );
 const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'https://api.devnet.solana.com';
 
-const keypairCache: Map<string, Keypair> = new Map();
+const AGENT_WALLET_PRIVATE_KEY = process.env.AGENT_WALLET_PRIVATE_KEY;
+let cachedKeypair: Keypair | null = null;
 
 function loadKeypair(walletPath: string): Keypair {
-  const cached = keypairCache.get(walletPath);
-  if (cached) return cached;
-  const raw = fs.readFileSync(walletPath, 'utf-8');
-  const secretKey = Uint8Array.from(JSON.parse(raw));
-  const kp = Keypair.fromSecretKey(secretKey);
-  keypairCache.set(walletPath, kp);
-  return kp;
+  if (cachedKeypair) return cachedKeypair;
+
+  if (AGENT_WALLET_PRIVATE_KEY) {
+    const secretKey = Uint8Array.from(JSON.parse(AGENT_WALLET_PRIVATE_KEY));
+    cachedKeypair = Keypair.fromSecretKey(secretKey);
+  } else {
+    const raw = fs.readFileSync(walletPath, 'utf-8');
+    cachedKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
+  }
+  return cachedKeypair;
 }
 
 function getProvider(keypair: Keypair): anchor.AnchorProvider {

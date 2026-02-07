@@ -1,9 +1,16 @@
 import fs from 'fs';
 import path from 'path';
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import type { AgentConfig } from '../types';
+import { encrypt, decrypt, isEncrypted } from './crypto';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const AGENTS_FILE = path.join(DATA_DIR, 'agents.json');
+const S3_BUCKET = process.env.STORAGE_BUCKET || 'blockhelix-dev-storage';
+const S3_KEY = 'agents.json';
+const USE_S3 = process.env.USE_S3_STORAGE === 'true';
+
+const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
 
 export interface StoredAgent extends AgentConfig {
   ownerWallet: string;
@@ -13,10 +20,12 @@ export interface StoredAgent extends AgentConfig {
 
 class AgentStorage {
   private agents: Map<string, StoredAgent> = new Map();
+  private initialized = false;
 
-  constructor() {
-    this.ensureDataDir();
-    this.load();
+  async init(): Promise<void> {
+    if (this.initialized) return;
+    await this.load();
+    this.initialized = true;
   }
 
   private ensureDataDir(): void {
@@ -25,73 +34,147 @@ class AgentStorage {
     }
   }
 
-  private load(): void {
+  private async load(): Promise<void> {
+    if (USE_S3) {
+      await this.loadFromS3();
+    } else {
+      this.loadFromFile();
+    }
+  }
+
+  private async loadFromS3(): Promise<void> {
+    try {
+      const response = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: S3_KEY,
+      }));
+      const body = await response.Body?.transformToString();
+      if (body) {
+        const parsed = JSON.parse(body);
+        this.agents = new Map(Object.entries(parsed));
+        console.log(`[storage] Loaded ${this.agents.size} agents from S3`);
+      }
+    } catch (error: any) {
+      if (error.name === 'NoSuchKey') {
+        console.log('[storage] No agents.json in S3 yet, starting fresh');
+      } else {
+        console.error('[storage] Failed to load from S3:', error.message);
+      }
+      this.agents = new Map();
+    }
+  }
+
+  private loadFromFile(): void {
+    this.ensureDataDir();
     try {
       if (fs.existsSync(AGENTS_FILE)) {
         const data = fs.readFileSync(AGENTS_FILE, 'utf-8');
         const parsed = JSON.parse(data);
         this.agents = new Map(Object.entries(parsed));
-        console.log(`[storage] Loaded ${this.agents.size} agents from storage`);
+        console.log(`[storage] Loaded ${this.agents.size} agents from file`);
       }
     } catch (error) {
-      console.error('[storage] Failed to load agents:', error instanceof Error ? error.message : error);
+      console.error('[storage] Failed to load from file:', error instanceof Error ? error.message : error);
       this.agents = new Map();
     }
   }
 
-  private save(): void {
+  private async save(): Promise<void> {
+    const data = JSON.stringify(Object.fromEntries(this.agents), null, 2);
+    if (USE_S3) {
+      await this.saveToS3(data);
+    }
+    this.saveToFile(data);
+  }
+
+  private async saveToS3(data: string): Promise<void> {
     try {
-      const data = JSON.stringify(Object.fromEntries(this.agents), null, 2);
-      fs.writeFileSync(AGENTS_FILE, data, 'utf-8');
+      await s3.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: S3_KEY,
+        Body: data,
+        ContentType: 'application/json',
+      }));
+      console.log('[storage] Saved agents to S3');
     } catch (error) {
-      console.error('[storage] Failed to save agents:', error instanceof Error ? error.message : error);
+      console.error('[storage] Failed to save to S3:', error instanceof Error ? error.message : error);
     }
   }
 
-  create(agent: AgentConfig, ownerWallet: string): StoredAgent {
+  private saveToFile(data: string): void {
+    this.ensureDataDir();
+    try {
+      fs.writeFileSync(AGENTS_FILE, data, 'utf-8');
+    } catch (error) {
+      console.error('[storage] Failed to save to file:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  async create(agent: AgentConfig, ownerWallet: string): Promise<StoredAgent> {
     const stored: StoredAgent = {
       ...agent,
+      apiKey: agent.apiKey ? encrypt(agent.apiKey) : '',
       ownerWallet,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
     this.agents.set(agent.agentId, stored);
-    this.save();
-    return stored;
+    await this.save();
+    return { ...stored, apiKey: agent.apiKey };
   }
 
-  update(agentId: string, updates: Partial<AgentConfig>): StoredAgent | null {
+  async update(agentId: string, updates: Partial<AgentConfig>): Promise<StoredAgent | null> {
     const existing = this.agents.get(agentId);
     if (!existing) return null;
 
+    const encryptedUpdates = { ...updates };
+    if (updates.apiKey) {
+      encryptedUpdates.apiKey = encrypt(updates.apiKey);
+    }
+
     const updated: StoredAgent = {
       ...existing,
-      ...updates,
+      ...encryptedUpdates,
       updatedAt: Date.now(),
     };
     this.agents.set(agentId, updated);
-    this.save();
-    return updated;
+    await this.save();
+    return this.decryptAgent(updated);
+  }
+
+  private decryptAgent(agent: StoredAgent): StoredAgent {
+    if (!agent.apiKey) return agent;
+    try {
+      return {
+        ...agent,
+        apiKey: isEncrypted(agent.apiKey) ? decrypt(agent.apiKey) : agent.apiKey,
+      };
+    } catch {
+      console.error(`[storage] Failed to decrypt apiKey for agent ${agent.agentId}`);
+      return { ...agent, apiKey: '' };
+    }
   }
 
   get(agentId: string): StoredAgent | null {
-    return this.agents.get(agentId) || null;
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+    return this.decryptAgent(agent);
   }
 
   getByOwner(ownerWallet: string): StoredAgent[] {
-    return Array.from(this.agents.values()).filter(
-      (agent) => agent.ownerWallet === ownerWallet
-    );
+    return Array.from(this.agents.values())
+      .filter((agent) => agent.ownerWallet === ownerWallet)
+      .map((agent) => this.decryptAgent(agent));
   }
 
   getAll(): StoredAgent[] {
-    return Array.from(this.agents.values());
+    return Array.from(this.agents.values()).map((agent) => this.decryptAgent(agent));
   }
 
-  delete(agentId: string): boolean {
+  async delete(agentId: string): Promise<boolean> {
     const deleted = this.agents.delete(agentId);
     if (deleted) {
-      this.save();
+      await this.save();
     }
     return deleted;
   }

@@ -273,21 +273,22 @@ pub mod agent_vault {
         Ok(())
     }
 
-    pub fn slash(ctx: Context<Slash>, usdc_amount: u64, job_id: u64) -> Result<()> {
-        require!(usdc_amount > 0, VaultError::ZeroAmount);
+    pub fn slash(ctx: Context<Slash>, job_payment: u64, job_id: u64) -> Result<()> {
+        require!(job_payment > 0, VaultError::ZeroAmount);
 
+        let slash_total = job_payment.checked_mul(2).ok_or(VaultError::ArithmeticOverflow)?;
         let vault = &ctx.accounts.vault_state;
         let total_shares = ctx.accounts.share_mint.supply;
         let total_assets = ctx.accounts.vault_usdc_account.amount;
 
-        // Calculate shares to burn for this USDC amount
-        let shares_to_burn = (usdc_amount as u128)
+        require!(total_assets >= slash_total, VaultError::InsufficientVaultBalance);
+
+        let shares_to_burn = (slash_total as u128)
             .checked_mul((total_shares as u128).checked_add(vault.virtual_shares as u128).ok_or(VaultError::ArithmeticOverflow)?)
             .ok_or(VaultError::ArithmeticOverflow)?
             .checked_div((total_assets as u128).checked_add(vault.virtual_assets as u128).ok_or(VaultError::ArithmeticOverflow)?)
             .ok_or(VaultError::ArithmeticOverflow)? as u64;
 
-        // Burn from operator first
         let operator_shares = ctx.accounts.operator_share_account.amount;
         let burn_from_operator = std::cmp::min(shares_to_burn, operator_shares);
         let burn_from_depositors = shares_to_burn.checked_sub(burn_from_operator).ok_or(VaultError::ArithmeticOverflow)?;
@@ -311,28 +312,63 @@ pub mod agent_vault {
             )?;
         }
 
-        // Transfer USDC to claimant
+        // 1x to client (made whole)
         token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.vault_usdc_account.to_account_info(),
-                    to: ctx.accounts.claimant_usdc_account.to_account_info(),
+                    to: ctx.accounts.client_usdc_account.to_account_info(),
                     authority: ctx.accounts.vault_state.to_account_info(),
                 },
             )
             .with_signer(&[vault_seeds]),
-            usdc_amount,
+            job_payment,
+        )?;
+
+        // 0.75x to ecosystem fund, 0.25x to validator bounty
+        let validator_bounty = job_payment / 4;
+        let ecosystem_amount = job_payment.checked_sub(validator_bounty).ok_or(VaultError::ArithmeticOverflow)?;
+
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault_usdc_account.to_account_info(),
+                    to: ctx.accounts.ecosystem_fund_account.to_account_info(),
+                    authority: ctx.accounts.vault_state.to_account_info(),
+                },
+            )
+            .with_signer(&[vault_seeds]),
+            ecosystem_amount,
+        )?;
+
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault_usdc_account.to_account_info(),
+                    to: ctx.accounts.validator_usdc_account.to_account_info(),
+                    authority: ctx.accounts.vault_state.to_account_info(),
+                },
+            )
+            .with_signer(&[vault_seeds]),
+            validator_bounty,
         )?;
 
         let vault = &mut ctx.accounts.vault_state;
-        vault.total_slashed = vault.total_slashed.checked_add(usdc_amount).ok_or(VaultError::ArithmeticOverflow)?;
+        vault.total_slashed = vault.total_slashed.checked_add(slash_total).ok_or(VaultError::ArithmeticOverflow)?;
         vault.slash_events = vault.slash_events.checked_add(1).ok_or(VaultError::ArithmeticOverflow)?;
 
         emit!(Slashed {
             vault: ctx.accounts.vault_state.key(),
-            usdc_amount,
+            job_payment,
+            slash_total,
             job_id,
+            client_refund: job_payment,
+            ecosystem_fund_amount: ecosystem_amount,
+            validator_bounty,
+            validator: ctx.accounts.validator_usdc_account.owner,
             operator_shares_burned: burn_from_operator,
             depositor_shares_burned: burn_from_depositors,
         });
@@ -519,8 +555,17 @@ pub struct Slash<'info> {
     )]
     pub operator_share_account: Account<'info, TokenAccount>,
 
+    /// 1x refund to the client who was wronged
     #[account(mut)]
-    pub claimant_usdc_account: Account<'info, TokenAccount>,
+    pub client_usdc_account: Account<'info, TokenAccount>,
+
+    /// 0.75x to ecosystem fund
+    #[account(mut)]
+    pub ecosystem_fund_account: Account<'info, TokenAccount>,
+
+    /// 0.25x bounty to the reporting validator
+    #[account(mut)]
+    pub validator_usdc_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 }
@@ -600,6 +645,8 @@ pub enum VaultError {
     OperatorMinSharesRequired,
     #[msg("Output below minimum slippage tolerance")]
     SlippageExceeded,
+    #[msg("Vault balance insufficient for 2x slash")]
+    InsufficientVaultBalance,
 }
 
 #[event]
@@ -638,8 +685,13 @@ pub struct RevenueReceived {
 #[event]
 pub struct Slashed {
     pub vault: Pubkey,
-    pub usdc_amount: u64,
+    pub job_payment: u64,
+    pub slash_total: u64,
     pub job_id: u64,
+    pub client_refund: u64,
+    pub ecosystem_fund_amount: u64,
+    pub validator_bounty: u64,
+    pub validator: Pubkey,
     pub operator_shares_burned: u64,
     pub depositor_shares_burned: u64,
 }

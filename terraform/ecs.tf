@@ -53,6 +53,7 @@ resource "aws_iam_role_policy" "ecs_execution_secrets" {
         Resource = [
           aws_secretsmanager_secret.github_token.arn,
           aws_secretsmanager_secret.agent_wallet.arn,
+          aws_secretsmanager_secret.encryption_key.arn,
         ]
       }
     ]
@@ -72,6 +73,60 @@ resource "aws_iam_role" "ecs_task" {
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
+      }
+    ]
+  })
+}
+
+# S3 bucket for agent config storage
+resource "aws_s3_bucket" "agent_storage" {
+  bucket = "${local.name_prefix}-storage"
+}
+
+resource "aws_s3_bucket_versioning" "agent_storage" {
+  bucket = aws_s3_bucket.agent_storage.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "agent_storage" {
+  bucket = aws_s3_bucket.agent_storage.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Encryption key for API keys at rest
+resource "aws_secretsmanager_secret" "encryption_key" {
+  name = "${local.name_prefix}/encryption-key"
+}
+
+# Allow ECS task to access S3 bucket
+resource "aws_iam_role_policy" "ecs_task_s3" {
+  name = "${local.name_prefix}-s3-access"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = "${aws_s3_bucket.agent_storage.arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.agent_storage.arn
       }
     ]
   })
@@ -114,6 +169,9 @@ resource "aws_ecs_task_definition" "agent" {
         { name = "OPENCLAW_TASK_DEFINITION", value = aws_ecs_task_definition.openclaw.arn },
         { name = "OPENCLAW_SECURITY_GROUP", value = aws_security_group.openclaw_agents.id },
         { name = "OPENCLAW_SUBNETS", value = join(",", aws_subnet.private[*].id) },
+        { name = "USE_S3_STORAGE", value = "true" },
+        { name = "STORAGE_BUCKET", value = aws_s3_bucket.agent_storage.id },
+        { name = "AWS_REGION", value = data.aws_region.current.name },
       ]
 
       secrets = [
@@ -124,6 +182,10 @@ resource "aws_ecs_task_definition" "agent" {
         {
           name      = "AGENT_WALLET_PRIVATE_KEY"
           valueFrom = aws_secretsmanager_secret.agent_wallet.arn
+        },
+        {
+          name      = "ENCRYPTION_KEY"
+          valueFrom = aws_secretsmanager_secret.encryption_key.arn
         },
       ]
 
