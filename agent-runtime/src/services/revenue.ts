@@ -1,8 +1,9 @@
 import * as anchor from '@coral-xyz/anchor';
-import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { createHash } from 'crypto';
 import fs from 'fs';
+import { isKmsEnabled, getKmsPublicKey, signTransactionWithKms } from './kms-signer';
 
 const VAULT_PROGRAM_ID = new PublicKey(
   process.env.VAULT_PROGRAM_ID || 'HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS'
@@ -112,7 +113,7 @@ export async function routeRevenueToVault(
 }
 
 export async function recordJobOnChain(
-  agentKeypair: Keypair,
+  agentKeypair: Keypair | null,
   operatorPubkey: PublicKey,
   artifactHash: Buffer,
   paymentAmount: number,
@@ -120,13 +121,22 @@ export async function recordJobOnChain(
   clientPubkey?: string
 ): Promise<ReceiptResult | null> {
   try {
-    const provider = getProvider(agentKeypair);
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const useKms = isKmsEnabled();
+    const signerPubkey = useKms ? getKmsPublicKey()! : agentKeypair!.publicKey;
+
+    if (!signerPubkey) {
+      console.log('[receipt] No signer available (no keypair and KMS not enabled)');
+      return null;
+    }
+
+    const dummyKeypair = agentKeypair || Keypair.generate();
+    const provider = getProvider(dummyKeypair);
     anchor.setProvider(provider);
 
     const [vaultState] = getVaultPda(operatorPubkey);
     const [registryState] = getRegistryPda(vaultState);
 
-    const connection = new Connection(RPC_URL, 'confirmed');
     const registryInfo = await connection.getAccountInfo(registryState);
     if (!registryInfo) {
       console.log('[receipt] Registry not initialized, skipping job recording');
@@ -155,21 +165,47 @@ export async function recordJobOnChain(
     }
     while (paymentTxBytes.length < 64) paymentTxBytes.push(0);
 
-    const client = clientPubkey ? new PublicKey(clientPubkey) : agentKeypair.publicKey;
+    const client = clientPubkey ? new PublicKey(clientPubkey) : signerPubkey;
 
-    const tx: string = await (registryProgram.methods as any)
-      .recordJob(hashArray, new anchor.BN(paymentAmount), paymentTxBytes)
-      .accounts({
-        registryState,
-        jobReceipt,
-        signer: agentKeypair.publicKey,
-        client,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .rpc();
+    if (useKms) {
+      const instruction = await (registryProgram.methods as any)
+        .recordJob(hashArray, new anchor.BN(paymentAmount), paymentTxBytes)
+        .accounts({
+          registryState,
+          jobReceipt,
+          signer: signerPubkey,
+          client,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .instruction();
 
-    console.log(`[receipt] Recorded job ${currentJobCounter.toString()}, tx: ${tx}`);
-    return { txSignature: tx, jobId: currentJobCounter.toNumber() };
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: signerPubkey,
+      }).add(instruction);
+
+      const signedTx = await signTransactionWithKms(transaction);
+      const txSig = await connection.sendRawTransaction(signedTx.serialize());
+      await connection.confirmTransaction({ signature: txSig, blockhash, lastValidBlockHeight }, 'confirmed');
+
+      console.log(`[receipt] Recorded job ${currentJobCounter.toString()} via KMS, tx: ${txSig}`);
+      return { txSignature: txSig, jobId: currentJobCounter.toNumber() };
+    } else {
+      const tx: string = await (registryProgram.methods as any)
+        .recordJob(hashArray, new anchor.BN(paymentAmount), paymentTxBytes)
+        .accounts({
+          registryState,
+          jobReceipt,
+          signer: signerPubkey,
+          client,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log(`[receipt] Recorded job ${currentJobCounter.toString()}, tx: ${tx}`);
+      return { txSignature: tx, jobId: currentJobCounter.toNumber() };
+    }
   } catch (err) {
     console.error('[receipt] Failed:', err instanceof Error ? err.message : err);
     return null;

@@ -19,6 +19,7 @@ import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
 import { agentStorage } from './services/storage';
+import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
 
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
@@ -76,12 +77,13 @@ export function createApp(): express.Application {
   initDefaultAgents();
 
   agentStorage.init()
+    .then(() => initKmsSigner())
     .then(() => replayFromChain())
     .then((stats) => {
       lastReplay = stats;
       subscribeToFactory();
     })
-    .catch((err) => { console.error('[replay] Failed:', err); });
+    .catch((err) => { console.error('[startup] Failed:', err); });
 
   const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
   const resourceServer = new x402ResourceServer(facilitatorClient)
@@ -137,11 +139,14 @@ export function createApp(): express.Application {
 
   app.get('/health', (_req, res) => {
     const agents = getAllHostedAgents();
+    const kmsEnabled = isKmsEnabled();
+    const kmsPubkey = getKmsPublicKey();
     res.json({
       status: 'ok',
       service: 'BlockHelix Agent Runtime',
-      version: '0.2.1',
+      version: '0.2.2',
       network: NETWORK,
+      kms: kmsEnabled ? { enabled: true, publicKey: kmsPubkey?.toBase58() } : { enabled: false },
       replay: lastReplay ? {
         agentsSynced: lastReplay.agentsSynced,
         agentsSkipped: lastReplay.agentsSkipped,

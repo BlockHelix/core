@@ -73,3 +73,13 @@ output "set_secrets_commands" {
 
   EOT
 }
+
+output "kms_job_signer_key_id" {
+  description = "KMS key ID for job signing"
+  value       = local.kms_job_signer_id
+}
+
+output "kms_job_signer_arn" {
+  description = "KMS key ARN for job signing"
+  value       = local.kms_job_signer_arn
+}

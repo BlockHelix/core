@@ -26,6 +26,7 @@
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "solana-kms-signer": "^1.0.5",
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {

@@ -172,6 +172,7 @@ resource "aws_ecs_task_definition" "agent" {
         { name = "USE_S3_STORAGE", value = "true" },
         { name = "STORAGE_BUCKET", value = aws_s3_bucket.agent_storage.id },
         { name = "AWS_REGION", value = data.aws_region.current.name },
+        { name = "KMS_KEY_ID", value = local.kms_job_signer_id },
       ]
 
       secrets = [

@@ -6,6 +6,7 @@ import { routeRevenueToVault, recordJobOnChain, hashArtifact } from '../services
 import { swapSolToUsdc } from '../services/jupiter';
 import { containerManager } from '../services/container-manager';
 import { agentStorage } from '../services/storage';
+import { isKmsEnabled } from '../services/kms-signer';
 import type { RunRequest, RunResponse } from '../types';
 
 const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
@@ -69,11 +70,11 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
       } catch { /* ignore parse errors */ }
     }
 
-    // Get agent's keypair for signing on-chain txs
-    const agentKeypair = agentStorage.getKeypair(agentId);
+    const useKms = isKmsEnabled();
+    const agentKeypair = useKms ? null : agentStorage.getKeypair(agentId);
     const operatorPubkey = agent.operator ? new PublicKey(agent.operator) : null;
 
-    // If paid in SOL, swap to USDC for vault routing
+    // If paid in SOL, swap to USDC for vault routing (only if we have a keypair)
     let usdcAmount = agent.priceUsdcMicro;
     if (paymentAsset === 'sol' && agentKeypair) {
       console.log(`[run] SOL payment detected (${paymentAmount} lamports), swapping to USDC...`);
@@ -92,15 +93,19 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     let revenueResult = null;
     let receiptResult = null;
 
-    if (agentKeypair && operatorPubkey) {
+    const canSign = useKms || agentKeypair;
+    if (canSign && operatorPubkey) {
       const [revResult, recResult] = await Promise.allSettled([
-        usdcAmount > 0 ? routeRevenueToVault(agentKeypair, operatorPubkey, usdcAmount, jobTimestamp) : Promise.resolve(null),
+        usdcAmount > 0 && agentKeypair
+          ? routeRevenueToVault(agentKeypair, operatorPubkey, usdcAmount, jobTimestamp)
+          : Promise.resolve(null),
         recordJobOnChain(agentKeypair, operatorPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
       ]);
       revenueResult = revResult.status === 'fulfilled' ? revResult.value : null;
       receiptResult = recResult.status === 'fulfilled' ? recResult.value : null;
+      if (useKms) console.log('[run] Signed receipt with KMS');
     } else {
-      console.log('[run] No agent keypair or operator, skipping on-chain recording');
+      console.log('[run] No signing capability or operator, skipping on-chain recording');
     }
 
     const elapsed = Date.now() - startTime;
