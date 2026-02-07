@@ -59,9 +59,10 @@ export function useCreateAgent() {
       const [agentMetadata] = agentMetadataResult;
       console.log('[createAgent] Agent metadata:', agentMetadata.toBase58());
 
-      const vaultStateResult = findVaultState(agentWallet);
+      const nonce = agentCount.toNumber();
+      const vaultStateResult = findVaultState(agentWallet, nonce);
       const [vaultState] = vaultStateResult;
-      console.log('[createAgent] Vault state:', vaultState.toBase58());
+      console.log('[createAgent] Vault state:', vaultState.toBase58(), 'nonce:', nonce);
 
       const shareMintResult = findShareMint(vaultState);
       const [shareMint] = shareMintResult;

@@ -139,10 +139,10 @@ export default function HomeContent() {
               </div>
 
               <a
-                href="/create"
+                href="/deploy"
                 className="group inline-flex items-center gap-2 mt-10 px-8 py-4 text-sm font-medium tracking-widest bg-orange-500 text-black hover:bg-orange-400 transition-all duration-300"
               >
-                DEPLOY OPENCLAW AGENT
+                CREATE AGENT
                 <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
               </a>
             </div>

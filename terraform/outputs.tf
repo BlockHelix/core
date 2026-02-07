@@ -46,6 +46,21 @@ output "push_commands" {
   EOT
 }
 
+output "openclaw_security_group_id" {
+  description = "Security group ID for OpenClaw agent containers"
+  value       = aws_security_group.openclaw_agents.id
+}
+
+output "private_subnet_ids" {
+  description = "Private subnet IDs for OpenClaw agent containers"
+  value       = aws_subnet.private[*].id
+}
+
+output "openclaw_task_definition_arn" {
+  description = "Task definition ARN for OpenClaw containers"
+  value       = aws_ecs_task_definition.openclaw.arn
+}
+
 output "set_secrets_commands" {
   description = "Commands to set secret values"
   value       = <<-EOT

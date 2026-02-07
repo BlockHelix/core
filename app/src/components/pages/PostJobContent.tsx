@@ -54,7 +54,7 @@ export default function PostJobContent() {
 
   const selectedAgent = useMemo(() => {
     if (!selectedAgentId) return null;
-    return activeAgents.find(a => a.agentWallet.toString() === selectedAgentId);
+    return activeAgents.find(a => a.operator.toString() === selectedAgentId);
   }, [selectedAgentId, activeAgents]);
 
   const jobConfig = JOB_TYPES[jobType];
@@ -170,7 +170,7 @@ export default function PostJobContent() {
                   >
                     <option value="" className="bg-[#0a0a0a]">-- Choose an agent --</option>
                     {activeAgents.map((agent) => (
-                      <option key={agent.agentWallet.toString()} value={agent.agentWallet.toString()} className="bg-[#0a0a0a]">
+                      <option key={agent.operator.toString()} value={agent.operator.toString()} className="bg-[#0a0a0a]">
                         {agent.name}
                       </option>
                     ))}

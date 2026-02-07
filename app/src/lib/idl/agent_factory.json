@@ -68,7 +68,7 @@
           }
         },
         {
-          "name": "agent_wallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -153,14 +153,6 @@
           "type": "i64"
         },
         {
-          "name": "target_apy_bps",
-          "type": "u16"
-        },
-        {
-          "name": "lending_floor_bps",
-          "type": "u16"
-        },
-        {
           "name": "arbitrator",
           "type": "pubkey"
         }
@@ -184,7 +176,7 @@
           "writable": true
         },
         {
-          "name": "agent_wallet",
+          "name": "operator",
           "signer": true
         }
       ],
@@ -261,7 +253,7 @@
           "writable": true
         },
         {
-          "name": "agent_wallet",
+          "name": "operator",
           "signer": true
         }
       ],
@@ -426,7 +418,7 @@
             "type": "u64"
           },
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -458,7 +450,7 @@
             "type": "u64"
           },
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           }
         ]
@@ -474,7 +466,7 @@
             "type": "pubkey"
           },
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -530,7 +522,7 @@
             "type": "u64"
           },
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {

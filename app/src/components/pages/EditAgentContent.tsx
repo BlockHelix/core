@@ -268,9 +268,9 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-mono text-white">
-                    {agent.agentWallet.slice(0, 8)}...{agent.agentWallet.slice(-8)}
+                    {agent.operator.slice(0, 8)}...{agent.operator.slice(-8)}
                   </span>
-                  <CopyButton value={agent.agentWallet} />
+                  <CopyButton value={agent.operator} />
                 </div>
               </div>
               <div>

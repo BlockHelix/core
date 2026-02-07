@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { usePrograms } from './usePrograms';
-import { findVaultState, findRegistryState } from '@/lib/pda';
+import { findRegistryState } from '@/lib/pda';
 
 export interface AgentMetadata {
   factory: PublicKey;
-  agentWallet: PublicKey;
+  operator: PublicKey;
   vault: PublicKey;
   registry: PublicKey;
   shareMint: PublicKey;
@@ -28,7 +28,7 @@ export interface AgentMetadata {
 }
 
 export interface VaultState {
-  agentWallet: PublicKey;
+  operator: PublicKey;
   usdcMint: PublicKey;
   shareMint: PublicKey;
   vaultUsdcAccount: PublicKey;
@@ -56,7 +56,7 @@ export interface VaultState {
 
 export interface RegistryState {
   vault: PublicKey;
-  agentWallet: PublicKey;
+  operator: PublicKey;
   protocolAuthority: PublicKey;
   jobCounter: number;
   challengeWindow: number;
@@ -186,7 +186,7 @@ export function useAgentList() {
   return { agents, isLoading, error };
 }
 
-export function useAgentDetails(agentWallet: PublicKey | null) {
+export function useAgentDetails(agentKey: PublicKey | null) {
   const { factoryProgram, vaultProgram, registryProgram, connection } = usePrograms();
   const [agentMetadata, setAgentMetadata] = useState<AgentMetadata | null>(null);
   const [vaultState, setVaultState] = useState<VaultState | null>(null);
@@ -198,37 +198,43 @@ export function useAgentDetails(agentWallet: PublicKey | null) {
   const fetchedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!agentWallet || !factoryProgram || !vaultProgram || !registryProgram) {
+    if (!agentKey || !factoryProgram || !vaultProgram || !registryProgram) {
       setIsLoading(false);
       return;
     }
 
-    const walletKey = agentWallet.toString();
-    if (fetchedRef.current === walletKey) return;
+    const keyStr = agentKey.toString();
+    if (fetchedRef.current === keyStr) return;
 
     const fetchAgentData = async () => {
       try {
-        fetchedRef.current = walletKey;
-        const [vault] = findVaultState(agentWallet);
+        fetchedRef.current = keyStr;
+
+        const agentAccounts = await factoryProgram.account.agentMetadata.all();
+        const agent = agentAccounts.find((a) => {
+          const acct = a.account as any;
+          return acct.vault?.toString() === keyStr || acct.agentWallet?.toString() === keyStr;
+        });
+
+        if (!agent) {
+          setError('Agent not found on-chain.');
+          return;
+        }
+
+        const am = agent.account as any;
+        const vault = am.vault as PublicKey;
         const [registry] = findRegistryState(vault);
 
-        const [agentAccounts, vaultData, registryData] = await Promise.all([
-          factoryProgram.account.agentMetadata.all(),
+        setAgentMetadata({
+          ...am,
+          agentId: toNum(am.agentId),
+          createdAt: toNum(am.createdAt),
+        });
+
+        const [vaultData, registryData] = await Promise.all([
           vaultProgram.account.vaultState.fetch(vault),
           registryProgram.account.registryState.fetch(registry),
         ]);
-
-        const agent = agentAccounts.find(
-          (a) => (a.account as any).agentWallet.toString() === agentWallet.toString()
-        );
-        if (agent) {
-          const am = agent.account as any;
-          setAgentMetadata({
-            ...am,
-            agentId: toNum(am.agentId),
-            createdAt: toNum(am.createdAt),
-          });
-        }
 
         const [vaultUsdcAccountInfo, shareMintInfo] = await Promise.all([
           connection.getTokenAccountBalance((vaultData as any).vaultUsdcAccount),
@@ -276,7 +282,7 @@ export function useAgentDetails(agentWallet: PublicKey | null) {
     };
 
     fetchAgentData();
-  }, [agentWallet, factoryProgram, vaultProgram, registryProgram, connection]);
+  }, [agentKey, factoryProgram, vaultProgram, registryProgram, connection]);
 
   return { agentMetadata, vaultState, registryState, totalAssets, totalShares, isLoading, error };
 }

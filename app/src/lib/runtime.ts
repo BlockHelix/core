@@ -78,7 +78,7 @@ export interface AgentSummary {
   name: string;
   priceUsdcMicro: number;
   model: string;
-  agentWallet: string;
+  operator: string;
   vault: string;
   isActive: boolean;
   createdAt: number;
@@ -144,6 +144,80 @@ export async function getAgentDetail(agentId: string, wallet?: string): Promise<
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Failed to fetch agent: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export interface DeployOpenClawParams {
+  agentId: string;
+  name: string;
+  systemPrompt: string;
+  priceUsdcMicro: number;
+  model?: string;
+  operator: string;
+  vault: string;
+  registry?: string;
+  apiKey: string;
+  ownerWallet?: string;
+}
+
+export async function deployOpenClaw(params: DeployOpenClawParams): Promise<RegisterAgentResponse> {
+  if (!RUNTIME_URL) {
+    throw new Error('Runtime URL not configured');
+  }
+
+  const response = await fetch(`${RUNTIME_URL}/admin/openclaw/deploy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `OpenClaw deploy failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export interface RegisterCustomAgentParams {
+  agentId: string;
+  name: string;
+  endpointUrl: string;
+  priceUsdcMicro: number;
+  agentWallet: string;
+  vault: string;
+  ownerWallet?: string;
+}
+
+export async function registerCustomAgent(
+  params: RegisterCustomAgentParams
+): Promise<RegisterAgentResponse> {
+  if (!RUNTIME_URL) {
+    throw new Error('Runtime URL not configured');
+  }
+
+  const response = await fetch(`${RUNTIME_URL}/admin/agents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      agentId: params.agentId,
+      name: params.name,
+      endpointUrl: params.endpointUrl,
+      priceUsdcMicro: params.priceUsdcMicro,
+      agentWallet: params.agentWallet,
+      vault: params.vault,
+      registry: '',
+      isActive: true,
+      ownerWallet: params.ownerWallet,
+      isCustom: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Custom agent registration failed: ${response.status}`);
   }
 
   return response.json();

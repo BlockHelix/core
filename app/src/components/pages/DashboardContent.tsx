@@ -218,7 +218,7 @@ function StakedTab({ positions }: { positions: any[] }) {
                 >
                   <td className="px-4 py-3">
                     <Link
-                      href={`/agent/${position.agentWallet.toString()}`}
+                      href={`/agent/${position.operator.toString()}`}
                       className="text-emerald-400 hover:text-emerald-300 transition-colors duration-300 text-sm"
                     >
                       {position.agentName}
@@ -237,7 +237,7 @@ function StakedTab({ positions }: { positions: any[] }) {
                     {gain >= 0 ? '+' : ''}${formatUSDC(gain)} <span className="text-xs">({gainPct >= 0 ? '+' : ''}{gainPct.toFixed(2)}%)</span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <CopyButton value={position.agentWallet.toString()} />
+                    <CopyButton value={position.operator.toString()} />
                   </td>
                 </tr>
               );
@@ -304,8 +304,8 @@ function DeployedTab({ agents, error }: { agents: AgentSummary[]; error: string 
                 <div>
                   <div className="text-[10px] uppercase tracking-widest text-white/40 mb-1 font-mono">AGENT WALLET</div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono text-white/70">{agent.agentWallet.slice(0, 4)}...{agent.agentWallet.slice(-4)}</span>
-                    <CopyButton value={agent.agentWallet} />
+                    <span className="text-sm font-mono text-white/70">{agent.operator.slice(0, 4)}...{agent.operator.slice(-4)}</span>
+                    <CopyButton value={agent.operator} />
                   </div>
                 </div>
                 <div>

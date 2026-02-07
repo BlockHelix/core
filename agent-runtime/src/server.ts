@@ -31,11 +31,42 @@ export function createApp(): express.Application {
   app.use(cors({
     origin: ['https://www.blockhelix.tech', 'https://blockhelix.tech', 'http://localhost:3000'],
     credentials: true,
+    exposedHeaders: ['payment-required', 'x-payment-response'],
   }));
 
-  // Force expose x402 headers on EVERY response (x402 middleware bypasses cors)
+  // Patch ALL response methods to include expose-headers (x402 uses res.end directly)
   app.use((_req, res, next) => {
-    res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
+    const exposeHeaders = () => {
+      if (!res.headersSent) {
+        res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
+      }
+    };
+
+    const originalEnd = res.end.bind(res);
+    const originalSend = res.send.bind(res);
+    const originalJson = res.json.bind(res);
+    const originalWriteHead = res.writeHead.bind(res);
+
+    res.writeHead = function (statusCode: number, ...args: any[]) {
+      exposeHeaders();
+      return originalWriteHead(statusCode, ...args);
+    };
+
+    res.end = function (...args: any[]) {
+      exposeHeaders();
+      return originalEnd(...args);
+    };
+
+    res.send = function (body: any) {
+      exposeHeaders();
+      return originalSend(body);
+    };
+
+    res.json = function (body: any) {
+      exposeHeaders();
+      return originalJson(body);
+    };
+
     next();
   });
 

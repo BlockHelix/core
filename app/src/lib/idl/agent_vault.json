@@ -138,6 +138,12 @@
           }
         },
         {
+          "name": "operator_share_account",
+          "docs": [
+            "Operator's share account to check minimum"
+          ]
+        },
+        {
           "name": "deposit_record",
           "writable": true,
           "pda": {
@@ -219,7 +225,11 @@
               },
               {
                 "kind": "account",
-                "path": "agent_wallet"
+                "path": "operator"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
               }
             ]
           }
@@ -248,7 +258,7 @@
           }
         },
         {
-          "name": "agent_wallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -383,16 +393,12 @@
           "type": "i64"
         },
         {
-          "name": "target_apy_bps",
-          "type": "u16"
-        },
-        {
-          "name": "lending_floor_bps",
-          "type": "u16"
-        },
-        {
           "name": "arbitrator",
           "type": "pubkey"
+        },
+        {
+          "name": "nonce",
+          "type": "u64"
         }
       ]
     },
@@ -414,11 +420,8 @@
           "writable": true
         },
         {
-          "name": "agent_wallet",
-          "signer": true,
-          "relations": [
-            "vault_state"
-          ]
+          "name": "operator",
+          "signer": true
         }
       ],
       "args": []
@@ -441,12 +444,9 @@
           "writable": true
         },
         {
-          "name": "agent_wallet",
+          "name": "payer",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "vault_state"
-          ]
+          "signer": true
         },
         {
           "name": "vault_usdc_account",
@@ -456,11 +456,7 @@
           ]
         },
         {
-          "name": "share_mint",
-          "writable": true
-        },
-        {
-          "name": "agent_usdc_account",
+          "name": "payer_usdc_account",
           "writable": true
         },
         {
@@ -512,77 +508,32 @@
           ]
         },
         {
+          "name": "share_mint",
+          "writable": true,
+          "relations": [
+            "vault_state"
+          ]
+        },
+        {
+          "name": "operator_share_account",
+          "writable": true
+        },
+        {
           "name": "claimant_usdc_account",
           "writable": true
         },
         {
-          "name": "arbitrator_usdc_account",
-          "writable": true
-        },
-        {
-          "name": "protocol_usdc_account",
-          "writable": true
-        },
-        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "amount",
+          "name": "usdc_amount",
           "type": "u64"
         },
         {
           "name": "job_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "stake_bond",
-      "discriminator": [
-        14,
-        142,
-        49,
-        222,
-        52,
-        70,
-        70,
-        204
-      ],
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "agent_wallet",
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "vault_state"
-          ]
-        },
-        {
-          "name": "vault_usdc_account",
-          "writable": true,
-          "relations": [
-            "vault_state"
-          ]
-        },
-        {
-          "name": "agent_usdc_account",
-          "writable": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
           "type": "u64"
         }
       ]
@@ -605,11 +556,11 @@
           "writable": true
         },
         {
-          "name": "agent_wallet",
-          "signer": true,
-          "relations": [
-            "vault_state"
-          ]
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "operator_share_account"
         }
       ],
       "args": []
@@ -733,19 +684,6 @@
   ],
   "events": [
     {
-      "name": "BondStaked",
-      "discriminator": [
-        152,
-        57,
-        210,
-        94,
-        172,
-        130,
-        236,
-        200
-      ]
-    },
-    {
       "name": "Deposited",
       "discriminator": [
         111,
@@ -798,29 +736,29 @@
       ]
     },
     {
-      "name": "VaultPausedEvent",
+      "name": "VaultPaused",
       "discriminator": [
-        75,
-        189,
-        120,
-        167,
-        117,
-        229,
-        155,
-        60
+        198,
+        157,
+        22,
+        151,
+        68,
+        100,
+        162,
+        35
       ]
     },
     {
-      "name": "VaultUnpausedEvent",
+      "name": "VaultUnpaused",
       "discriminator": [
-        131,
-        193,
-        72,
-        96,
-        27,
-        110,
-        75,
-        199
+        116,
+        95,
+        48,
+        104,
+        229,
+        9,
+        64,
+        84
       ]
     },
     {
@@ -865,56 +803,31 @@
     },
     {
       "code": 6005,
-      "name": "NoBondStaked",
-      "msg": "No operator bond staked"
-    },
-    {
-      "code": 6006,
       "name": "TVLCapExceeded",
       "msg": "Deposit would exceed TVL cap"
     },
     {
-      "code": 6007,
+      "code": 6006,
       "name": "LockupNotExpired",
       "msg": "Lockup period has not expired"
     },
     {
+      "code": 6007,
+      "name": "InsufficientOperatorShares",
+      "msg": "Operator must hold minimum shares"
+    },
+    {
       "code": 6008,
-      "name": "InsufficientBond",
-      "msg": "Operator bond below minimum required"
+      "name": "OperatorMinSharesRequired",
+      "msg": "Operator cannot withdraw below minimum while active"
     },
     {
       "code": 6009,
-      "name": "SlashExceedsAssets",
-      "msg": "Slash amount exceeds vault assets"
-    },
-    {
-      "code": 6010,
       "name": "SlippageExceeded",
       "msg": "Output below minimum slippage tolerance"
     }
   ],
   "types": [
-    {
-      "name": "BondStaked",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "total_bond",
-            "type": "u64"
-          }
-        ]
-      }
-    },
     {
       "name": "DepositRecord",
       "type": {
@@ -1005,7 +918,7 @@
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "usdc_amount",
             "type": "u64"
           },
           {
@@ -1013,11 +926,11 @@
             "type": "u64"
           },
           {
-            "name": "bond_slash",
+            "name": "operator_shares_burned",
             "type": "u64"
           },
           {
-            "name": "depositor_slash",
+            "name": "depositor_shares_burned",
             "type": "u64"
           }
         ]
@@ -1033,7 +946,7 @@
             "type": "pubkey"
           },
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -1048,7 +961,7 @@
       }
     },
     {
-      "name": "VaultPausedEvent",
+      "name": "VaultPaused",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1065,7 +978,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -1085,6 +998,10 @@
             "type": "pubkey"
           },
           {
+            "name": "protocol_treasury",
+            "type": "pubkey"
+          },
+          {
             "name": "agent_fee_bps",
             "type": "u16"
           },
@@ -1093,31 +1010,11 @@
             "type": "u16"
           },
           {
-            "name": "protocol_treasury",
-            "type": "pubkey"
-          },
-          {
             "name": "total_revenue",
             "type": "u64"
           },
           {
             "name": "total_jobs",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "share_mint_bump",
-            "type": "u8"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          },
-          {
-            "name": "operator_bond",
             "type": "u64"
           },
           {
@@ -1130,22 +1027,6 @@
           },
           {
             "name": "max_tvl",
-            "type": "u64"
-          },
-          {
-            "name": "total_deposited",
-            "type": "u64"
-          },
-          {
-            "name": "total_withdrawn",
-            "type": "u64"
-          },
-          {
-            "name": "deployed_capital",
-            "type": "u64"
-          },
-          {
-            "name": "yield_earned",
             "type": "u64"
           },
           {
@@ -1165,26 +1046,30 @@
             "type": "i64"
           },
           {
-            "name": "nav_high_water_mark",
-            "type": "u64"
-          },
-          {
             "name": "paused",
             "type": "bool"
           },
           {
-            "name": "target_apy_bps",
-            "type": "u16"
+            "name": "bump",
+            "type": "u8"
           },
           {
-            "name": "lending_floor_bps",
-            "type": "u16"
+            "name": "share_mint_bump",
+            "type": "u8"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "VaultUnpausedEvent",
+      "name": "VaultUnpaused",
       "type": {
         "kind": "struct",
         "fields": [

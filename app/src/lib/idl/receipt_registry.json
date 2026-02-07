@@ -118,7 +118,7 @@
           "name": "protocol_authority"
         },
         {
-          "name": "agent_wallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -177,7 +177,7 @@
           }
         },
         {
-          "name": "agent_wallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -687,7 +687,7 @@
             "type": "pubkey"
           },
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -711,7 +711,7 @@
             "type": "pubkey"
           },
           {
-            "name": "agent_wallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {

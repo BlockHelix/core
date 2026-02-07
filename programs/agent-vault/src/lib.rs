@@ -21,6 +21,7 @@ pub mod agent_vault {
         lockup_epochs: u8,
         epoch_length: i64,
         arbitrator: Pubkey,
+        nonce: u64,
     ) -> Result<()> {
         let total_bps = agent_fee_bps as u64 + protocol_fee_bps as u64;
         require!(total_bps <= BPS_DENOMINATOR, VaultError::InvalidFees);
@@ -51,6 +52,7 @@ pub mod agent_vault {
         vault.bump = ctx.bumps.vault_state;
         vault.share_mint_bump = ctx.bumps.share_mint;
         vault.created_at = Clock::get()?.unix_timestamp;
+        vault.nonce = nonce;
 
         emit!(VaultInitialized {
             vault: vault_key,
@@ -107,7 +109,8 @@ pub mod agent_vault {
         )?;
 
         let operator_key = vault.operator;
-        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &[vault.bump]];
+        let nonce_bytes = vault.nonce.to_le_bytes();
+        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &nonce_bytes, &[vault.bump]];
 
         token::mint_to(
             CpiContext::new(
@@ -190,7 +193,8 @@ pub mod agent_vault {
         )?;
 
         let operator_key = vault.operator;
-        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &[vault.bump]];
+        let nonce_bytes = vault.nonce.to_le_bytes();
+        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &nonce_bytes, &[vault.bump]];
 
         token::transfer(
             CpiContext::new(
@@ -289,7 +293,8 @@ pub mod agent_vault {
         let burn_from_depositors = shares_to_burn.checked_sub(burn_from_operator).ok_or(VaultError::ArithmeticOverflow)?;
 
         let operator_key = vault.operator;
-        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &[vault.bump]];
+        let nonce_bytes = vault.nonce.to_le_bytes();
+        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &nonce_bytes, &[vault.bump]];
 
         if burn_from_operator > 0 {
             token::burn(
@@ -358,12 +363,13 @@ fn current_epoch(now: i64, created_at: i64, epoch_length: i64) -> u64 {
 }
 
 #[derive(Accounts)]
+#[instruction(agent_fee_bps: u16, protocol_fee_bps: u16, max_tvl: u64, lockup_epochs: u8, epoch_length: i64, arbitrator: Pubkey, nonce: u64)]
 pub struct Initialize<'info> {
     #[account(
         init,
         payer = operator,
         space = 8 + VaultState::INIT_SPACE,
-        seeds = [b"vault", operator.key().as_ref()],
+        seeds = [b"vault", operator.key().as_ref(), &nonce.to_le_bytes()],
         bump
     )]
     pub vault_state: Account<'info, VaultState>,
@@ -559,6 +565,7 @@ pub struct VaultState {
     pub bump: u8,
     pub share_mint_bump: u8,
     pub created_at: i64,
+    pub nonce: u64,
 }
 
 #[account]

@@ -18,9 +18,12 @@ export function findAgentMetadata(factoryState: PublicKey, agentCount: number): 
   );
 }
 
-export function findVaultState(agentWallet: PublicKey): [PublicKey, number] {
+export function findVaultState(agentWallet: PublicKey, nonce: number): [PublicKey, number] {
+  const nonceBuffer = Buffer.alloc(8);
+  nonceBuffer.writeBigUInt64LE(BigInt(nonce));
+
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault'), agentWallet.toBuffer()],
+    [Buffer.from('vault'), agentWallet.toBuffer(), nonceBuffer],
     PROGRAM_IDS.VAULT
   );
 }

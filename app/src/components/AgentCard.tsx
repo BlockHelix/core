@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn';
 
 interface Agent {
   id?: string;
+  operator?: any;
   agentWallet?: any;
   name: string;
   description?: string;
@@ -23,7 +24,7 @@ interface AgentCardProps {
 }
 
 export default function AgentCard({ agent, index = 0, variant = 'dark' }: AgentCardProps) {
-  const agentId = agent.id || agent.agentWallet?.toString() || '';
+  const agentId = agent.id || agent.operator?.toString() || agent.agentWallet?.toString() || '';
   const status = agent.isActive ? 'active' : 'inactive';
   const totalRevenue = agent.totalRevenue ? Number(agent.totalRevenue) / 1_000_000 : 0;
   const totalJobs = agent.totalJobs ? Number(agent.totalJobs) : 0;

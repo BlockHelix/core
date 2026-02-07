@@ -12,7 +12,7 @@ import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
 import { HireAgentForm } from '@/components/agent/HireAgentForm';
 import { useAgentDetails, useJobReceipts } from '@/hooks/useAgentData';
-import { findVaultState, findRegistryState } from '@/lib/pda';
+import { findRegistryState } from '@/lib/pda';
 
 export default function AgentDetailContent() {
   const params = useParams();
@@ -28,7 +28,7 @@ export default function AgentDetailContent() {
 
   const { agentMetadata, vaultState, totalAssets, totalShares, isLoading, error } = useAgentDetails(agentWallet);
 
-  const vaultPubkey = agentWallet ? findVaultState(agentWallet)[0] : null;
+  const vaultPubkey = agentMetadata?.vault ?? null;
   const registryPubkey = vaultPubkey ? findRegistryState(vaultPubkey)[0] : null;
 
   const { receipts } = useJobReceipts(registryPubkey);
@@ -128,7 +128,7 @@ export default function AgentDetailContent() {
 
           <div className="mb-4">
             <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">{agentMetadata.name}</h1>
-            <CopyButton value={agentMetadata.agentWallet.toString()} />
+            <CopyButton value={agentMetadata.operator.toString()} />
           </div>
           <div className="space-y-2 text-sm text-white/60">
             <div className="flex items-center gap-3">

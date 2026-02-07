@@ -191,9 +191,9 @@ export default function OperatorDashboard() {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-mono text-white/70">
-                                {agent.agentWallet.slice(0, 4)}...{agent.agentWallet.slice(-4)}
+                                {agent.operator.slice(0, 4)}...{agent.operator.slice(-4)}
                               </span>
-                              <CopyButton value={agent.agentWallet} />
+                              <CopyButton value={agent.operator} />
                             </div>
                           </div>
                           <div>

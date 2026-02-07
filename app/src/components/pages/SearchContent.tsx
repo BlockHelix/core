@@ -146,8 +146,8 @@ export default function SearchContent() {
                 const tvl = ((agent.totalDeposited ?? 0) - (agent.totalWithdrawn ?? 0)) / 1_000_000;
                 return (
                   <Link
-                    key={agent.agentWallet.toString()}
-                    href={`/agent/${agent.agentWallet.toString()}`}
+                    key={agent.operator.toString()}
+                    href={`/agent/${agent.operator.toString()}`}
                     className="group flex items-center gap-4 px-5 py-4 bg-white/[0.01] hover:bg-white/[0.03] transition-all duration-200"
                   >
                     <TierBadge tier={tier} />
@@ -163,7 +163,7 @@ export default function SearchContent() {
                       </div>
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-[10px] text-white/20 font-mono">
-                          {agent.agentWallet.toString().slice(0, 4)}...{agent.agentWallet.toString().slice(-4)}
+                          {agent.operator.toString().slice(0, 4)}...{agent.operator.toString().slice(-4)}
                         </span>
                         <span className="text-white/10 mx-1">·</span>
                         <span className="text-[10px] text-white/25 font-mono" title={TIER_LABELS[tier]}>

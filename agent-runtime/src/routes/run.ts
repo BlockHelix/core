@@ -5,6 +5,7 @@ import { getAgentConfig } from '../services/agent-config';
 import { runAgent } from '../services/llm';
 import { routeRevenueToVault, recordJobOnChain, hashArtifact } from '../services/revenue';
 import { swapSolToUsdc } from '../services/jupiter';
+import { containerManager } from '../services/container-manager';
 import type { RunRequest, RunResponse } from '../types';
 
 const AGENT_WALLET_PATH = process.env.AGENT_WALLET_PATH || `${process.env.HOME}/.config/solana/id.json`;
@@ -39,7 +40,14 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
 
   try {
-    const llmResponse = await runAgent({ agent, input, context });
+    let llmResponse: { output: string; inputTokens?: number; outputTokens?: number };
+
+    if (agent.isContainerized) {
+      const containerResult = await containerManager.proxyRequest(agentId, { input, context });
+      llmResponse = { output: containerResult.output, inputTokens: 0, outputTokens: 0 };
+    } else {
+      llmResponse = await runAgent({ agent, input, context });
+    }
 
     const artifactHash = hashArtifact(JSON.stringify({
       agentId,
