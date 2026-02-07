@@ -170,7 +170,7 @@ export function useX402() {
       ...options,
       headers: {
         ...options.headers,
-        'X-PAYMENT': paymentSignature,
+        'Payment-Signature': paymentSignature,
       },
     });
 
