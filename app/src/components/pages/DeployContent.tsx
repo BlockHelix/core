@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateAgent } from '@/hooks/useCreateAgent';
 import { useWallets } from '@privy-io/react-auth/solana';
@@ -40,12 +40,21 @@ export default function DeployContent() {
   const { wallets } = useWallets();
   const wallet = wallets[0];
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [agentType, setAgentType] = useState<AgentType>('standard');
+  const getInitialType = (): AgentType => {
+    const typeParam = searchParams.get('type');
+    if (typeParam === 'openclaw' || typeParam === 'custom' || typeParam === 'standard') {
+      return typeParam;
+    }
+    return 'standard';
+  };
+
+  const [agentType, setAgentType] = useState<AgentType>(getInitialType);
   const [name, setName] = useState('');
   const [githubHandle, setGithubHandle] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
-  const [pricePerCall, setPricePerCall] = useState(DEFAULT_PRICES.standard);
+  const [pricePerCall, setPricePerCall] = useState(DEFAULT_PRICES[getInitialType()]);
   const [apiKey, setApiKey] = useState('');
   const [endpointUrl, setEndpointUrl] = useState('');
   const [isTestMode, setIsTestMode] = useState(false);
