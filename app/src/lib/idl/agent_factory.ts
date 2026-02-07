@@ -74,7 +74,7 @@ export type AgentFactory = {
           }
         },
         {
-          "name": "agentWallet",
+          "name": "operator",
           "writable": true,
           "signer": true
         },
@@ -159,14 +159,6 @@ export type AgentFactory = {
           "type": "i64"
         },
         {
-          "name": "targetApyBps",
-          "type": "u16"
-        },
-        {
-          "name": "lendingFloorBps",
-          "type": "u16"
-        },
-        {
           "name": "arbitrator",
           "type": "pubkey"
         }
@@ -190,7 +182,7 @@ export type AgentFactory = {
           "writable": true
         },
         {
-          "name": "agentWallet",
+          "name": "operator",
           "signer": true
         }
       ],
@@ -267,7 +259,7 @@ export type AgentFactory = {
           "writable": true
         },
         {
-          "name": "agentWallet",
+          "name": "operator",
           "signer": true
         }
       ],
@@ -432,7 +424,7 @@ export type AgentFactory = {
             "type": "u64"
           },
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -464,7 +456,7 @@ export type AgentFactory = {
             "type": "u64"
           },
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           }
         ]
@@ -480,7 +472,7 @@ export type AgentFactory = {
             "type": "pubkey"
           },
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
@@ -536,7 +528,7 @@ export type AgentFactory = {
             "type": "u64"
           },
           {
-            "name": "agentWallet",
+            "name": "operator",
             "type": "pubkey"
           },
           {
