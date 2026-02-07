@@ -213,7 +213,7 @@ export function useAgentDetails(agentKey: PublicKey | null) {
         const agentAccounts = await factoryProgram.account.agentMetadata.all();
         const agent = agentAccounts.find((a) => {
           const acct = a.account as any;
-          return acct.vault?.toString() === keyStr || acct.agentWallet?.toString() === keyStr;
+          return acct.vault?.toString() === keyStr || acct.operator?.toString() === keyStr;
         });
 
         if (!agent) {

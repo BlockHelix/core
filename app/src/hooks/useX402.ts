@@ -117,17 +117,9 @@ export function useX402() {
     const serialized = tx.serialize({ requireAllSignatures: false });
     const signResult = await wallet.signTransaction({ transaction: serialized });
     const signedTx = Transaction.from(signResult.signedTransaction);
+    console.log('[x402] Transaction signed, sending to facilitator...');
 
-    const txSig = await connection.sendRawTransaction(signedTx.serialize());
-    console.log('[x402] Transaction sent:', txSig);
-
-    await connection.confirmTransaction({
-      signature: txSig,
-      blockhash,
-      lastValidBlockHeight,
-    }, 'confirmed');
-    console.log('[x402] Transaction confirmed');
-
+    // Don't submit - let the x402 facilitator verify and submit
     const payload = {
       x402Version: requirements.x402Version,
       payload: {
