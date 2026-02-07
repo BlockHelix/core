@@ -45,7 +45,7 @@ export default function HelixHero() {
 
             <form onSubmit={handleSearch} className="flex items-center gap-4 mb-8">
               <a
-                href="/create"
+                href="/deploy"
                 className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden whitespace-nowrap"
               >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />

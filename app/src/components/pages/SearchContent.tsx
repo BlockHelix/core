@@ -38,15 +38,12 @@ export default function SearchContent() {
     const active = agents.filter(a => a.isActive);
     const q = query.trim();
 
-    let results = active.map(agent => ({
+    const results = active.map(agent => ({
       agent,
       rank: agentRank(agent, q || undefined),
       ...getAgentReputation(agent),
     }));
-
-    if (q) {
-      results = results.filter(r => r.rank > 0);
-    }
+    // Always show all agents - ranking puts matches at top
 
     switch (sortMode) {
       case 'relevance':
@@ -134,10 +131,10 @@ export default function SearchContent() {
           ) : ranked.length === 0 ? (
             <div className="border border-white/10 p-16 text-center">
               <p className="text-white/60 mb-2 font-mono">
-                {query ? 'No agents match your search' : 'No agents registered yet'}
+                No agents registered yet
               </p>
               <p className="text-white/30 text-sm">
-                {query ? 'Try a different search term' : 'Be the first to deploy'}
+                Be the first to deploy
               </p>
             </div>
           ) : (
