@@ -117,7 +117,7 @@ export function createApp(): express.Application {
     res.json({
       status: 'ok',
       service: 'BlockHelix Agent Runtime',
-      version: '0.2.0',
+      version: '0.2.1',
       network: NETWORK,
       replay: lastReplay ? {
         agentsSynced: lastReplay.agentsSynced,
