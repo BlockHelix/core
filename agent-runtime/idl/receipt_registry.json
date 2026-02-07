@@ -1,0 +1,745 @@
+{
+  "address": "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9",
+  "metadata": {
+    "name": "receipt_registry",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Immutable job log with challenge windows"
+  },
+  "instructions": [
+    {
+      "name": "challenge_job",
+      "discriminator": [
+        28,
+        73,
+        26,
+        36,
+        93,
+        69,
+        213,
+        253
+      ],
+      "accounts": [
+        {
+          "name": "registry_state",
+          "writable": true
+        },
+        {
+          "name": "job_receipt",
+          "writable": true
+        },
+        {
+          "name": "challenger",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_reason_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "finalize_job",
+      "discriminator": [
+        141,
+        52,
+        35,
+        150,
+        40,
+        6,
+        140,
+        27
+      ],
+      "accounts": [
+        {
+          "name": "registry_state"
+        },
+        {
+          "name": "job_receipt",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_job_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_registry",
+      "discriminator": [
+        189,
+        181,
+        20,
+        17,
+        174,
+        57,
+        249,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "registry_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "protocol_authority"
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_window",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "record_job",
+      "discriminator": [
+        54,
+        124,
+        168,
+        158,
+        236,
+        237,
+        107,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "registry_state",
+          "writable": true
+        },
+        {
+          "name": "job_receipt",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  98
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry_state"
+              },
+              {
+                "kind": "account",
+                "path": "registry_state.job_counter",
+                "account": "RegistryState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "client"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "artifact_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "payment_amount",
+          "type": "u64"
+        },
+        {
+          "name": "payment_tx",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "resolve_against_agent",
+      "discriminator": [
+        16,
+        177,
+        176,
+        172,
+        55,
+        92,
+        21,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "registry_state",
+          "writable": true
+        },
+        {
+          "name": "job_receipt",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_job_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "resolve_for_agent",
+      "discriminator": [
+        19,
+        102,
+        229,
+        126,
+        46,
+        161,
+        133,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "registry_state",
+          "writable": true
+        },
+        {
+          "name": "job_receipt",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_job_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "verify_receipt",
+      "discriminator": [
+        202,
+        144,
+        21,
+        149,
+        181,
+        189,
+        23,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "job_receipt",
+          "writable": true
+        },
+        {
+          "name": "client",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_job_id",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "JobReceipt",
+      "discriminator": [
+        182,
+        153,
+        181,
+        190,
+        176,
+        28,
+        68,
+        221
+      ]
+    },
+    {
+      "name": "RegistryState",
+      "discriminator": [
+        29,
+        34,
+        224,
+        195,
+        175,
+        183,
+        99,
+        97
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "JobChallenged",
+      "discriminator": [
+        203,
+        112,
+        90,
+        24,
+        19,
+        50,
+        66,
+        108
+      ]
+    },
+    {
+      "name": "JobFinalized",
+      "discriminator": [
+        208,
+        205,
+        49,
+        160,
+        98,
+        139,
+        192,
+        217
+      ]
+    },
+    {
+      "name": "JobRecorded",
+      "discriminator": [
+        173,
+        56,
+        68,
+        8,
+        221,
+        71,
+        217,
+        54
+      ]
+    },
+    {
+      "name": "JobResolved",
+      "discriminator": [
+        132,
+        52,
+        43,
+        42,
+        170,
+        148,
+        136,
+        196
+      ]
+    },
+    {
+      "name": "ReceiptVerified",
+      "discriminator": [
+        189,
+        58,
+        109,
+        214,
+        74,
+        78,
+        181,
+        8
+      ]
+    },
+    {
+      "name": "RegistryInitialized",
+      "discriminator": [
+        144,
+        138,
+        62,
+        105,
+        58,
+        38,
+        100,
+        177
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6001,
+      "name": "ChallengeWindowExpired",
+      "msg": "Challenge window expired"
+    },
+    {
+      "code": 6002,
+      "name": "ChallengeWindowActive",
+      "msg": "Challenge window still active"
+    },
+    {
+      "code": 6003,
+      "name": "JobNotActive",
+      "msg": "Job is not active"
+    },
+    {
+      "code": 6004,
+      "name": "JobNotChallenged",
+      "msg": "Job is not challenged"
+    },
+    {
+      "code": 6005,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyVerified",
+      "msg": "Receipt already verified"
+    }
+  ],
+  "types": [
+    {
+      "name": "JobChallenged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "challenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "challenged_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobFinalized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "finalized_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobReceipt",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "artifact_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "payment_amount",
+            "type": "u64"
+          },
+          {
+            "name": "payment_tx",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "JobStatus"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "challenged_at",
+            "type": "i64"
+          },
+          {
+            "name": "resolved_at",
+            "type": "i64"
+          },
+          {
+            "name": "challenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "client_verified",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "payment_amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "JobStatus"
+              }
+            }
+          },
+          {
+            "name": "resolved_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JobStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Finalized"
+          },
+          {
+            "name": "Challenged"
+          },
+          {
+            "name": "Resolved"
+          },
+          {
+            "name": "Rejected"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReceiptVerified",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_id",
+            "type": "u64"
+          },
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "verified_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegistryInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "protocol_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "challenge_window",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegistryState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "protocol_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "job_counter",
+            "type": "u64"
+          },
+          {
+            "name": "challenge_window",
+            "type": "i64"
+          },
+          {
+            "name": "total_challenged",
+            "type": "u64"
+          },
+          {
+            "name": "total_resolved_against",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}
