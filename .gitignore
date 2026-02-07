@@ -25,3 +25,9 @@ docs/
 *.tfvars
 !*.tfvars.example
 .terraform.lock.hcl
+
+# TypeScript output
+**/*.js
+!*.config.js
+!tailwind.config.js
+

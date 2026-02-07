@@ -1,15 +1,9 @@
 import express from 'express';
 import cors from 'cors';
-import { x402ResourceServer } from '@x402/express';
+import { x402ResourceServer, paymentMiddleware } from '@x402/express';
 import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactSvmScheme } from '@x402/svm/exact/server';
 import type { RoutesConfig } from '@x402/core/server';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { x402HTTPResourceServer, ExpressAdapter } = require('@x402/express') as {
-  x402HTTPResourceServer: new (server: any, routes: any) => any;
-  ExpressAdapter: new (req: express.Request) => any;
-};
 import { handleRun } from './routes/run';
 import {
   handleRegisterAgent,
@@ -22,7 +16,7 @@ import {
 } from './routes/admin';
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
-import { replayFromChain, type ReplayStats } from './services/replay';
+import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
 
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
@@ -33,6 +27,7 @@ let lastReplay: ReplayStats | null = null;
 
 export function createApp(): express.Application {
   const app = express();
+  app.set('trust proxy', true);
   app.use(cors({
     origin: ['https://www.blockhelix.tech', 'https://blockhelix.tech', 'http://localhost:3000'],
     credentials: true,
@@ -79,7 +74,10 @@ export function createApp(): express.Application {
   initDefaultAgents();
 
   replayFromChain()
-    .then((stats) => { lastReplay = stats; })
+    .then((stats) => {
+      lastReplay = stats;
+      subscribeToFactory();
+    })
     .catch((err) => { console.error('[replay] Failed:', err); });
 
   const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
@@ -112,77 +110,27 @@ export function createApp(): express.Application {
 
   console.log('[x402] Configured payment route: POST /v1/agent/*/run, payTo:', AGENT_WALLET);
 
-  // Custom settle-first middleware: settle payment BEFORE running handler
-  // so the tx blockhash doesn't expire during slow LLM calls
-  const httpServer = new x402HTTPResourceServer(resourceServer, staticRoutes);
-  let initPromise: Promise<void> | null = httpServer.initialize();
-
-  app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const adapter = new ExpressAdapter(req);
-    const context = {
-      adapter,
-      path: req.path,
-      method: req.method,
-      paymentHeader: adapter.getHeader('payment-signature') || adapter.getHeader('x-payment') || req.headers['x-payment'] as string,
-    };
-
-    if (!(httpServer as any).requiresPayment(context)) {
-      return next();
-    }
-
-    if (initPromise) {
-      await initPromise;
-      initPromise = null;
-    }
-
-    console.log(`[x402] Payment check: ${req.method} ${req.path}, has payment: ${!!context.paymentHeader}`);
-
-    const result = await (httpServer as any).processHTTPRequest(context);
-
-    switch (result.type) {
-      case 'no-payment-required':
-        return next();
-
-      case 'payment-error': {
-        const { response } = result;
-        console.log(`[x402] Payment error: ${response.status}`);
-        res.status(response.status);
-        Object.entries(response.headers).forEach(([key, value]) => {
-          res.setHeader(key, value as string);
-        });
-        res.json(response.body || {});
-        return;
-      }
-
-      case 'payment-verified': {
-        console.log('[x402] Payment verified, settling immediately...');
+  // Sanitize payment headers before x402 middleware - invalid values crash it
+  app.use((req, _res, next) => {
+    for (const header of ['payment-signature', 'x-payment']) {
+      const val = req.headers[header];
+      if (val && typeof val === 'string') {
         try {
-          const settleResult = await (httpServer as any).processSettlement(
-            result.paymentPayload,
-            result.paymentRequirements,
-          );
-          if (!settleResult.success) {
-            console.error('[x402] Settlement failed:', settleResult.errorReason);
-            res.status(402).json({ error: 'Settlement failed', details: settleResult.errorReason });
-            return;
+          JSON.parse(atob(val));
+        } catch {
+          try {
+            JSON.parse(val);
+          } catch {
+            console.warn(`[x402] Stripping invalid ${header} header: ${val.substring(0, 30)}`);
+            delete req.headers[header];
           }
-          console.log('[x402] Settlement success');
-          Object.entries(settleResult.headers).forEach(([key, value]) => {
-            res.setHeader(key, value as string);
-          });
-          req.headers['x-payment-response'] = settleResult.headers?.['x-payment-response'] || 'settled';
-          return next();
-        } catch (error) {
-          console.error('[x402] Settlement error:', error);
-          res.status(402).json({
-            error: 'Settlement failed',
-            details: error instanceof Error ? error.message : 'Unknown error',
-          });
-          return;
         }
       }
     }
+    next();
   });
+
+  app.use(paymentMiddleware(staticRoutes, resourceServer));
 
   app.get('/health', (_req, res) => {
     const agents = getAllHostedAgents();
