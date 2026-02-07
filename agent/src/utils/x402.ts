@@ -36,7 +36,18 @@ export const routes: RoutesConfig = {
     description: 'AI-generated code patch for DeFi vulnerabilities',
     mimeType: 'application/json',
   },
+  'POST /agent': {
+    accepts: {
+      scheme: 'exact',
+      price: '$0.10',
+      network: NETWORK,
+      payTo: AGENT_WALLET_ADDRESS,
+    },
+    description: 'General-purpose agentic task execution',
+    mimeType: 'application/json',
+  },
 };
 
-export const PRICE_ANALYZE_USDC = 50_000; // $0.05 in 6-decimal USDC
-export const PRICE_PATCH_USDC = 100_000;  // $0.10 in 6-decimal USDC
+export const PRICE_ANALYZE_USDC = 50_000;
+export const PRICE_PATCH_USDC = 100_000;
+export const PRICE_AGENT_USDC = 100_000;

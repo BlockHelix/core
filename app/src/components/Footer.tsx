@@ -15,9 +15,6 @@ export default function Footer() {
           </div>
 
           <nav className="flex flex-wrap gap-6">
-            <Link href="/jobs" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
-              Hire
-            </Link>
             <Link href="/dashboard" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
               Dashboard
             </Link>

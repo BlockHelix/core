@@ -15,11 +15,14 @@ import {
 } from './routes/admin';
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
+import { replayFromChain, type ReplayStats } from './services/replay';
 
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || 'https://x402.org/facilitator';
 const NETWORK = process.env.SOLANA_NETWORK === 'mainnet' ? SOLANA_MAINNET_CAIP2 : SOLANA_DEVNET_CAIP2;
+
+let lastReplay: ReplayStats | null = null;
 
 export function createApp(): express.Application {
   const app = express();
@@ -30,6 +33,11 @@ export function createApp(): express.Application {
   app.use(express.json({ limit: '1mb' }));
 
   initDefaultAgents();
+
+  // Replay from chain in background (non-blocking)
+  replayFromChain()
+    .then((stats) => { lastReplay = stats; })
+    .catch((err) => { console.error('[replay] Failed:', err); });
 
   const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
   const resourceServer = new x402ResourceServer(facilitatorClient)
@@ -69,8 +77,14 @@ export function createApp(): express.Application {
     res.json({
       status: 'ok',
       service: 'BlockHelix Agent Runtime',
-      version: '0.1.0',
+      version: '0.2.0',
       network: NETWORK,
+      replay: lastReplay ? {
+        agentsSynced: lastReplay.agentsSynced,
+        agentsSkipped: lastReplay.agentsSkipped,
+        vaults: lastReplay.vaultStats,
+        errors: lastReplay.errors.length,
+      } : 'pending',
       hostedAgents: agents.map(a => ({
         agentId: a.agentId,
         name: a.name,
@@ -78,6 +92,16 @@ export function createApp(): express.Application {
         active: a.isActive,
       })),
     });
+  });
+
+  app.post('/admin/replay', async (_req, res) => {
+    try {
+      const stats = await replayFromChain();
+      lastReplay = stats;
+      res.json({ message: 'Replay complete', stats });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Replay failed' });
+    }
   });
 
   app.get('/v1/agents', (_req, res) => {

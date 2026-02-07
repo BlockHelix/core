@@ -12,7 +12,7 @@ pub mod receipt_registry {
     ) -> Result<()> {
         let registry = &mut ctx.accounts.registry_state;
         registry.vault = ctx.accounts.vault.key();
-        registry.agent_wallet = ctx.accounts.agent_wallet.key();
+        registry.operator = ctx.accounts.operator.key();
         registry.protocol_authority = ctx.accounts.protocol_authority.key();
         registry.job_counter = 0;
         registry.challenge_window = challenge_window;
@@ -22,7 +22,7 @@ pub mod receipt_registry {
 
         emit!(RegistryInitialized {
             vault: registry.vault,
-            agent_wallet: registry.agent_wallet,
+            operator: registry.operator,
             protocol_authority: registry.protocol_authority,
             challenge_window,
         });
@@ -187,7 +187,7 @@ pub mod receipt_registry {
 pub struct InitializeRegistry<'info> {
     #[account(
         init,
-        payer = agent_wallet,
+        payer = operator,
         space = 8 + RegistryState::INIT_SPACE,
         seeds = [b"registry", vault.key().as_ref()],
         bump
@@ -201,7 +201,7 @@ pub struct InitializeRegistry<'info> {
     pub protocol_authority: AccountInfo<'info>,
 
     #[account(mut)]
-    pub agent_wallet: Signer<'info>,
+    pub operator: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -213,7 +213,7 @@ pub struct RecordJob<'info> {
 
     #[account(
         init,
-        payer = agent_wallet,
+        payer = operator,
         space = 8 + JobReceipt::INIT_SPACE,
         seeds = [b"job", registry_state.key().as_ref(), &registry_state.job_counter.to_le_bytes()],
         bump
@@ -222,9 +222,9 @@ pub struct RecordJob<'info> {
 
     #[account(
         mut,
-        constraint = agent_wallet.key() == registry_state.agent_wallet @ RegistryError::Unauthorized
+        constraint = operator.key() == registry_state.operator @ RegistryError::Unauthorized
     )]
-    pub agent_wallet: Signer<'info>,
+    pub operator: Signer<'info>,
 
     /// CHECK: Client who paid for this job
     pub client: AccountInfo<'info>,
@@ -293,7 +293,7 @@ pub struct VerifyReceipt<'info> {
 #[derive(InitSpace)]
 pub struct RegistryState {
     pub vault: Pubkey,
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
     pub protocol_authority: Pubkey,
     pub job_counter: u64,
     pub challenge_window: i64,
@@ -334,7 +334,7 @@ pub enum JobStatus {
 #[event]
 pub struct RegistryInitialized {
     pub vault: Pubkey,
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
     pub protocol_authority: Pubkey,
     pub challenge_window: i64,
 }

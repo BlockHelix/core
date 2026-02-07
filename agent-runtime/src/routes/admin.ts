@@ -7,9 +7,9 @@ import type { AgentConfig } from '../types';
 export function handleRegisterAgent(req: Request, res: Response): void {
   const config = req.body as Partial<AgentConfig> & { ownerWallet?: string };
 
-  if (!config.agentId || !config.name || !config.systemPrompt || !config.agentWallet || !config.apiKey) {
+  if (!config.agentId || !config.name || !config.systemPrompt || !config.operator || !config.apiKey) {
     res.status(400).json({
-      error: 'Missing required fields: agentId, name, systemPrompt, agentWallet, apiKey',
+      error: 'Missing required fields: agentId, name, systemPrompt, operator, apiKey',
     });
     return;
   }
@@ -26,14 +26,14 @@ export function handleRegisterAgent(req: Request, res: Response): void {
     systemPrompt: config.systemPrompt,
     priceUsdcMicro: config.priceUsdcMicro ?? 100_000,
     model: config.model || 'claude-sonnet-4-20250514',
-    agentWallet: config.agentWallet,
+    operator: config.operator,
     vault: config.vault || '',
     registry: config.registry || '',
     isActive: config.isActive ?? true,
     apiKey: config.apiKey,
   };
 
-  registerHostedAgent(fullConfig, config.ownerWallet || config.agentWallet);
+  registerHostedAgent(fullConfig, config.ownerWallet || config.operator);
 
   res.status(201).json({
     message: 'Agent registered',
@@ -56,7 +56,7 @@ export function handleListAgentsAdmin(req: Request, res: Response): void {
       systemPrompt: a.systemPrompt.substring(0, 200) + (a.systemPrompt.length > 200 ? '...' : ''),
       priceUsdcMicro: a.priceUsdcMicro,
       model: a.model,
-      agentWallet: a.agentWallet,
+      operator: a.operator,
       vault: a.vault,
       registry: a.registry,
       isActive: a.isActive,
@@ -79,7 +79,7 @@ export function handleGetAgentsByOwner(req: Request, res: Response): void {
       name: a.name,
       priceUsdcMicro: a.priceUsdcMicro,
       model: a.model,
-      agentWallet: a.agentWallet,
+      operator: a.operator,
       vault: a.vault,
       isActive: a.isActive,
       createdAt: a.createdAt,
@@ -106,7 +106,7 @@ export function handleGetAgentConfig(req: Request, res: Response): void {
       name: agent.name,
       priceUsdcMicro: agent.priceUsdcMicro,
       model: agent.model,
-      agentWallet: agent.agentWallet,
+      operator: agent.operator,
       vault: agent.vault,
       isActive: agent.isActive,
     });
@@ -119,7 +119,7 @@ export function handleGetAgentConfig(req: Request, res: Response): void {
     systemPrompt: agent.systemPrompt,
     priceUsdcMicro: agent.priceUsdcMicro,
     model: agent.model,
-    agentWallet: agent.agentWallet,
+    operator: agent.operator,
     vault: agent.vault,
     registry: agent.registry,
     isActive: agent.isActive,

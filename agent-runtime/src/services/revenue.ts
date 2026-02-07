@@ -33,9 +33,9 @@ function getProvider(keypair: Keypair): anchor.AnchorProvider {
   return new anchor.AnchorProvider(connection, wallet, { commitment: 'confirmed' });
 }
 
-function getVaultPda(agentWallet: PublicKey): [PublicKey, number] {
+function getVaultPda(operator: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault'), agentWallet.toBuffer()],
+    [Buffer.from('vault'), operator.toBuffer()],
     VAULT_PROGRAM_ID
   );
 }
@@ -73,19 +73,19 @@ export interface ReceiptResult {
 }
 
 export async function routeRevenueToVault(
-  agentWalletPath: string,
+  operatorWalletPath: string,
   amount: number,
   jobId: number
 ): Promise<RevenueResult | null> {
   try {
-    const agentKeypair = loadKeypair(agentWalletPath);
-    const provider = getProvider(agentKeypair);
+    const operatorKeypair = loadKeypair(operatorWalletPath);
+    const provider = getProvider(operatorKeypair);
     anchor.setProvider(provider);
-    const agentWallet = agentKeypair.publicKey;
+    const operator = operatorKeypair.publicKey;
 
-    const [vaultState] = getVaultPda(agentWallet);
+    const [vaultState] = getVaultPda(operator);
     const vaultUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, vaultState, true);
-    const agentUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, agentWallet);
+    const payerUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, operator);
 
     const connection = new Connection(RPC_URL, 'confirmed');
     const vaultInfo = await connection.getAccountInfo(vaultState);
@@ -103,19 +103,13 @@ export async function routeRevenueToVault(
     const protocolTreasury = vaultAccount.protocolTreasury as PublicKey;
     const protocolUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, protocolTreasury);
 
-    const [shareMint] = PublicKey.findProgramAddressSync(
-      [Buffer.from('shares'), vaultState.toBuffer()],
-      VAULT_PROGRAM_ID
-    );
-
     const tx: string = await (vaultProgram.methods as any)
       .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
       .accounts({
         vaultState,
-        agentWallet,
+        payer: operator,
         vaultUsdcAccount,
-        shareMint,
-        agentUsdcAccount,
+        payerUsdcAccount,
         protocolUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -130,19 +124,19 @@ export async function routeRevenueToVault(
 }
 
 export async function recordJobOnChain(
-  agentWalletPath: string,
+  operatorWalletPath: string,
   artifactHash: Buffer,
   paymentAmount: number,
   paymentTx: string,
   clientPubkey?: string
 ): Promise<ReceiptResult | null> {
   try {
-    const agentKeypair = loadKeypair(agentWalletPath);
-    const provider = getProvider(agentKeypair);
+    const operatorKeypair = loadKeypair(operatorWalletPath);
+    const provider = getProvider(operatorKeypair);
     anchor.setProvider(provider);
-    const agentWallet = agentKeypair.publicKey;
+    const operator = operatorKeypair.publicKey;
 
-    const [vaultState] = getVaultPda(agentWallet);
+    const [vaultState] = getVaultPda(operator);
     const [registryState] = getRegistryPda(vaultState);
 
     const connection = new Connection(RPC_URL, 'confirmed');
@@ -174,14 +168,14 @@ export async function recordJobOnChain(
     }
     while (paymentTxBytes.length < 64) paymentTxBytes.push(0);
 
-    const client = clientPubkey ? new PublicKey(clientPubkey) : agentWallet;
+    const client = clientPubkey ? new PublicKey(clientPubkey) : operator;
 
     const tx: string = await (registryProgram.methods as any)
       .recordJob(hashArray, new anchor.BN(paymentAmount), paymentTxBytes)
       .accounts({
         registryState,
         jobReceipt,
-        agentWallet,
+        operator,
         client,
         systemProgram: anchor.web3.SystemProgram.programId,
       })

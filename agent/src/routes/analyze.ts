@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { smartAnalyze } from '../services/smart-analysis';
 import { analyzeCodeWithClaude } from '../services/code-analysis';
 import { routeRevenueToVault, recordJobOnChain } from '../services/revenue';
 import { hashArtifact } from '../utils/hash';
@@ -6,10 +7,11 @@ import { PRICE_ANALYZE_USDC } from '../utils/x402';
 
 export async function analyzeCode(req: Request, res: Response) {
   try {
-    const { repoUrl, filePath, focus } = req.body as {
+    const { repoUrl, filePath, focus, mode } = req.body as {
       repoUrl?: string;
       filePath?: string;
       focus?: string;
+      mode?: 'smart' | 'fast';
     };
 
     if (!repoUrl) {
@@ -22,10 +24,24 @@ export async function analyzeCode(req: Request, res: Response) {
       return;
     }
 
-    console.log(`[analyze] ${repoUrl} ${filePath || '(full repo)'}`);
+    const useSmartMode = mode !== 'fast';
+    console.log(`[analyze] ${repoUrl} ${filePath || '(full repo)'} mode=${useSmartMode ? 'smart' : 'fast'}`);
     const startTime = Date.now();
 
-    const result = await analyzeCodeWithClaude({ repoUrl, filePath, focus });
+    let result;
+    if (useSmartMode) {
+      result = await smartAnalyze({ repoUrl, filePath, focus });
+    } else {
+      const basicResult = await analyzeCodeWithClaude({ repoUrl, filePath, focus });
+      result = {
+        ...basicResult,
+        protocolType: 'Unknown',
+        architecture: '',
+        webResearch: { searchesPerformed: 0, relevantFindings: [] },
+        memoryContext: { similarProtocolsAnalyzed: 0, relevantPatterns: [] },
+        passes: { architecture: false, webResearch: false, deepDive: false, synthesis: false },
+      };
+    }
 
     const artifactHash = hashArtifact(JSON.stringify(result));
     const paymentAmount = PRICE_ANALYZE_USDC;

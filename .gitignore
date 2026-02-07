@@ -14,8 +14,9 @@ build/
 out/
 deploy.zip
 
-# Private docs (competitive intel, internal strategy)
+# Private docs (whitepaper, research, strategy)
 .private/
+docs/
 
 # Terraform
 .terraform/

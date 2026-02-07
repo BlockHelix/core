@@ -4,7 +4,7 @@ export interface AgentConfig {
   systemPrompt: string;
   priceUsdcMicro: number;
   model: string;
-  agentWallet: string;
+  operator: string;
   vault: string;
   registry: string;
   isActive: boolean;
@@ -26,7 +26,7 @@ export interface RunResponse {
 
 export interface OnChainAgentMetadata {
   factory: string;
-  agentWallet: string;
+  operator: string;
   vault: string;
   registry: string;
   shareMint: string;

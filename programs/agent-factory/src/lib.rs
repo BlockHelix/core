@@ -43,8 +43,6 @@ pub mod agent_factory {
         max_tvl: u64,
         lockup_epochs: u8,
         epoch_length: i64,
-        target_apy_bps: u16,
-        lending_floor_bps: u16,
         arbitrator: Pubkey,
     ) -> Result<()> {
         require!(name.len() <= 64, FactoryError::NameTooLong);
@@ -63,7 +61,7 @@ pub mod agent_factory {
         let vault_cpi_accounts = VaultInitialize {
             vault_state: ctx.accounts.vault_state.to_account_info(),
             share_mint: ctx.accounts.share_mint.to_account_info(),
-            agent_wallet: ctx.accounts.agent_wallet.to_account_info(),
+            operator: ctx.accounts.operator.to_account_info(),
             usdc_mint: ctx.accounts.usdc_mint.to_account_info(),
             vault_usdc_account: ctx.accounts.vault_usdc_account.to_account_info(),
             protocol_treasury: ctx.accounts.protocol_treasury.to_account_info(),
@@ -82,8 +80,6 @@ pub mod agent_factory {
             max_tvl,
             lockup_epochs,
             epoch_length,
-            target_apy_bps,
-            lending_floor_bps,
             arbitrator,
         )?;
 
@@ -92,7 +88,7 @@ pub mod agent_factory {
             registry_state: ctx.accounts.registry_state.to_account_info(),
             vault: ctx.accounts.vault_state.to_account_info(),
             protocol_authority: ctx.accounts.protocol_treasury.to_account_info(),
-            agent_wallet: ctx.accounts.agent_wallet.to_account_info(),
+            operator: ctx.accounts.operator.to_account_info(),
             system_program: ctx.accounts.system_program.to_account_info(),
         };
         let registry_cpi_ctx = CpiContext::new(
@@ -106,7 +102,7 @@ pub mod agent_factory {
 
         let metadata = &mut ctx.accounts.agent_metadata;
         metadata.factory = ctx.accounts.factory_state.key();
-        metadata.agent_wallet = ctx.accounts.agent_wallet.key();
+        metadata.operator = ctx.accounts.operator.key();
         metadata.vault = ctx.accounts.vault_state.key();
         metadata.registry = ctx.accounts.registry_state.key();
         metadata.share_mint = ctx.accounts.share_mint.key();
@@ -127,7 +123,7 @@ pub mod agent_factory {
         emit!(AgentCreated {
             factory: metadata.factory,
             agent_id,
-            agent_wallet: metadata.agent_wallet,
+            operator: metadata.operator,
             vault: metadata.vault,
             registry: metadata.registry,
             name,
@@ -160,7 +156,7 @@ pub mod agent_factory {
 
         emit!(AgentUpdated {
             agent_id: metadata.agent_id,
-            agent_wallet: metadata.agent_wallet,
+            operator: metadata.operator,
             name: metadata.name.clone(),
             endpoint_url: metadata.endpoint_url.clone(),
         });
@@ -175,7 +171,7 @@ pub mod agent_factory {
 
         emit!(AgentDeactivated {
             agent_id: metadata.agent_id,
-            agent_wallet: metadata.agent_wallet,
+            operator: metadata.operator,
         });
 
         Ok(())
@@ -213,7 +209,7 @@ pub struct CreateAgent<'info> {
 
     #[account(
         init,
-        payer = agent_wallet,
+        payer = operator,
         space = 8 + AgentMetadata::INIT_SPACE,
         seeds = [b"agent", factory_state.key().as_ref(), &factory_state.agent_count.to_le_bytes()],
         bump
@@ -221,7 +217,7 @@ pub struct CreateAgent<'info> {
     pub agent_metadata: Account<'info, AgentMetadata>,
 
     #[account(mut)]
-    pub agent_wallet: Signer<'info>,
+    pub operator: Signer<'info>,
 
     // -- Vault CPI accounts --
     /// CHECK: Created by AgentVault CPI
@@ -258,23 +254,23 @@ pub struct CreateAgent<'info> {
 pub struct UpdateAgent<'info> {
     #[account(
         mut,
-        constraint = agent_metadata.agent_wallet == agent_wallet.key() @ FactoryError::Unauthorized,
+        constraint = agent_metadata.operator == operator.key() @ FactoryError::Unauthorized,
         constraint = agent_metadata.is_active @ FactoryError::AgentAlreadyInactive,
     )]
     pub agent_metadata: Account<'info, AgentMetadata>,
 
-    pub agent_wallet: Signer<'info>,
+    pub operator: Signer<'info>,
 }
 
 #[derive(Accounts)]
 pub struct DeactivateAgent<'info> {
     #[account(
         mut,
-        constraint = agent_metadata.agent_wallet == agent_wallet.key() @ FactoryError::Unauthorized,
+        constraint = agent_metadata.operator == operator.key() @ FactoryError::Unauthorized,
     )]
     pub agent_metadata: Account<'info, AgentMetadata>,
 
-    pub agent_wallet: Signer<'info>,
+    pub operator: Signer<'info>,
 }
 
 #[account]
@@ -291,7 +287,7 @@ pub struct FactoryState {
 #[derive(InitSpace)]
 pub struct AgentMetadata {
     pub factory: Pubkey,
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
     pub vault: Pubkey,
     pub registry: Pubkey,
     pub share_mint: Pubkey,
@@ -338,7 +334,7 @@ pub struct FactoryInitialized {
 pub struct AgentCreated {
     pub factory: Pubkey,
     pub agent_id: u64,
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
     pub vault: Pubkey,
     pub registry: Pubkey,
     pub name: String,
@@ -348,7 +344,7 @@ pub struct AgentCreated {
 #[event]
 pub struct AgentUpdated {
     pub agent_id: u64,
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
     pub name: String,
     pub endpoint_url: String,
 }
@@ -356,5 +352,5 @@ pub struct AgentUpdated {
 #[event]
 pub struct AgentDeactivated {
     pub agent_id: u64,
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
 }

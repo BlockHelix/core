@@ -9,8 +9,13 @@ const FACTORY_PROGRAM_ID = new PublicKey(
 );
 const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'https://api.devnet.solana.com';
 
+const DEFAULT_PROMPT = process.env.DEFAULT_AGENT_PROMPT || 'You are a helpful AI assistant.';
+const DEFAULT_PRICE = parseInt(process.env.DEFAULT_AGENT_PRICE || '50000', 10);
+const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+const API_KEY = process.env.ANTHROPIC_API_KEY || '';
+
 export function registerHostedAgent(config: AgentConfig, ownerWallet?: string): void {
-  agentStorage.create(config, ownerWallet || config.agentWallet);
+  agentStorage.create(config, ownerWallet || config.operator);
   console.log(`[config] Registered hosted agent: ${config.agentId} (${config.name})`);
 }
 
@@ -66,7 +71,7 @@ export async function loadAgentFromChain(agentId: number): Promise<OnChainAgentM
 
     return {
       factory: account.factory.toBase58(),
-      agentWallet: account.agentWallet.toBase58(),
+      operator: account.operator.toBase58(),
       vault: account.vault.toBase58(),
       registry: account.registry.toBase58(),
       shareMint: account.shareMint.toBase58(),
@@ -83,20 +88,83 @@ export async function loadAgentFromChain(agentId: number): Promise<OnChainAgentM
   }
 }
 
+function onChainToAgentConfig(onChain: OnChainAgentMetadata): AgentConfig {
+  return {
+    agentId: onChain.agentId.toString(),
+    name: onChain.name,
+    systemPrompt: DEFAULT_PROMPT,
+    priceUsdcMicro: DEFAULT_PRICE,
+    model: DEFAULT_MODEL,
+    operator: onChain.operator,
+    vault: onChain.vault,
+    registry: onChain.registry,
+    isActive: onChain.isActive,
+    apiKey: API_KEY,
+  };
+}
+
 export async function getAgentConfig(agentId: string): Promise<AgentConfig | null> {
+  // First check local storage (for hosted agents with custom config)
   const hosted = agentStorage.get(agentId);
   if (hosted) return hosted;
 
+  // Try to load from on-chain by numeric ID
   const numericId = parseInt(agentId, 10);
-  if (isNaN(numericId)) return null;
+  if (!isNaN(numericId)) {
+    const onChain = await loadAgentFromChain(numericId);
+    if (onChain && onChain.isActive) {
+      return onChainToAgentConfig(onChain);
+    }
+  }
 
-  const onChain = await loadAgentFromChain(numericId);
-  if (!onChain || !onChain.isActive) return null;
-
-  const hosted2 = agentStorage.get(onChain.agentWallet);
-  if (hosted2) return hosted2;
+  // Check if agentId is "default"
+  if (agentId === 'default') {
+    const defaultWallet = process.env.DEFAULT_AGENT_WALLET;
+    if (defaultWallet && API_KEY) {
+      return {
+        agentId: 'default',
+        name: 'Default Agent',
+        systemPrompt: DEFAULT_PROMPT,
+        priceUsdcMicro: DEFAULT_PRICE,
+        model: DEFAULT_MODEL,
+        operator: defaultWallet,
+        vault: process.env.DEFAULT_AGENT_VAULT || '',
+        registry: process.env.DEFAULT_AGENT_REGISTRY || '',
+        isActive: true,
+        apiKey: API_KEY,
+      };
+    }
+  }
 
   return null;
+}
+
+export async function getAllAgentsFromChain(): Promise<OnChainAgentMetadata[]> {
+  try {
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const idl = loadFactoryIdl();
+    const provider = new anchor.AnchorProvider(
+      connection,
+      { publicKey: PublicKey.default, signTransaction: async (tx) => tx, signAllTransactions: async (txs) => txs },
+      { commitment: 'confirmed' }
+    );
+    const program = new anchor.Program(idl, provider);
+
+    const factoryKey = getFactoryPda();
+    const factoryAccount = await (program.account as any).factoryState.fetch(factoryKey);
+    const agentCount = (factoryAccount.agentCount as anchor.BN).toNumber();
+
+    const agents: OnChainAgentMetadata[] = [];
+    for (let i = 0; i < agentCount; i++) {
+      const agent = await loadAgentFromChain(i);
+      if (agent) agents.push(agent);
+    }
+
+    return agents;
+  } catch (err) {
+    console.error('[config] Failed to load agents from chain:', err instanceof Error ? err.message : err);
+    return [];
+  }
 }
 
 export function initDefaultAgents(): void {
@@ -114,7 +182,7 @@ export function initDefaultAgents(): void {
       systemPrompt: defaultAgentPrompt,
       priceUsdcMicro: defaultAgentPrice ? parseInt(defaultAgentPrice, 10) : 100_000,
       model: 'claude-sonnet-4-20250514',
-      agentWallet: defaultAgentWallet,
+      operator: defaultAgentWallet,
       vault: defaultAgentVault || '',
       registry: defaultAgentRegistry || '',
       isActive: true,

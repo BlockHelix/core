@@ -6,8 +6,10 @@ import { ReceiptRegistry } from "../target/types/receipt_registry";
 import {
   createMint,
   createAccount,
+  createAssociatedTokenAccount,
   mintTo,
   getAccount,
+  getMint,
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
@@ -43,6 +45,7 @@ describe("e2e-integration: full BlockHelix flow", () => {
   let investorShareAccount: PublicKey;
   let protocolUsdcAccount: PublicKey;
   let depositRecord: PublicKey;
+  let operatorShareAccount: PublicKey;
   let currentAgentCount: number;
 
   const AGENT_FEE_BPS = 7000;
@@ -53,8 +56,6 @@ describe("e2e-integration: full BlockHelix flow", () => {
   const MAX_TVL = new BN(1_000_000_000_000);
   const LOCKUP_EPOCHS = 1;
   const EPOCH_LENGTH = new BN(4);
-  const TARGET_APY_BPS = 1000;
-  const LENDING_FLOOR_BPS = 800;
 
   const VIRTUAL_SHARES = 1_000_000;
   const VIRTUAL_ASSETS = 1_000_000;
@@ -175,14 +176,12 @@ describe("e2e-integration: full BlockHelix flow", () => {
         MAX_TVL,
         LOCKUP_EPOCHS,
         EPOCH_LENGTH,
-        TARGET_APY_BPS,
-        LENDING_FLOOR_BPS,
         arbitrator.publicKey
       )
       .accountsPartial({
         factoryState,
         agentMetadata,
-        agentWallet: agent.publicKey,
+        operator: agent.publicKey,
         vaultState,
         shareMint,
         usdcMint,
@@ -205,20 +204,20 @@ describe("e2e-integration: full BlockHelix flow", () => {
     expect(metadata.name).to.equal("DefiData Patch Agent");
     expect(metadata.githubHandle).to.equal("blockhelix");
     expect(metadata.endpointUrl).to.equal("https://agent.blockhelix.io/api");
-    expect(metadata.agentWallet.toString()).to.equal(agent.publicKey.toString());
+    expect(metadata.operator.toString()).to.equal(agent.publicKey.toString());
     expect(metadata.vault.toString()).to.equal(vaultState.toString());
     expect(metadata.registry.toString()).to.equal(registryState.toString());
     expect(metadata.shareMint.toString()).to.equal(shareMint.toString());
     expect(metadata.isActive).to.equal(true);
 
     const vault = await vaultProgram.account.vaultState.fetch(vaultState);
-    expect(vault.agentWallet.toString()).to.equal(agent.publicKey.toString());
+    expect(vault.operator.toString()).to.equal(agent.publicKey.toString());
     expect(vault.agentFeeBps).to.equal(AGENT_FEE_BPS);
     expect(vault.protocolFeeBps).to.equal(PROTOCOL_FEE_BPS);
     expect(vault.protocolTreasury.toString()).to.equal(protocolUsdcAccount.toString());
 
     const registry = await registryProgram.account.registryState.fetch(registryState);
-    expect(registry.agentWallet.toString()).to.equal(agent.publicKey.toString());
+    expect(registry.operator.toString()).to.equal(agent.publicKey.toString());
     expect(registry.vault.toString()).to.equal(vaultState.toString());
     expect(registry.jobCounter.toNumber()).to.equal(0);
 
@@ -228,26 +227,38 @@ describe("e2e-integration: full BlockHelix flow", () => {
     console.log("      share_mint:", shareMint.toString());
   });
 
-  it("Step 2b: Agent stakes operator bond", async () => {
+  it("Step 2b: Operator deposits to meet minimum shares", async () => {
+    operatorShareAccount = await createAssociatedTokenAccount(
+      connection, payer, shareMint, agent.publicKey
+    );
+
+    const [operatorDepositRecord] = PublicKey.findProgramAddressSync(
+      [Buffer.from("deposit"), vaultState.toBuffer(), agent.publicKey.toBuffer()],
+      vaultProgram.programId
+    );
+
     await vaultProgram.methods
-      .stakeBond(new BN(BOND_AMOUNT))
+      .deposit(new BN(BOND_AMOUNT), new BN(0))
       .accountsPartial({
         vaultState,
-        agentWallet: agent.publicKey,
+        shareMint,
         vaultUsdcAccount,
-        agentUsdcAccount,
+        depositor: agent.publicKey,
+        depositorUsdcAccount: agentUsdcAccount,
+        depositorShareAccount: operatorShareAccount,
+        operatorShareAccount,
+        depositRecord: operatorDepositRecord,
         tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       })
       .signers([agent])
       .rpc();
 
-    const vault = await vaultProgram.account.vaultState.fetch(vaultState);
-    expect(vault.operatorBond.toNumber()).to.equal(BOND_AMOUNT);
-
     const vaultUsdc = await getAccount(connection, vaultUsdcAccount);
     expect(Number(vaultUsdc.amount)).to.equal(BOND_AMOUNT);
 
-    console.log("    Bond staked:", BOND_AMOUNT / 1_000_000, "USDC");
+    console.log("    Operator deposited:", BOND_AMOUNT / 1_000_000, "USDC");
   });
 
   it("Step 3: Investor deposits USDC into vault", async () => {
@@ -260,6 +271,7 @@ describe("e2e-integration: full BlockHelix flow", () => {
         depositor: investor.publicKey,
         depositorUsdcAccount: investorUsdcAccount,
         depositorShareAccount: investorShareAccount,
+        operatorShareAccount,
         depositRecord,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -269,9 +281,11 @@ describe("e2e-integration: full BlockHelix flow", () => {
       .rpc();
 
     // shares = deposit * (totalShares + virtualShares) / (totalAssets + virtualAssets)
-    // shares = 100M * (0 + 1M) / (100M_bond + 1M) = 990_099
+    // After operator deposited BOND_AMOUNT, the vault has shares and assets
+    const operatorShares = await getAccount(connection, operatorShareAccount);
+    const totalSharesBefore = Number(operatorShares.amount);
     const expectedShares = Math.floor(
-      (DEPOSIT_AMOUNT * (0 + VIRTUAL_SHARES)) / (BOND_AMOUNT + VIRTUAL_ASSETS)
+      (DEPOSIT_AMOUNT * (totalSharesBefore + VIRTUAL_SHARES)) / (BOND_AMOUNT + VIRTUAL_ASSETS)
     );
 
     const shares = await getAccount(connection, investorShareAccount);
@@ -309,10 +323,9 @@ describe("e2e-integration: full BlockHelix flow", () => {
       .receiveRevenue(new BN(REVENUE_AMOUNT), new BN(1))
       .accountsPartial({
         vaultState,
-        agentWallet: agent.publicKey,
+        payer: agent.publicKey,
         vaultUsdcAccount,
-        shareMint,
-        agentUsdcAccount,
+        payerUsdcAccount: agentUsdcAccount,
         protocolUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -370,7 +383,7 @@ describe("e2e-integration: full BlockHelix flow", () => {
       .accountsPartial({
         registryState,
         jobReceipt,
-        agentWallet: agent.publicKey,
+        operator: agent.publicKey,
         client: client.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -396,8 +409,8 @@ describe("e2e-integration: full BlockHelix flow", () => {
     const vaultUsdc = await getAccount(connection, vaultUsdcAccount);
     const totalAssets = Number(vaultUsdc.amount);
 
-    const shareAccount = await getAccount(connection, investorShareAccount);
-    const totalShares = Number(shareAccount.amount);
+    const shareMintInfo = await getMint(connection, shareMint);
+    const totalShares = Number(shareMintInfo.supply);
 
     const navPerShare = (totalAssets + VIRTUAL_ASSETS) / (totalShares + VIRTUAL_SHARES);
     expect(navPerShare).to.be.greaterThan(1.0);
@@ -405,13 +418,9 @@ describe("e2e-integration: full BlockHelix flow", () => {
     const expectedVaultCut = Math.floor(REVENUE_AMOUNT * VAULT_FEE_BPS / 10_000);
     expect(totalAssets).to.equal(BOND_AMOUNT + DEPOSIT_AMOUNT + expectedVaultCut);
 
-    const vault = await vaultProgram.account.vaultState.fetch(vaultState);
-    expect(vault.navHighWaterMark.toNumber()).to.be.greaterThan(1_000_000);
-
     console.log("    Vault total assets:", totalAssets / 1_000_000, "USDC");
     console.log("    Share supply:", totalShares);
     console.log("    NAV per share:", navPerShare.toFixed(6));
-    console.log("    High water mark:", vault.navHighWaterMark.toNumber());
   });
 
   it("Step 8: Investor withdraws shares with profit", async () => {
@@ -423,7 +432,8 @@ describe("e2e-integration: full BlockHelix flow", () => {
 
     const vaultUsdcBefore = await getAccount(connection, vaultUsdcAccount);
     const totalAssets = Number(vaultUsdcBefore.amount);
-    const totalShares = sharesToBurn;
+    const mintInfo = await getMint(connection, shareMint);
+    const totalShares = Number(mintInfo.supply);
 
     // usdc_out = shares * (totalAssets + virtualAssets) / (totalShares + virtualShares)
     const expectedUsdcOut = Math.floor(
@@ -453,12 +463,8 @@ describe("e2e-integration: full BlockHelix flow", () => {
 
     expect(investorBalanceAfter).to.equal(investorBalanceBefore + expectedUsdcOut);
 
-    try {
-      await getAccount(connection, investorShareAccount);
-      expect.fail("Share account should have been closed");
-    } catch (err: any) {
-      expect(err.name).to.equal("TokenAccountNotFoundError");
-    }
+    const sharesAfter = await getAccount(connection, investorShareAccount);
+    expect(Number(sharesAfter.amount)).to.equal(0);
 
     console.log("    Shares burned:", sharesToBurn);
     console.log("    USDC received:", expectedUsdcOut / 1_000_000);
@@ -481,8 +487,7 @@ describe("e2e-integration: full BlockHelix flow", () => {
     const vault = await vaultProgram.account.vaultState.fetch(vaultState);
     expect(vault.totalRevenue.toNumber()).to.equal(REVENUE_AMOUNT);
     expect(vault.totalJobs.toNumber()).to.equal(1);
-    expect(vault.totalDeposited.toNumber()).to.equal(DEPOSIT_AMOUNT);
-    expect(vault.totalWithdrawn.toNumber()).to.equal(netReturn);
+    expect(vault.totalRevenue.toNumber()).to.be.greaterThan(0);
 
     const registry = await registryProgram.account.registryState.fetch(registryState);
     expect(registry.jobCounter.toNumber()).to.equal(1);

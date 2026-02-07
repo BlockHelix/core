@@ -39,8 +39,6 @@ describe("agent-factory", () => {
   const MAX_TVL = new BN(1_000_000_000_000);
   const LOCKUP_EPOCHS = 1;
   const EPOCH_LENGTH = new BN(86400);
-  const TARGET_APY_BPS = 1000;
-  const LENDING_FLOOR_BPS = 800;
 
   before(async () => {
     const sigs = await Promise.all([
@@ -132,14 +130,12 @@ describe("agent-factory", () => {
         MAX_TVL,
         LOCKUP_EPOCHS,
         EPOCH_LENGTH,
-        TARGET_APY_BPS,
-        LENDING_FLOOR_BPS,
         arbitratorKey.publicKey
       )
       .accountsPartial({
         factoryState,
         agentMetadata,
-        agentWallet: agentWallet.publicKey,
+        operator: agentWallet.publicKey,
         vaultState,
         shareMint,
         usdcMint,
@@ -168,7 +164,7 @@ describe("agent-factory", () => {
     expect(metadata.name).to.equal("DefiData Patch Agent");
     expect(metadata.githubHandle).to.equal("blockhelix");
     expect(metadata.endpointUrl).to.equal("https://agent.blockhelix.io");
-    expect(metadata.agentWallet.toString()).to.equal(
+    expect(metadata.operator.toString()).to.equal(
       agentWallet.publicKey.toString()
     );
     expect(metadata.vault.toString()).to.equal(vaultState.toString());
@@ -179,7 +175,7 @@ describe("agent-factory", () => {
 
     // Verify vault was created via CPI
     const vault = await vaultProgram.account.vaultState.fetch(vaultState);
-    expect(vault.agentWallet.toString()).to.equal(
+    expect(vault.operator.toString()).to.equal(
       agentWallet.publicKey.toString()
     );
     expect(vault.agentFeeBps).to.equal(AGENT_FEE_BPS);
@@ -190,7 +186,7 @@ describe("agent-factory", () => {
     const registry = await registryProgram.account.registryState.fetch(
       registryState
     );
-    expect(registry.agentWallet.toString()).to.equal(
+    expect(registry.operator.toString()).to.equal(
       agentWallet.publicKey.toString()
     );
     expect(registry.vault.toString()).to.equal(vaultState.toString());
@@ -247,14 +243,12 @@ describe("agent-factory", () => {
         new BN(500_000_000_000),
         0,
         new BN(86400),
-        TARGET_APY_BPS,
-        LENDING_FLOOR_BPS,
         arbitratorKey.publicKey
       )
       .accountsPartial({
         factoryState,
         agentMetadata,
-        agentWallet: agent2.publicKey,
+        operator: agent2.publicKey,
         vaultState,
         shareMint,
         usdcMint,
@@ -329,14 +323,12 @@ describe("agent-factory", () => {
           MAX_TVL,
           0,
           new BN(86400),
-          TARGET_APY_BPS,
-          LENDING_FLOOR_BPS,
           arbitratorKey.publicKey
         )
         .accountsPartial({
           factoryState,
           agentMetadata,
-          agentWallet: badAgent.publicKey,
+          operator: badAgent.publicKey,
           vaultState,
           shareMint,
           usdcMint,
@@ -404,14 +396,12 @@ describe("agent-factory", () => {
           MAX_TVL,
           0,
           new BN(86400),
-          TARGET_APY_BPS,
-          LENDING_FLOOR_BPS,
           arbitratorKey.publicKey
         )
         .accountsPartial({
           factoryState,
           agentMetadata,
-          agentWallet: badAgent.publicKey,
+          operator: badAgent.publicKey,
           vaultState,
           shareMint,
           usdcMint,
@@ -451,7 +441,7 @@ describe("agent-factory", () => {
       )
       .accountsPartial({
         agentMetadata,
-        agentWallet: agentWallet.publicKey,
+        operator: agentWallet.publicKey,
       })
       .signers([agentWallet])
       .rpc();
@@ -488,7 +478,7 @@ describe("agent-factory", () => {
         .updateAgent("Hacked", null, null)
         .accountsPartial({
           agentMetadata,
-          agentWallet: wrongWallet.publicKey,
+          operator: wrongWallet.publicKey,
         })
         .signers([wrongWallet])
         .rpc();
@@ -513,7 +503,7 @@ describe("agent-factory", () => {
       .deactivateAgent()
       .accountsPartial({
         agentMetadata,
-        agentWallet: agentWallet.publicKey,
+        operator: agentWallet.publicKey,
       })
       .signers([agentWallet])
       .rpc();
@@ -540,7 +530,7 @@ describe("agent-factory", () => {
         .updateAgent("Should Fail", null, null)
         .accountsPartial({
           agentMetadata,
-          agentWallet: agentWallet.publicKey,
+          operator: agentWallet.publicKey,
         })
         .signers([agentWallet])
         .rpc();
@@ -566,7 +556,7 @@ describe("agent-factory", () => {
         .deactivateAgent()
         .accountsPartial({
           agentMetadata,
-          agentWallet: agentWallet.publicKey,
+          operator: agentWallet.publicKey,
         })
         .signers([agentWallet])
         .rpc();

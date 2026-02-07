@@ -10,6 +10,7 @@ import { ReceiptTable } from '@/components/ReceiptTable';
 import { InvestWithdrawForm } from '@/components/InvestWithdrawForm';
 import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
+import { HireAgentForm } from '@/components/agent/HireAgentForm';
 import { useAgentDetails, useJobReceipts } from '@/hooks/useAgentData';
 import { findVaultState, findRegistryState } from '@/lib/pda';
 
@@ -38,7 +39,7 @@ export default function AgentDetailContent() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="border border-red-500/30 bg-red-500/5 p-12 text-center">
             <p className="text-red-400 mb-4">Invalid agent address</p>
-            <Link href="/" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            <Link href="/search" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Back to Agents
             </Link>
           </div>
@@ -53,7 +54,7 @@ export default function AgentDetailContent() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="border border-red-500/30 bg-red-500/5 p-12 text-center">
             <p className="text-red-400 mb-4">Error loading agent: {error}</p>
-            <Link href="/" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            <Link href="/search" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Back to Agents
             </Link>
           </div>
@@ -86,7 +87,7 @@ export default function AgentDetailContent() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="border border-white/10 p-12 text-center">
             <p className="text-white/60 mb-4">Agent not found</p>
-            <Link href="/" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            <Link href="/search" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Back to Agents
             </Link>
           </div>
@@ -103,7 +104,7 @@ export default function AgentDetailContent() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="mb-10 border-b border-white/10 pb-6">
           <div className="flex items-center justify-between mb-6">
-            <Link href="/" className="inline-flex items-center gap-2 text-xs text-white/60 hover:text-white transition-colors uppercase tracking-widest font-mono">
+            <Link href="/search" className="inline-flex items-center gap-2 text-xs text-white/60 hover:text-white transition-colors uppercase tracking-widest font-mono">
               <span>←</span>
               <span>BACK</span>
             </Link>
@@ -210,6 +211,10 @@ export default function AgentDetailContent() {
             endpointUrl={agentMetadata.endpointUrl}
             agentName={agentMetadata.name}
           />
+        </div>
+
+        <div className="mb-12">
+          <HireAgentForm endpointUrl={agentMetadata.endpointUrl} agentName={agentMetadata.name} />
         </div>
 
         <div className="mb-12">

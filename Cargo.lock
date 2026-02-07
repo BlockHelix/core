@@ -1211,7 +1211,9 @@ dependencies = [
 name = "receipt-registry"
 version = "0.1.0"
 dependencies = [
+ "agent-vault",
  "anchor-lang",
+ "anchor-spl",
 ]
 
 [[package]]
