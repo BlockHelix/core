@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Burn, CloseAccount, Mint, MintTo, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer};
 use anchor_spl::associated_token::AssociatedToken;
 
 declare_id!("HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS");
@@ -7,12 +7,7 @@ declare_id!("HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS");
 const BPS_DENOMINATOR: u64 = 10_000;
 const VIRTUAL_SHARES: u64 = 1_000_000;
 const VIRTUAL_ASSETS: u64 = 1_000_000;
-const SLASH_MULTIPLIER: u64 = 2;
-const CLIENT_SHARE_BPS: u64 = 7_500;
-const ARBITRATOR_SHARE_BPS: u64 = 1_000;
-const MIN_OPERATOR_BOND: u64 = 100_000_000;
-const SECONDS_PER_YEAR: u128 = 31_536_000;
-const BOND_COOLDOWN_SECONDS: i64 = 604_800; // 7 days
+const MIN_OPERATOR_SHARES: u64 = 100_000_000; // Operator must hold 100 shares minimum
 
 #[program]
 pub mod agent_vault {
@@ -25,18 +20,17 @@ pub mod agent_vault {
         max_tvl: u64,
         lockup_epochs: u8,
         epoch_length: i64,
-        target_apy_bps: u16,
-        lending_floor_bps: u16,
         arbitrator: Pubkey,
     ) -> Result<()> {
         let total_bps = agent_fee_bps as u64 + protocol_fee_bps as u64;
         require!(total_bps <= BPS_DENOMINATOR, VaultError::InvalidFees);
         require!(epoch_length > 0, VaultError::InvalidFees);
-        require!(target_apy_bps <= 10_000, VaultError::InvalidFees);
-        require!(lending_floor_bps <= 10_000, VaultError::InvalidFees);
+
+        let vault_key = ctx.accounts.vault_state.key();
+        let operator_key = ctx.accounts.operator.key();
 
         let vault = &mut ctx.accounts.vault_state;
-        vault.agent_wallet = ctx.accounts.agent_wallet.key();
+        vault.operator = operator_key;
         vault.arbitrator = arbitrator;
         vault.usdc_mint = ctx.accounts.usdc_mint.key();
         vault.share_mint = ctx.accounts.share_mint.key();
@@ -46,65 +40,23 @@ pub mod agent_vault {
         vault.protocol_treasury = ctx.accounts.protocol_treasury.key();
         vault.total_revenue = 0;
         vault.total_jobs = 0;
-        vault.operator_bond = 0;
         vault.total_slashed = 0;
         vault.slash_events = 0;
         vault.max_tvl = max_tvl;
-        vault.total_deposited = 0;
-        vault.total_withdrawn = 0;
-        vault.deployed_capital = 0;
-        vault.yield_earned = 0;
         vault.virtual_shares = VIRTUAL_SHARES;
         vault.virtual_assets = VIRTUAL_ASSETS;
         vault.lockup_epochs = lockup_epochs;
         vault.epoch_length = epoch_length;
-        vault.nav_high_water_mark = 1_000_000;
         vault.paused = false;
-        vault.paused_at = 0;
-        vault.target_apy_bps = target_apy_bps;
-        vault.lending_floor_bps = lending_floor_bps;
         vault.bump = ctx.bumps.vault_state;
         vault.share_mint_bump = ctx.bumps.share_mint;
         vault.created_at = Clock::get()?.unix_timestamp;
 
-        let vault_key = ctx.accounts.vault_state.key();
-        let agent_key = ctx.accounts.agent_wallet.key();
         emit!(VaultInitialized {
             vault: vault_key,
-            agent_wallet: agent_key,
+            operator: operator_key,
             arbitrator,
             max_tvl,
-        });
-
-        Ok(())
-    }
-
-    pub fn stake_bond(ctx: Context<StakeBond>, amount: u64) -> Result<()> {
-        require!(amount > 0, VaultError::ZeroAmount);
-
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.agent_usdc_account.to_account_info(),
-                    to: ctx.accounts.vault_usdc_account.to_account_info(),
-                    authority: ctx.accounts.agent_wallet.to_account_info(),
-                },
-            ),
-            amount,
-        )?;
-
-        let vault_key = ctx.accounts.vault_state.key();
-        let vault = &mut ctx.accounts.vault_state;
-        vault.operator_bond = vault
-            .operator_bond
-            .checked_add(amount)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-
-        emit!(BondStaked {
-            vault: vault_key,
-            amount,
-            total_bond: vault.operator_bond,
         });
 
         Ok(())
@@ -114,31 +66,29 @@ pub mod agent_vault {
         require!(amount > 0, VaultError::ZeroAmount);
 
         let vault = &ctx.accounts.vault_state;
-        require!(!vault.paused, VaultError::VaultPaused);
-        require!(vault.operator_bond >= MIN_OPERATOR_BOND, VaultError::InsufficientBond);
+        let is_operator = ctx.accounts.depositor.key() == vault.operator;
+
+        // Non-operators can't deposit if paused
+        if !is_operator {
+            require!(!vault.paused, VaultError::VaultPaused);
+            // Operator must have minimum shares for others to deposit
+            require!(
+                ctx.accounts.operator_share_account.amount >= MIN_OPERATOR_SHARES,
+                VaultError::InsufficientOperatorShares
+            );
+        }
 
         let total_assets = ctx.accounts.vault_usdc_account.amount;
-        let now = Clock::get()?.unix_timestamp;
-        let effective_cap = calculate_dynamic_max_tvl(vault, now)
-            .ok_or(VaultError::ArithmeticOverflow)?;
         require!(
-            total_assets.checked_add(amount).ok_or(VaultError::ArithmeticOverflow)? <= effective_cap,
+            total_assets.checked_add(amount).ok_or(VaultError::ArithmeticOverflow)? <= vault.max_tvl,
             VaultError::TVLCapExceeded
         );
 
         let total_shares = ctx.accounts.share_mint.supply;
         let shares_to_mint = (amount as u128)
-            .checked_mul(
-                (total_shares as u128)
-                    .checked_add(vault.virtual_shares as u128)
-                    .ok_or(VaultError::ArithmeticOverflow)?,
-            )
+            .checked_mul((total_shares as u128).checked_add(vault.virtual_shares as u128).ok_or(VaultError::ArithmeticOverflow)?)
             .ok_or(VaultError::ArithmeticOverflow)?
-            .checked_div(
-                (total_assets as u128)
-                    .checked_add(vault.virtual_assets as u128)
-                    .ok_or(VaultError::ArithmeticOverflow)?,
-            )
+            .checked_div((total_assets as u128).checked_add(vault.virtual_assets as u128).ok_or(VaultError::ArithmeticOverflow)?)
             .ok_or(VaultError::ArithmeticOverflow)? as u64;
 
         require!(shares_to_mint > 0, VaultError::ZeroShares);
@@ -156,12 +106,8 @@ pub mod agent_vault {
             amount,
         )?;
 
-        let agent_wallet = ctx.accounts.vault_state.agent_wallet;
-        let vault_seeds: &[&[u8]] = &[
-            b"vault",
-            agent_wallet.as_ref(),
-            &[ctx.accounts.vault_state.bump],
-        ];
+        let operator_key = vault.operator;
+        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &[vault.bump]];
 
         token::mint_to(
             CpiContext::new(
@@ -177,30 +123,20 @@ pub mod agent_vault {
         )?;
 
         let clock = Clock::get()?;
-        let current_epoch = self::current_epoch(clock.unix_timestamp, ctx.accounts.vault_state.created_at, ctx.accounts.vault_state.epoch_length);
-
-        let vault_key = ctx.accounts.vault_state.key();
-        let depositor_key = ctx.accounts.depositor.key();
+        let current_epoch = current_epoch(clock.unix_timestamp, vault.created_at, vault.epoch_length);
 
         let deposit_record = &mut ctx.accounts.deposit_record;
-        deposit_record.vault = vault_key;
-        deposit_record.depositor = depositor_key;
+        deposit_record.vault = ctx.accounts.vault_state.key();
+        deposit_record.depositor = ctx.accounts.depositor.key();
         deposit_record.last_deposit_epoch = std::cmp::max(deposit_record.last_deposit_epoch, current_epoch);
-        deposit_record.total_deposited = deposit_record
-            .total_deposited
+        deposit_record.total_deposited = deposit_record.total_deposited
             .checked_add(amount)
             .ok_or(VaultError::ArithmeticOverflow)?;
         deposit_record.bump = ctx.bumps.deposit_record;
 
-        let vault = &mut ctx.accounts.vault_state;
-        vault.total_deposited = vault
-            .total_deposited
-            .checked_add(amount)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-
         emit!(Deposited {
-            vault: vault_key,
-            depositor: depositor_key,
+            vault: ctx.accounts.vault_state.key(),
+            depositor: ctx.accounts.depositor.key(),
             amount,
             shares: shares_to_mint,
         });
@@ -212,9 +148,18 @@ pub mod agent_vault {
         require!(shares > 0, VaultError::ZeroAmount);
 
         let vault = &ctx.accounts.vault_state;
-        let clock = Clock::get()?;
-        let cur_epoch = self::current_epoch(clock.unix_timestamp, vault.created_at, vault.epoch_length);
+        let is_operator = ctx.accounts.withdrawer.key() == vault.operator;
 
+        // Operator can't withdraw below MIN_OPERATOR_SHARES unless paused
+        if is_operator && !vault.paused {
+            let remaining = ctx.accounts.withdrawer_share_account.amount
+                .checked_sub(shares)
+                .ok_or(VaultError::ArithmeticOverflow)?;
+            require!(remaining >= MIN_OPERATOR_SHARES, VaultError::OperatorMinSharesRequired);
+        }
+
+        let clock = Clock::get()?;
+        let cur_epoch = current_epoch(clock.unix_timestamp, vault.created_at, vault.epoch_length);
         let required_epoch = ctx.accounts.deposit_record.last_deposit_epoch
             .checked_add(vault.lockup_epochs as u64)
             .ok_or(VaultError::ArithmeticOverflow)?;
@@ -224,17 +169,9 @@ pub mod agent_vault {
         let total_assets = ctx.accounts.vault_usdc_account.amount;
 
         let usdc_out = (shares as u128)
-            .checked_mul(
-                (total_assets as u128)
-                    .checked_add(vault.virtual_assets as u128)
-                    .ok_or(VaultError::ArithmeticOverflow)?,
-            )
+            .checked_mul((total_assets as u128).checked_add(vault.virtual_assets as u128).ok_or(VaultError::ArithmeticOverflow)?)
             .ok_or(VaultError::ArithmeticOverflow)?
-            .checked_div(
-                (total_shares as u128)
-                    .checked_add(vault.virtual_shares as u128)
-                    .ok_or(VaultError::ArithmeticOverflow)?,
-            )
+            .checked_div((total_shares as u128).checked_add(vault.virtual_shares as u128).ok_or(VaultError::ArithmeticOverflow)?)
             .ok_or(VaultError::ArithmeticOverflow)? as u64;
 
         require!(usdc_out > 0, VaultError::ZeroAmount);
@@ -252,12 +189,8 @@ pub mod agent_vault {
             shares,
         )?;
 
-        let agent_wallet = ctx.accounts.vault_state.agent_wallet;
-        let vault_seeds: &[&[u8]] = &[
-            b"vault",
-            agent_wallet.as_ref(),
-            &[ctx.accounts.vault_state.bump],
-        ];
+        let operator_key = vault.operator;
+        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &[vault.bump]];
 
         token::transfer(
             CpiContext::new(
@@ -272,32 +205,9 @@ pub mod agent_vault {
             usdc_out,
         )?;
 
-        ctx.accounts.withdrawer_share_account.reload()?;
-        if ctx.accounts.withdrawer_share_account.amount == 0 {
-            token::close_account(
-                CpiContext::new(
-                    ctx.accounts.token_program.to_account_info(),
-                    CloseAccount {
-                        account: ctx.accounts.withdrawer_share_account.to_account_info(),
-                        destination: ctx.accounts.withdrawer.to_account_info(),
-                        authority: ctx.accounts.withdrawer.to_account_info(),
-                    },
-                ),
-            )?;
-        }
-
-        let vault_key = ctx.accounts.vault_state.key();
-        let withdrawer_key = ctx.accounts.withdrawer.key();
-
-        let vault = &mut ctx.accounts.vault_state;
-        vault.total_withdrawn = vault
-            .total_withdrawn
-            .checked_add(usdc_out)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-
         emit!(Withdrawn {
-            vault: vault_key,
-            withdrawer: withdrawer_key,
+            vault: ctx.accounts.vault_state.key(),
+            withdrawer: ctx.accounts.withdrawer.key(),
             shares,
             usdc_out,
         });
@@ -308,29 +218,22 @@ pub mod agent_vault {
     pub fn receive_revenue(ctx: Context<ReceiveRevenue>, amount: u64, job_id: u64) -> Result<()> {
         require!(amount > 0, VaultError::ZeroAmount);
 
-        let vault_state = &ctx.accounts.vault_state;
-        let agent_fee_bps = vault_state.agent_fee_bps as u64;
-        let protocol_fee_bps = vault_state.protocol_fee_bps as u64;
+        let vault = &ctx.accounts.vault_state;
+        let agent_fee_bps = vault.agent_fee_bps as u64;
+        let protocol_fee_bps = vault.protocol_fee_bps as u64;
         let vault_fee_bps = BPS_DENOMINATOR - agent_fee_bps - protocol_fee_bps;
 
-        let protocol_cut = amount
-            .checked_mul(protocol_fee_bps)
-            .ok_or(VaultError::ArithmeticOverflow)?
-            / BPS_DENOMINATOR;
-
-        let vault_cut = amount
-            .checked_mul(vault_fee_bps)
-            .ok_or(VaultError::ArithmeticOverflow)?
-            / BPS_DENOMINATOR;
+        let protocol_cut = amount.checked_mul(protocol_fee_bps).ok_or(VaultError::ArithmeticOverflow)? / BPS_DENOMINATOR;
+        let vault_cut = amount.checked_mul(vault_fee_bps).ok_or(VaultError::ArithmeticOverflow)? / BPS_DENOMINATOR;
 
         if protocol_cut > 0 {
             token::transfer(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
                     Transfer {
-                        from: ctx.accounts.agent_usdc_account.to_account_info(),
+                        from: ctx.accounts.payer_usdc_account.to_account_info(),
                         to: ctx.accounts.protocol_usdc_account.to_account_info(),
-                        authority: ctx.accounts.agent_wallet.to_account_info(),
+                        authority: ctx.accounts.payer.to_account_info(),
                     },
                 ),
                 protocol_cut,
@@ -342,51 +245,21 @@ pub mod agent_vault {
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
                     Transfer {
-                        from: ctx.accounts.agent_usdc_account.to_account_info(),
+                        from: ctx.accounts.payer_usdc_account.to_account_info(),
                         to: ctx.accounts.vault_usdc_account.to_account_info(),
-                        authority: ctx.accounts.agent_wallet.to_account_info(),
+                        authority: ctx.accounts.payer.to_account_info(),
                     },
                 ),
                 vault_cut,
             )?;
         }
 
-        let vault_key = ctx.accounts.vault_state.key();
-        let vault_usdc_balance = ctx.accounts.vault_usdc_account.amount;
-        let share_supply = ctx.accounts.share_mint.supply;
-
-        let vault_state = &mut ctx.accounts.vault_state;
-        vault_state.total_revenue = vault_state
-            .total_revenue
-            .checked_add(amount)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-        vault_state.total_jobs = vault_state
-            .total_jobs
-            .checked_add(1)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-
-        let total_assets = vault_usdc_balance
-            .checked_add(vault_cut)
-            .ok_or(VaultError::ArithmeticOverflow)?
-            .checked_add(vault_state.virtual_assets)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-        let total_shares = share_supply
-            .checked_add(vault_state.virtual_shares)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-
-        if total_shares > 0 {
-            let nav = total_assets
-                .checked_mul(1_000_000)
-                .ok_or(VaultError::ArithmeticOverflow)?
-                .checked_div(total_shares)
-                .ok_or(VaultError::ArithmeticOverflow)?;
-            if nav > vault_state.nav_high_water_mark {
-                vault_state.nav_high_water_mark = nav;
-            }
-        }
+        let vault = &mut ctx.accounts.vault_state;
+        vault.total_revenue = vault.total_revenue.checked_add(amount).ok_or(VaultError::ArithmeticOverflow)?;
+        vault.total_jobs = vault.total_jobs.checked_add(1).ok_or(VaultError::ArithmeticOverflow)?;
 
         emit!(RevenueReceived {
-            vault: vault_key,
+            vault: ctx.accounts.vault_state.key(),
             amount,
             job_id,
             vault_cut,
@@ -396,238 +269,108 @@ pub mod agent_vault {
         Ok(())
     }
 
-    pub fn slash(ctx: Context<Slash>, amount: u64, job_id: u64) -> Result<()> {
-        require!(amount > 0, VaultError::ZeroAmount);
+    pub fn slash(ctx: Context<Slash>, usdc_amount: u64, job_id: u64) -> Result<()> {
+        require!(usdc_amount > 0, VaultError::ZeroAmount);
 
-        let total_slash = amount.checked_mul(SLASH_MULTIPLIER).ok_or(VaultError::ArithmeticOverflow)?;
-        let vault_balance = ctx.accounts.vault_usdc_account.amount;
-        require!(total_slash <= vault_balance, VaultError::SlashExceedsAssets);
+        let vault = &ctx.accounts.vault_state;
+        let total_shares = ctx.accounts.share_mint.supply;
+        let total_assets = ctx.accounts.vault_usdc_account.amount;
 
-        let client_amount = total_slash.checked_mul(CLIENT_SHARE_BPS).ok_or(VaultError::ArithmeticOverflow)?
-            .checked_div(BPS_DENOMINATOR).ok_or(VaultError::ArithmeticOverflow)?;
-        let arbitrator_amount = total_slash.checked_mul(ARBITRATOR_SHARE_BPS).ok_or(VaultError::ArithmeticOverflow)?
-            .checked_div(BPS_DENOMINATOR).ok_or(VaultError::ArithmeticOverflow)?;
-        let protocol_amount = total_slash.checked_sub(client_amount).ok_or(VaultError::ArithmeticOverflow)?
-            .checked_sub(arbitrator_amount).ok_or(VaultError::ArithmeticOverflow)?;
+        // Calculate shares to burn for this USDC amount
+        let shares_to_burn = (usdc_amount as u128)
+            .checked_mul((total_shares as u128).checked_add(vault.virtual_shares as u128).ok_or(VaultError::ArithmeticOverflow)?)
+            .ok_or(VaultError::ArithmeticOverflow)?
+            .checked_div((total_assets as u128).checked_add(vault.virtual_assets as u128).ok_or(VaultError::ArithmeticOverflow)?)
+            .ok_or(VaultError::ArithmeticOverflow)? as u64;
 
-        let from_bond = std::cmp::min(total_slash, ctx.accounts.vault_state.operator_bond);
+        // Burn from operator first
+        let operator_shares = ctx.accounts.operator_share_account.amount;
+        let burn_from_operator = std::cmp::min(shares_to_burn, operator_shares);
+        let burn_from_depositors = shares_to_burn.checked_sub(burn_from_operator).ok_or(VaultError::ArithmeticOverflow)?;
 
-        let agent_wallet = ctx.accounts.vault_state.agent_wallet;
-        let vault_seeds: &[&[u8]] = &[
-            b"vault",
-            agent_wallet.as_ref(),
-            &[ctx.accounts.vault_state.bump],
-        ];
+        let operator_key = vault.operator;
+        let vault_seeds: &[&[u8]] = &[b"vault", operator_key.as_ref(), &[vault.bump]];
 
-        if client_amount > 0 {
-            token::transfer(
+        if burn_from_operator > 0 {
+            token::burn(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
-                    Transfer {
-                        from: ctx.accounts.vault_usdc_account.to_account_info(),
-                        to: ctx.accounts.claimant_usdc_account.to_account_info(),
+                    Burn {
+                        mint: ctx.accounts.share_mint.to_account_info(),
+                        from: ctx.accounts.operator_share_account.to_account_info(),
                         authority: ctx.accounts.vault_state.to_account_info(),
                     },
                 )
                 .with_signer(&[vault_seeds]),
-                client_amount,
+                burn_from_operator,
             )?;
         }
 
-        if arbitrator_amount > 0 {
-            token::transfer(
-                CpiContext::new(
-                    ctx.accounts.token_program.to_account_info(),
-                    Transfer {
-                        from: ctx.accounts.vault_usdc_account.to_account_info(),
-                        to: ctx.accounts.arbitrator_usdc_account.to_account_info(),
-                        authority: ctx.accounts.vault_state.to_account_info(),
-                    },
-                )
-                .with_signer(&[vault_seeds]),
-                arbitrator_amount,
-            )?;
-        }
+        // Transfer USDC to claimant
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault_usdc_account.to_account_info(),
+                    to: ctx.accounts.claimant_usdc_account.to_account_info(),
+                    authority: ctx.accounts.vault_state.to_account_info(),
+                },
+            )
+            .with_signer(&[vault_seeds]),
+            usdc_amount,
+        )?;
 
-        if protocol_amount > 0 {
-            token::transfer(
-                CpiContext::new(
-                    ctx.accounts.token_program.to_account_info(),
-                    Transfer {
-                        from: ctx.accounts.vault_usdc_account.to_account_info(),
-                        to: ctx.accounts.protocol_usdc_account.to_account_info(),
-                        authority: ctx.accounts.vault_state.to_account_info(),
-                    },
-                )
-                .with_signer(&[vault_seeds]),
-                protocol_amount,
-            )?;
-        }
-
-        let vault_key = ctx.accounts.vault_state.key();
         let vault = &mut ctx.accounts.vault_state;
-        vault.operator_bond = vault
-            .operator_bond
-            .checked_sub(from_bond)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-        vault.total_slashed = vault
-            .total_slashed
-            .checked_add(total_slash)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-        vault.slash_events = vault
-            .slash_events
-            .checked_add(1)
-            .ok_or(VaultError::ArithmeticOverflow)?;
+        vault.total_slashed = vault.total_slashed.checked_add(usdc_amount).ok_or(VaultError::ArithmeticOverflow)?;
+        vault.slash_events = vault.slash_events.checked_add(1).ok_or(VaultError::ArithmeticOverflow)?;
 
         emit!(Slashed {
-            vault: vault_key,
-            amount: total_slash,
+            vault: ctx.accounts.vault_state.key(),
+            usdc_amount,
             job_id,
-            bond_slash: from_bond,
-            depositor_slash: total_slash.saturating_sub(from_bond),
+            operator_shares_burned: burn_from_operator,
+            depositor_shares_burned: burn_from_depositors,
         });
 
         Ok(())
     }
 
     pub fn pause(ctx: Context<Pause>) -> Result<()> {
-        let vault_key = ctx.accounts.vault_state.key();
-        let now = Clock::get()?.unix_timestamp;
         ctx.accounts.vault_state.paused = true;
-        ctx.accounts.vault_state.paused_at = now;
-        emit!(VaultPausedEvent { vault: vault_key });
+        emit!(VaultPaused { vault: ctx.accounts.vault_state.key() });
         Ok(())
     }
 
     pub fn unpause(ctx: Context<Unpause>) -> Result<()> {
-        let vault_key = ctx.accounts.vault_state.key();
+        require!(
+            ctx.accounts.operator_share_account.amount >= MIN_OPERATOR_SHARES,
+            VaultError::InsufficientOperatorShares
+        );
         ctx.accounts.vault_state.paused = false;
-        ctx.accounts.vault_state.paused_at = 0;
-        emit!(VaultUnpausedEvent { vault: vault_key });
-        Ok(())
-    }
-
-    pub fn unstake_bond(ctx: Context<UnstakeBond>, amount: u64) -> Result<()> {
-        require!(amount > 0, VaultError::ZeroAmount);
-
-        let vault = &ctx.accounts.vault_state;
-        require!(vault.paused, VaultError::VaultNotPaused);
-        require!(vault.paused_at > 0, VaultError::VaultNotPaused);
-
-        let now = Clock::get()?.unix_timestamp;
-        let cooldown_end = vault.paused_at.checked_add(BOND_COOLDOWN_SECONDS)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-        require!(now >= cooldown_end, VaultError::CooldownNotMet);
-
-        require!(amount <= vault.operator_bond, VaultError::InsufficientBond);
-
-        // Ensure depositors can still withdraw after bond removal
-        let vault_balance = ctx.accounts.vault_usdc_account.amount;
-        let share_supply = ctx.accounts.share_mint.supply;
-        if share_supply > 0 {
-            // Calculate what depositors are owed (balance minus bond = depositor assets)
-            let depositor_assets = vault_balance
-                .checked_sub(vault.operator_bond)
-                .ok_or(VaultError::ArithmeticOverflow)?;
-            let remaining_after_unstake = vault_balance
-                .checked_sub(amount)
-                .ok_or(VaultError::ArithmeticOverflow)?;
-            require!(remaining_after_unstake >= depositor_assets, VaultError::DepositorFundsAtRisk);
-        }
-
-        let agent_wallet = ctx.accounts.vault_state.agent_wallet;
-        let vault_seeds: &[&[u8]] = &[
-            b"vault",
-            agent_wallet.as_ref(),
-            &[ctx.accounts.vault_state.bump],
-        ];
-
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.vault_usdc_account.to_account_info(),
-                    to: ctx.accounts.agent_usdc_account.to_account_info(),
-                    authority: ctx.accounts.vault_state.to_account_info(),
-                },
-            )
-            .with_signer(&[vault_seeds]),
-            amount,
-        )?;
-
-        let vault_key = ctx.accounts.vault_state.key();
-        let vault = &mut ctx.accounts.vault_state;
-        vault.operator_bond = vault
-            .operator_bond
-            .checked_sub(amount)
-            .ok_or(VaultError::ArithmeticOverflow)?;
-
-        emit!(BondUnstaked {
-            vault: vault_key,
-            amount,
-            remaining_bond: vault.operator_bond,
-        });
-
+        emit!(VaultUnpaused { vault: ctx.accounts.vault_state.key() });
         Ok(())
     }
 }
 
 fn current_epoch(now: i64, created_at: i64, epoch_length: i64) -> u64 {
-    if now <= created_at || epoch_length <= 0 {
-        return 0;
-    }
+    if now <= created_at || epoch_length <= 0 { return 0; }
     ((now - created_at) / epoch_length) as u64
-}
-
-fn calculate_dynamic_max_tvl(vault: &VaultState, now: i64) -> Option<u64> {
-    let elapsed = now.checked_sub(vault.created_at)?;
-    if elapsed <= 0 || vault.total_revenue == 0 {
-        return Some(vault.max_tvl);
-    }
-
-    let target = vault.target_apy_bps as u128;
-    let floor = vault.lending_floor_bps as u128;
-    if target <= floor {
-        return Some(vault.max_tvl);
-    }
-    let spread_bps = target.checked_sub(floor)?;
-
-    let vault_fee_bps = BPS_DENOMINATOR as u128
-        - vault.agent_fee_bps as u128
-        - vault.protocol_fee_bps as u128;
-
-    let annual_depositor_revenue = (vault.total_revenue as u128)
-        .checked_mul(vault_fee_bps)?
-        .checked_mul(SECONDS_PER_YEAR)?
-        .checked_div(BPS_DENOMINATOR as u128)?
-        .checked_div(elapsed as u128)?;
-
-    let dynamic_cap = annual_depositor_revenue
-        .checked_mul(BPS_DENOMINATOR as u128)?
-        .checked_div(spread_bps)?;
-
-    let cap = if dynamic_cap > vault.max_tvl as u128 {
-        vault.max_tvl
-    } else {
-        dynamic_cap as u64
-    };
-    Some(cap)
 }
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
         init,
-        payer = agent_wallet,
+        payer = operator,
         space = 8 + VaultState::INIT_SPACE,
-        seeds = [b"vault", agent_wallet.key().as_ref()],
+        seeds = [b"vault", operator.key().as_ref()],
         bump
     )]
     pub vault_state: Account<'info, VaultState>,
 
     #[account(
         init,
-        payer = agent_wallet,
+        payer = operator,
         seeds = [b"shares", vault_state.key().as_ref()],
         bump,
         mint::decimals = 6,
@@ -636,19 +379,19 @@ pub struct Initialize<'info> {
     pub share_mint: Account<'info, Mint>,
 
     #[account(mut)]
-    pub agent_wallet: Signer<'info>,
+    pub operator: Signer<'info>,
 
     pub usdc_mint: Account<'info, Mint>,
 
     #[account(
         init,
-        payer = agent_wallet,
+        payer = operator,
         associated_token::mint = usdc_mint,
         associated_token::authority = vault_state,
     )]
     pub vault_usdc_account: Account<'info, TokenAccount>,
 
-    /// CHECK: Protocol treasury address stored in vault state
+    /// CHECK: Protocol treasury address
     pub protocol_treasury: AccountInfo<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -657,37 +400,8 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-pub struct StakeBond<'info> {
-    #[account(
-        mut,
-        has_one = agent_wallet,
-        has_one = vault_usdc_account,
-    )]
-    pub vault_state: Account<'info, VaultState>,
-
-    #[account(mut)]
-    pub agent_wallet: Signer<'info>,
-
-    #[account(mut)]
-    pub vault_usdc_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        constraint = agent_usdc_account.owner == agent_wallet.key(),
-        constraint = agent_usdc_account.mint == vault_state.usdc_mint,
-    )]
-    pub agent_usdc_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
 pub struct Deposit<'info> {
-    #[account(
-        mut,
-        has_one = share_mint,
-        has_one = vault_usdc_account,
-    )]
+    #[account(mut, has_one = share_mint, has_one = vault_usdc_account)]
     pub vault_state: Account<'info, VaultState>,
 
     #[account(mut)]
@@ -699,11 +413,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
 
-    #[account(
-        mut,
-        constraint = depositor_usdc_account.owner == depositor.key(),
-        constraint = depositor_usdc_account.mint == vault_state.usdc_mint,
-    )]
+    #[account(mut, constraint = depositor_usdc_account.owner == depositor.key())]
     pub depositor_usdc_account: Account<'info, TokenAccount>,
 
     #[account(
@@ -713,6 +423,10 @@ pub struct Deposit<'info> {
         associated_token::authority = depositor,
     )]
     pub depositor_share_account: Account<'info, TokenAccount>,
+
+    /// Operator's share account to check minimum
+    #[account(constraint = operator_share_account.mint == vault_state.share_mint)]
+    pub operator_share_account: Account<'info, TokenAccount>,
 
     #[account(
         init_if_needed,
@@ -730,11 +444,7 @@ pub struct Deposit<'info> {
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
-    #[account(
-        mut,
-        has_one = share_mint,
-        has_one = vault_usdc_account,
-    )]
+    #[account(mut, has_one = share_mint, has_one = vault_usdc_account)]
     pub vault_state: Account<'info, VaultState>,
 
     #[account(mut)]
@@ -746,26 +456,16 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub withdrawer: Signer<'info>,
 
-    #[account(
-        mut,
-        constraint = withdrawer_usdc_account.owner == withdrawer.key(),
-        constraint = withdrawer_usdc_account.mint == vault_state.usdc_mint,
-    )]
+    #[account(mut, constraint = withdrawer_usdc_account.owner == withdrawer.key())]
     pub withdrawer_usdc_account: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        constraint = withdrawer_share_account.owner == withdrawer.key(),
-        constraint = withdrawer_share_account.mint == vault_state.share_mint,
-    )]
+    #[account(mut, constraint = withdrawer_share_account.owner == withdrawer.key())]
     pub withdrawer_share_account: Account<'info, TokenAccount>,
 
     #[account(
         mut,
         seeds = [b"deposit", vault_state.key().as_ref(), withdrawer.key().as_ref()],
         bump = deposit_record.bump,
-        constraint = deposit_record.vault == vault_state.key(),
-        constraint = deposit_record.depositor == withdrawer.key(),
     )]
     pub deposit_record: Account<'info, DepositRecord>,
 
@@ -774,33 +474,19 @@ pub struct Withdraw<'info> {
 
 #[derive(Accounts)]
 pub struct ReceiveRevenue<'info> {
-    #[account(
-        mut,
-        has_one = agent_wallet,
-        has_one = vault_usdc_account,
-    )]
+    #[account(mut, has_one = vault_usdc_account)]
     pub vault_state: Account<'info, VaultState>,
 
     #[account(mut)]
-    pub agent_wallet: Signer<'info>,
+    pub payer: Signer<'info>,
 
     #[account(mut)]
     pub vault_usdc_account: Account<'info, TokenAccount>,
 
-    #[account(mut)]
-    pub share_mint: Account<'info, Mint>,
+    #[account(mut, constraint = payer_usdc_account.owner == payer.key())]
+    pub payer_usdc_account: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        constraint = agent_usdc_account.owner == agent_wallet.key(),
-        constraint = agent_usdc_account.mint == vault_state.usdc_mint,
-    )]
-    pub agent_usdc_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        constraint = protocol_usdc_account.key() == vault_state.protocol_treasury,
-    )]
+    #[account(mut, constraint = protocol_usdc_account.key() == vault_state.protocol_treasury)]
     pub protocol_usdc_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
@@ -808,124 +494,71 @@ pub struct ReceiveRevenue<'info> {
 
 #[derive(Accounts)]
 pub struct Slash<'info> {
-    #[account(
-        mut,
-        has_one = vault_usdc_account,
-    )]
+    #[account(mut, has_one = vault_usdc_account, has_one = share_mint)]
     pub vault_state: Account<'info, VaultState>,
 
-    #[account(
-        constraint = authority.key() == vault_state.arbitrator,
-    )]
+    #[account(constraint = authority.key() == vault_state.arbitrator)]
     pub authority: Signer<'info>,
 
     #[account(mut)]
     pub vault_usdc_account: Account<'info, TokenAccount>,
 
+    #[account(mut)]
+    pub share_mint: Account<'info, Mint>,
+
     #[account(
         mut,
-        constraint = claimant_usdc_account.mint == vault_state.usdc_mint,
+        constraint = operator_share_account.owner == vault_state.operator,
+        constraint = operator_share_account.mint == vault_state.share_mint,
     )]
+    pub operator_share_account: Account<'info, TokenAccount>,
+
+    #[account(mut)]
     pub claimant_usdc_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        constraint = arbitrator_usdc_account.mint == vault_state.usdc_mint,
-    )]
-    pub arbitrator_usdc_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        constraint = protocol_usdc_account.mint == vault_state.usdc_mint,
-    )]
-    pub protocol_usdc_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
 pub struct Pause<'info> {
-    #[account(
-        mut,
-        has_one = agent_wallet,
-    )]
+    #[account(mut, constraint = vault_state.operator == operator.key())]
     pub vault_state: Account<'info, VaultState>,
-
-    pub agent_wallet: Signer<'info>,
+    pub operator: Signer<'info>,
 }
 
 #[derive(Accounts)]
 pub struct Unpause<'info> {
-    #[account(
-        mut,
-        has_one = agent_wallet,
-    )]
+    #[account(mut, constraint = vault_state.operator == operator.key())]
     pub vault_state: Account<'info, VaultState>,
-
-    pub agent_wallet: Signer<'info>,
-}
-
-#[derive(Accounts)]
-pub struct UnstakeBond<'info> {
-    #[account(
-        mut,
-        has_one = agent_wallet,
-        has_one = vault_usdc_account,
-        has_one = share_mint,
-    )]
-    pub vault_state: Account<'info, VaultState>,
-
-    #[account(mut)]
-    pub agent_wallet: Signer<'info>,
-
-    #[account(mut)]
-    pub vault_usdc_account: Account<'info, TokenAccount>,
-
-    pub share_mint: Account<'info, Mint>,
-
-    #[account(
-        mut,
-        constraint = agent_usdc_account.owner == agent_wallet.key(),
-        constraint = agent_usdc_account.mint == vault_state.usdc_mint,
-    )]
-    pub agent_usdc_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
+    pub operator: Signer<'info>,
+    #[account(constraint = operator_share_account.owner == operator.key())]
+    pub operator_share_account: Account<'info, TokenAccount>,
 }
 
 #[account]
 #[derive(InitSpace)]
 pub struct VaultState {
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
     pub arbitrator: Pubkey,
     pub usdc_mint: Pubkey,
     pub share_mint: Pubkey,
     pub vault_usdc_account: Pubkey,
+    pub protocol_treasury: Pubkey,
     pub agent_fee_bps: u16,
     pub protocol_fee_bps: u16,
-    pub protocol_treasury: Pubkey,
     pub total_revenue: u64,
     pub total_jobs: u64,
-    pub bump: u8,
-    pub share_mint_bump: u8,
-    pub created_at: i64,
-    pub operator_bond: u64,
     pub total_slashed: u64,
     pub slash_events: u32,
     pub max_tvl: u64,
-    pub total_deposited: u64,
-    pub total_withdrawn: u64,
-    pub deployed_capital: u64,
-    pub yield_earned: u64,
     pub virtual_shares: u64,
     pub virtual_assets: u64,
     pub lockup_epochs: u8,
     pub epoch_length: i64,
-    pub nav_high_water_mark: u64,
     pub paused: bool,
-    pub paused_at: i64,
-    pub target_apy_bps: u16,
-    pub lending_floor_bps: u16,
+    pub bump: u8,
+    pub share_mint_bump: u8,
+    pub created_at: i64,
 }
 
 #[account]
@@ -950,46 +583,24 @@ pub enum VaultError {
     ZeroShares,
     #[msg("Vault is paused")]
     VaultPaused,
-    #[msg("No operator bond staked")]
-    NoBondStaked,
     #[msg("Deposit would exceed TVL cap")]
     TVLCapExceeded,
     #[msg("Lockup period has not expired")]
     LockupNotExpired,
-    #[msg("Operator bond below minimum required")]
-    InsufficientBond,
-    #[msg("Slash amount exceeds vault assets")]
-    SlashExceedsAssets,
+    #[msg("Operator must hold minimum shares")]
+    InsufficientOperatorShares,
+    #[msg("Operator cannot withdraw below minimum while active")]
+    OperatorMinSharesRequired,
     #[msg("Output below minimum slippage tolerance")]
     SlippageExceeded,
-    #[msg("Vault must be paused to unstake bond")]
-    VaultNotPaused,
-    #[msg("7-day cooldown period not met")]
-    CooldownNotMet,
-    #[msg("Cannot unstake - would put depositor funds at risk")]
-    DepositorFundsAtRisk,
 }
 
 #[event]
 pub struct VaultInitialized {
     pub vault: Pubkey,
-    pub agent_wallet: Pubkey,
+    pub operator: Pubkey,
     pub arbitrator: Pubkey,
     pub max_tvl: u64,
-}
-
-#[event]
-pub struct BondStaked {
-    pub vault: Pubkey,
-    pub amount: u64,
-    pub total_bond: u64,
-}
-
-#[event]
-pub struct BondUnstaked {
-    pub vault: Pubkey,
-    pub amount: u64,
-    pub remaining_bond: u64,
 }
 
 #[event]
@@ -1020,18 +631,18 @@ pub struct RevenueReceived {
 #[event]
 pub struct Slashed {
     pub vault: Pubkey,
-    pub amount: u64,
+    pub usdc_amount: u64,
     pub job_id: u64,
-    pub bond_slash: u64,
-    pub depositor_slash: u64,
+    pub operator_shares_burned: u64,
+    pub depositor_shares_burned: u64,
 }
 
 #[event]
-pub struct VaultPausedEvent {
+pub struct VaultPaused {
     pub vault: Pubkey,
 }
 
 #[event]
-pub struct VaultUnpausedEvent {
+pub struct VaultUnpaused {
     pub vault: Pubkey,
 }
