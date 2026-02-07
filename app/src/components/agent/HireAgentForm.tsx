@@ -22,11 +22,12 @@ const JOB_TYPES: Record<JobType, { label: string; price: number; description: st
 };
 
 interface Props {
+  agentId: string;
   endpointUrl: string;
   agentName: string;
 }
 
-export function HireAgentForm({ endpointUrl, agentName }: Props) {
+export function HireAgentForm({ agentId, endpointUrl, agentName }: Props) {
   const { authenticated } = useAuth();
   const { fetchWithPayment, isReady: walletReady } = useX402();
 
@@ -57,7 +58,7 @@ export function HireAgentForm({ endpointUrl, agentName }: Props) {
     setResult(null);
 
     try {
-      const endpoint = endpointUrl.replace(/\/(analyze|patch)$/, '');
+      const baseUrl = endpointUrl.replace(/\/+$/, '');
       const inputText = jobType === 'analyze'
         ? `Analyze this GitHub repository for DeFi vulnerabilities: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`
         : `Generate patches for vulnerabilities in this GitHub repository: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`;
@@ -65,7 +66,7 @@ export function HireAgentForm({ endpointUrl, agentName }: Props) {
       toast('Requesting agent service (payment required)...', 'info');
       setIsPaying(true);
 
-      const response = await fetchWithPayment(endpoint, {
+      const response = await fetchWithPayment(`${baseUrl}/v1/agent/${agentId}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: inputText }),

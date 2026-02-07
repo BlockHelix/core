@@ -1,10 +1,15 @@
 import express from 'express';
 import cors from 'cors';
-import { paymentMiddleware } from '@x402/express';
-import { HTTPFacilitatorClient } from '@x402/core/server';
 import { x402ResourceServer } from '@x402/express';
+import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactSvmScheme } from '@x402/svm/exact/server';
 import type { RoutesConfig } from '@x402/core/server';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { x402HTTPResourceServer, ExpressAdapter } = require('@x402/express') as {
+  x402HTTPResourceServer: new (server: any, routes: any) => any;
+  ExpressAdapter: new (req: express.Request) => any;
+};
 import { handleRun } from './routes/run';
 import {
   handleRegisterAgent,
@@ -34,7 +39,6 @@ export function createApp(): express.Application {
     exposedHeaders: ['payment-required', 'x-payment-response'],
   }));
 
-  // Patch ALL response methods to include expose-headers (x402 uses res.end directly)
   app.use((_req, res, next) => {
     const exposeHeaders = () => {
       if (!res.headersSent) {
@@ -74,7 +78,6 @@ export function createApp(): express.Application {
 
   initDefaultAgents();
 
-  // Replay from chain in background (non-blocking)
   replayFromChain()
     .then((stats) => { lastReplay = stats; })
     .catch((err) => { console.error('[replay] Failed:', err); });
@@ -83,8 +86,6 @@ export function createApp(): express.Application {
   const resourceServer = new x402ResourceServer(facilitatorClient)
     .register(NETWORK, new ExactSvmScheme());
 
-  // Use wildcard route for x402 - all agent runs require payment
-  // Accept both USDC ($0.05) and SOL (0.0003 SOL ≈ $0.05 at ~$170/SOL)
   const AGENT_WALLET = process.env.AGENT_WALLET || process.env.DEFAULT_AGENT_WALLET || '97hcopf5v277jJhDD91DzXMwCJs5UR6659Lzdny14oYm';
   const USDC_DEVNET = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
   const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
@@ -110,7 +111,78 @@ export function createApp(): express.Application {
   };
 
   console.log('[x402] Configured payment route: POST /v1/agent/*/run, payTo:', AGENT_WALLET);
-  app.use(paymentMiddleware(staticRoutes, resourceServer));
+
+  // Custom settle-first middleware: settle payment BEFORE running handler
+  // so the tx blockhash doesn't expire during slow LLM calls
+  const httpServer = new x402HTTPResourceServer(resourceServer, staticRoutes);
+  let initPromise: Promise<void> | null = httpServer.initialize();
+
+  app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const adapter = new ExpressAdapter(req);
+    const context = {
+      adapter,
+      path: req.path,
+      method: req.method,
+      paymentHeader: adapter.getHeader('payment-signature') || adapter.getHeader('x-payment'),
+    };
+
+    if (!(httpServer as any).requiresPayment(context)) {
+      return next();
+    }
+
+    if (initPromise) {
+      await initPromise;
+      initPromise = null;
+    }
+
+    console.log(`[x402] Payment check: ${req.method} ${req.path}, has payment: ${!!context.paymentHeader}`);
+
+    const result = await (httpServer as any).processHTTPRequest(context);
+
+    switch (result.type) {
+      case 'no-payment-required':
+        return next();
+
+      case 'payment-error': {
+        const { response } = result;
+        console.log(`[x402] Payment error: ${response.status}`);
+        res.status(response.status);
+        Object.entries(response.headers).forEach(([key, value]) => {
+          res.setHeader(key, value as string);
+        });
+        res.json(response.body || {});
+        return;
+      }
+
+      case 'payment-verified': {
+        console.log('[x402] Payment verified, settling immediately...');
+        try {
+          const settleResult = await (httpServer as any).processSettlement(
+            result.paymentPayload,
+            result.paymentRequirements,
+          );
+          if (!settleResult.success) {
+            console.error('[x402] Settlement failed:', settleResult.errorReason);
+            res.status(402).json({ error: 'Settlement failed', details: settleResult.errorReason });
+            return;
+          }
+          console.log('[x402] Settlement success');
+          Object.entries(settleResult.headers).forEach(([key, value]) => {
+            res.setHeader(key, value as string);
+          });
+          req.headers['x-payment-response'] = settleResult.headers?.['x-payment-response'] || 'settled';
+          return next();
+        } catch (error) {
+          console.error('[x402] Settlement error:', error);
+          res.status(402).json({
+            error: 'Settlement failed',
+            details: error instanceof Error ? error.message : 'Unknown error',
+          });
+          return;
+        }
+      }
+    }
+  });
 
   app.get('/health', (_req, res) => {
     const agents = getAllHostedAgents();

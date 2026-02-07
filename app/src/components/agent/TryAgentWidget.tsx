@@ -54,7 +54,7 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: input,
+          input: input,
           wallet: publicKey,
         }),
       });
