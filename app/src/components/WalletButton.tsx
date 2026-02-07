@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Copy, ExternalLink, LogOut } from 'lucide-react';
 
 export default function WalletButton() {
-  const { login, logout, authenticated, walletAddress } = useAuth();
+  const { login, logout, authenticated, walletAddress, ready } = useAuth();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -70,6 +70,17 @@ export default function WalletButton() {
           </div>
         )}
       </div>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <button
+        disabled
+        className="px-5 py-3 text-xs uppercase tracking-wider-2 font-medium bg-white/50 text-black/50 cursor-wait"
+      >
+        ...
+      </button>
     );
   }
 
