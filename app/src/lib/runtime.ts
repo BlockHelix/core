@@ -11,6 +11,7 @@ export interface RegisterAgentParams {
   apiKey: string;
   ownerWallet?: string;
   jobSignerPubkey?: string;
+  operator?: string;
 }
 
 export interface RegisterAgentResponse {
@@ -54,6 +55,7 @@ export async function registerAgentWithRuntime(
       apiKey: params.apiKey,
       ownerWallet: params.ownerWallet,
       jobSignerPubkey: params.jobSignerPubkey,
+      operator: params.operator || params.agentWallet,
     }),
   });
 
