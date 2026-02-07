@@ -2,12 +2,25 @@
 
 import { useCallback } from 'react';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { getAssociatedTokenAddress, createTransferCheckedInstruction, getMint, getAccount } from '@solana/spl-token';
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionMessage,
+  VersionedTransaction,
+  ComputeBudgetProgram,
+} from '@solana/web3.js';
+import {
+  getAssociatedTokenAddress,
+  createTransferCheckedInstruction,
+  getMint,
+  getAccount,
+  createAssociatedTokenAccountInstruction,
+} from '@solana/spl-token';
 import { RPC_URL } from '@/lib/anchor';
 
 const USDC_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
-const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
+const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
 interface PaymentOption {
   scheme: string;
@@ -15,6 +28,7 @@ interface PaymentOption {
   amount: string;
   asset: string;
   payTo: string;
+  maxTimeoutSeconds?: number;
   extra?: { feePayer?: string };
 }
 
@@ -39,15 +53,7 @@ export function useX402() {
     payerPubkey: PublicKey,
     options: PaymentOption[]
   ): Promise<PaymentOption | null> => {
-    // Check SOL balance first (preferred - no ATA needed)
-    const solBalance = await connection.getBalance(payerPubkey);
-    const solOption = options.find(o => o.asset === NATIVE_SOL);
-    if (solOption && solBalance >= BigInt(solOption.amount) + BigInt(10000)) {
-      console.log('[x402] Using SOL payment');
-      return solOption;
-    }
-
-    // Check USDC balance
+    // x402 SVM scheme requires SPL tokens (USDC), not native SOL
     const usdcOption = options.find(o => o.asset === USDC_DEVNET.toString());
     if (usdcOption) {
       try {
@@ -58,12 +64,10 @@ export function useX402() {
           return usdcOption;
         }
       } catch {
-        // ATA doesn't exist or no balance
+        console.log('[x402] No USDC balance, payment will fail');
       }
     }
-
-    // Fall back to first option (will fail but shows error)
-    return options[0] || null;
+    return usdcOption || options[0] || null;
   }, []);
 
   const createPayment = useCallback(async (requirements: PaymentRequirements) => {
@@ -83,50 +87,91 @@ export function useX402() {
       throw new Error(`Unsupported payment scheme: ${paymentOption.scheme}`);
     }
 
+    // x402 requires facilitator as fee payer
+    const feePayer = paymentOption.extra?.feePayer;
+    if (!feePayer) {
+      throw new Error('Payment option missing feePayer');
+    }
+    const feePayerPubkey = new PublicKey(feePayer);
+
     const payToPubkey = new PublicKey(paymentOption.payTo);
     const amount = BigInt(paymentOption.amount);
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+    const mint = new PublicKey(paymentOption.asset);
 
-    const tx = new Transaction();
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = payerPubkey;
+    const mintInfo = await getMint(connection, mint);
+    const sourceAta = await getAssociatedTokenAddress(mint, payerPubkey);
+    const destAta = await getAssociatedTokenAddress(mint, payToPubkey);
 
-    if (paymentOption.asset === NATIVE_SOL) {
-      // Native SOL transfer
-      console.log(`[x402] Creating SOL transfer: ${Number(amount) / LAMPORTS_PER_SOL} SOL`);
-      tx.add(
-        SystemProgram.transfer({
-          fromPubkey: payerPubkey,
-          toPubkey: payToPubkey,
-          lamports: amount,
-        })
-      );
-    } else {
-      // SPL Token transfer (USDC)
-      const mint = new PublicKey(paymentOption.asset);
-      const mintInfo = await getMint(connection, mint);
-      const sourceAta = await getAssociatedTokenAddress(mint, payerPubkey);
-      const destAta = await getAssociatedTokenAddress(mint, payToPubkey);
+    console.log(`[x402] Creating USDC transfer: ${Number(amount) / Math.pow(10, mintInfo.decimals)} USDC`);
 
-      console.log(`[x402] Creating USDC transfer: ${Number(amount) / Math.pow(10, mintInfo.decimals)} USDC`);
-      tx.add(
-        createTransferCheckedInstruction(
-          sourceAta,
-          mint,
+    // Check if destination ATA exists
+    let createDestAta = false;
+    try {
+      await getAccount(connection, destAta);
+    } catch {
+      createDestAta = true;
+    }
+
+    // Build instructions matching x402 SVM exact scheme:
+    // 1. ComputeLimit
+    // 2. ComputePrice
+    // 3. TransferChecked
+    // 4. Memo (for uniqueness)
+    const instructions = [
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 }),
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
+    ];
+
+    if (createDestAta) {
+      instructions.push(
+        createAssociatedTokenAccountInstruction(
+          feePayerPubkey,
           destAta,
-          payerPubkey,
-          amount,
-          mintInfo.decimals
+          payToPubkey,
+          mint
         )
       );
     }
 
-    const serialized = tx.serialize({ requireAllSignatures: false });
+    instructions.push(
+      createTransferCheckedInstruction(
+        sourceAta,
+        mint,
+        destAta,
+        payerPubkey,
+        amount,
+        mintInfo.decimals
+      )
+    );
+
+    // Add memo for uniqueness
+    const nonce = crypto.getRandomValues(new Uint8Array(16));
+    const memoData = Array.from(nonce).map(b => b.toString(16).padStart(2, '0')).join('');
+    instructions.push({
+      keys: [],
+      programId: MEMO_PROGRAM_ID,
+      data: Buffer.from(memoData),
+    });
+
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+
+    // Use VersionedTransaction with v0 message as expected by x402
+    const messageV0 = new TransactionMessage({
+      payerKey: feePayerPubkey, // Facilitator pays fees
+      recentBlockhash: blockhash,
+      instructions,
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(messageV0);
+
+    // Sign with user's wallet (for the transfer authorization)
+    const serialized = tx.serialize();
     const signResult = await wallet.signTransaction({ transaction: serialized });
-    const signedTx = Transaction.from(signResult.signedTransaction);
+    const signedTx = VersionedTransaction.deserialize(signResult.signedTransaction);
+
     console.log('[x402] Transaction signed, building payment payload...');
 
-    // Build full x402 PaymentPayload
+    // Build x402 payment payload
     const payload = {
       x402Version: requirements.x402Version,
       resource: requirements.resource || { url: '', description: '', mimeType: '' },
@@ -147,13 +192,11 @@ export function useX402() {
       return response;
     }
 
-    // Debug: log all available headers
     console.log('[x402] 402 received, available headers:');
     response.headers.forEach((value, key) => {
       console.log(`  ${key}: ${value.substring(0, 50)}...`);
     });
 
-    // Try both cases
     const paymentRequiredHeader = response.headers.get('payment-required') || response.headers.get('Payment-Required');
     if (!paymentRequiredHeader) {
       console.error('[x402] payment-required header not found in response');
@@ -173,6 +216,17 @@ export function useX402() {
         'Payment-Signature': paymentSignature,
       },
     });
+
+    // Log retry response details
+    if (!retryResponse.ok) {
+      const retryHeader = retryResponse.headers.get('payment-required');
+      if (retryHeader) {
+        try {
+          const errorDetails = JSON.parse(atob(retryHeader));
+          console.error('[x402] Payment rejected:', errorDetails.error);
+        } catch {}
+      }
+    }
 
     return retryResponse;
   }, [createPayment]);
