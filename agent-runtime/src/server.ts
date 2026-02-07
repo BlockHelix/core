@@ -31,8 +31,14 @@ export function createApp(): express.Application {
   app.use(cors({
     origin: ['https://www.blockhelix.tech', 'https://blockhelix.tech', 'http://localhost:3000'],
     credentials: true,
-    exposedHeaders: ['payment-required', 'x-payment-response', 'PAYMENT-REQUIRED', 'X-Payment-Response'],
   }));
+
+  // Force expose x402 headers on EVERY response (x402 middleware bypasses cors)
+  app.use((_req, res, next) => {
+    res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
+    next();
+  });
+
   app.use(express.json({ limit: '1mb' }));
 
   initDefaultAgents();
