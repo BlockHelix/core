@@ -18,8 +18,15 @@ interface PaymentOption {
   extra?: { feePayer?: string };
 }
 
+interface ResourceInfo {
+  url: string;
+  description?: string;
+  mimeType?: string;
+}
+
 interface PaymentRequirements {
   x402Version: number;
+  resource?: ResourceInfo;
   accepts: PaymentOption[];
 }
 
@@ -117,16 +124,19 @@ export function useX402() {
     const serialized = tx.serialize({ requireAllSignatures: false });
     const signResult = await wallet.signTransaction({ transaction: serialized });
     const signedTx = Transaction.from(signResult.signedTransaction);
-    console.log('[x402] Transaction signed, sending to facilitator...');
+    console.log('[x402] Transaction signed, building payment payload...');
 
-    // Don't submit - let the x402 facilitator verify and submit
+    // Build full x402 PaymentPayload
     const payload = {
       x402Version: requirements.x402Version,
+      resource: requirements.resource || { url: '', description: '', mimeType: '' },
+      accepted: paymentOption,
       payload: {
         transaction: Buffer.from(signedTx.serialize()).toString('base64'),
       },
     };
 
+    console.log('[x402] Payment payload:', JSON.stringify(payload, null, 2));
     return btoa(JSON.stringify(payload));
   }, [wallet, selectPaymentOption]);
 
