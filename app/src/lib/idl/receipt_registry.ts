@@ -183,7 +183,7 @@ export type ReceiptRegistry = {
           }
         },
         {
-          "name": "operator",
+          "name": "signer",
           "writable": true,
           "signer": true
         },
@@ -283,6 +283,35 @@ export type ReceiptRegistry = {
         {
           "name": "jobId",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "setJobSigner",
+      "discriminator": [
+        10,
+        220,
+        31,
+        215,
+        124,
+        99,
+        222,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "registryState",
+          "writable": true
+        },
+        {
+          "name": "operator",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "newSigner",
+          "type": "pubkey"
         }
       ]
     },
@@ -395,6 +424,19 @@ export type ReceiptRegistry = {
         148,
         136,
         196
+      ]
+    },
+    {
+      "name": "jobSignerUpdated",
+      "discriminator": [
+        178,
+        229,
+        102,
+        47,
+        105,
+        251,
+        235,
+        226
       ]
     },
     {
@@ -637,6 +679,30 @@ export type ReceiptRegistry = {
       }
     },
     {
+      "name": "jobSignerUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "oldSigner",
+            "type": "pubkey"
+          },
+          {
+            "name": "newSigner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
       "name": "jobStatus",
       "type": {
         "kind": "enum",
@@ -722,6 +788,10 @@ export type ReceiptRegistry = {
           },
           {
             "name": "protocolAuthority",
+            "type": "pubkey"
+          },
+          {
+            "name": "jobSigner",
             "type": "pubkey"
           },
           {

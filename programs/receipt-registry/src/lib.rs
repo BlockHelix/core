@@ -14,6 +14,7 @@ pub mod receipt_registry {
         registry.vault = ctx.accounts.vault.key();
         registry.operator = ctx.accounts.operator.key();
         registry.protocol_authority = ctx.accounts.protocol_authority.key();
+        registry.job_signer = ctx.accounts.operator.key(); // Default to operator
         registry.job_counter = 0;
         registry.challenge_window = challenge_window;
         registry.total_challenged = 0;
@@ -25,6 +26,21 @@ pub mod receipt_registry {
             operator: registry.operator,
             protocol_authority: registry.protocol_authority,
             challenge_window,
+        });
+
+        Ok(())
+    }
+
+    pub fn set_job_signer(ctx: Context<SetJobSigner>, new_signer: Pubkey) -> Result<()> {
+        let registry = &mut ctx.accounts.registry_state;
+        let old_signer = registry.job_signer;
+        registry.job_signer = new_signer;
+
+        emit!(JobSignerUpdated {
+            registry: registry.key(),
+            operator: registry.operator,
+            old_signer,
+            new_signer,
         });
 
         Ok(())
@@ -213,7 +229,7 @@ pub struct RecordJob<'info> {
 
     #[account(
         init,
-        payer = operator,
+        payer = signer,
         space = 8 + JobReceipt::INIT_SPACE,
         seeds = [b"job", registry_state.key().as_ref(), &registry_state.job_counter.to_le_bytes()],
         bump
@@ -222,14 +238,25 @@ pub struct RecordJob<'info> {
 
     #[account(
         mut,
-        constraint = operator.key() == registry_state.operator @ RegistryError::Unauthorized
+        constraint = signer.key() == registry_state.operator || signer.key() == registry_state.job_signer @ RegistryError::Unauthorized
     )]
-    pub operator: Signer<'info>,
+    pub signer: Signer<'info>,
 
     /// CHECK: Client who paid for this job
     pub client: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetJobSigner<'info> {
+    #[account(
+        mut,
+        constraint = registry_state.operator == operator.key() @ RegistryError::Unauthorized
+    )]
+    pub registry_state: Account<'info, RegistryState>,
+
+    pub operator: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -295,6 +322,7 @@ pub struct RegistryState {
     pub vault: Pubkey,
     pub operator: Pubkey,
     pub protocol_authority: Pubkey,
+    pub job_signer: Pubkey,
     pub job_counter: u64,
     pub challenge_window: i64,
     pub total_challenged: u64,
@@ -337,6 +365,14 @@ pub struct RegistryInitialized {
     pub operator: Pubkey,
     pub protocol_authority: Pubkey,
     pub challenge_window: i64,
+}
+
+#[event]
+pub struct JobSignerUpdated {
+    pub registry: Pubkey,
+    pub operator: Pubkey,
+    pub old_signer: Pubkey,
+    pub new_signer: Pubkey,
 }
 
 #[event]

@@ -162,7 +162,7 @@ export async function recordJobOnChain(
       .accounts({
         registryState,
         jobReceipt,
-        operator: agentKeypair.publicKey,
+        signer: agentKeypair.publicKey,
         client,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
