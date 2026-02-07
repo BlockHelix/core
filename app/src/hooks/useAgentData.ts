@@ -19,6 +19,12 @@ export interface AgentMetadata {
   isActive: boolean;
   totalRevenue?: number;
   totalJobs?: number;
+  operatorBond?: number;
+  totalSlashed?: number;
+  slashEvents?: number;
+  totalDeposited?: number;
+  totalWithdrawn?: number;
+  totalResolvedAgainst?: number;
 }
 
 export interface VaultState {
@@ -96,7 +102,7 @@ function setCache<T>(key: string, data: T) {
 }
 
 export function useAgentList() {
-  const { factoryProgram, vaultProgram } = usePrograms();
+  const { factoryProgram, vaultProgram, registryProgram } = usePrograms();
   const [agents, setAgents] = useState<AgentMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +110,7 @@ export function useAgentList() {
 
   useEffect(() => {
     if (fetchedRef.current) return;
-    if (!factoryProgram || !vaultProgram) {
+    if (!factoryProgram || !vaultProgram || !registryProgram) {
       setIsLoading(false);
       return;
     }
@@ -128,15 +134,28 @@ export function useAgentList() {
         }
 
         const vaultPubkeys = agentAccounts.map((a) => (a.account as any).vault as PublicKey);
-        const vaultInfos = await vaultProgram.account.vaultState.fetchMultiple(vaultPubkeys);
+        const registryPubkeys = vaultPubkeys.map((v) => findRegistryState(v)[0]);
+
+        const [vaultInfos, registryInfos] = await Promise.all([
+          vaultProgram.account.vaultState.fetchMultiple(vaultPubkeys),
+          registryProgram.account.registryState.fetchMultiple(registryPubkeys),
+        ]);
 
         const agentsData = agentAccounts.map((a, i) => {
           const account = a.account as any;
-          const vaultData = vaultInfos[i] as any;
+          const v = vaultInfos[i] as any;
+          const r = registryInfos[i] as any;
           return {
             ...account,
-            totalRevenue: vaultData?.totalRevenue ?? 0,
-            totalJobs: vaultData?.totalJobs ?? 0,
+            createdAt: v?.createdAt ?? account.createdAt ?? 0,
+            totalRevenue: v?.totalRevenue ?? 0,
+            totalJobs: v?.totalJobs ?? 0,
+            operatorBond: v?.operatorBond ?? 0,
+            totalSlashed: v?.totalSlashed ?? 0,
+            slashEvents: v?.slashEvents ?? 0,
+            totalDeposited: v?.totalDeposited ?? 0,
+            totalWithdrawn: v?.totalWithdrawn ?? 0,
+            totalResolvedAgainst: r?.totalResolvedAgainst ?? 0,
           };
         });
 
@@ -155,7 +174,7 @@ export function useAgentList() {
     };
 
     fetchAgents();
-  }, [factoryProgram, vaultProgram]);
+  }, [factoryProgram, vaultProgram, registryProgram]);
 
   return { agents, isLoading, error };
 }
