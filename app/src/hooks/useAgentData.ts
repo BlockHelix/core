@@ -78,6 +78,13 @@ export interface JobReceipt {
   challenger: PublicKey;
 }
 
+function toNum(v: any): number {
+  if (v == null) return 0;
+  if (typeof v === 'number') return v;
+  if (typeof v.toNumber === 'function') return v.toNumber();
+  return Number(v);
+}
+
 const CACHE_TTL = 30_000;
 
 interface CacheEntry<T> {
@@ -226,7 +233,28 @@ export function useAgentDetails(agentWallet: PublicKey | null) {
         const assets = parseFloat(vaultUsdcAccountInfo.value.amount) / 1_000_000;
         const shares = parseFloat(shareMintInfo.value.amount) / 1_000_000;
 
-        setVaultState(vaultData as any);
+        const vd = vaultData as any;
+        setVaultState({
+          ...vd,
+          agentFeeBps: toNum(vd.agentFeeBps),
+          protocolFeeBps: toNum(vd.protocolFeeBps),
+          totalRevenue: toNum(vd.totalRevenue),
+          totalJobs: toNum(vd.totalJobs),
+          createdAt: toNum(vd.createdAt),
+          operatorBond: toNum(vd.operatorBond),
+          totalSlashed: toNum(vd.totalSlashed),
+          slashEvents: toNum(vd.slashEvents),
+          maxTvl: toNum(vd.maxTvl),
+          totalDeposited: toNum(vd.totalDeposited),
+          totalWithdrawn: toNum(vd.totalWithdrawn),
+          deployedCapital: toNum(vd.deployedCapital),
+          yieldEarned: toNum(vd.yieldEarned),
+          virtualShares: toNum(vd.virtualShares),
+          virtualAssets: toNum(vd.virtualAssets),
+          lockupEpochs: toNum(vd.lockupEpochs),
+          epochLength: toNum(vd.epochLength),
+          navHighWaterMark: toNum(vd.navHighWaterMark),
+        });
         setRegistryState(registryData as any);
         setTotalAssets(assets);
         setTotalShares(shares);

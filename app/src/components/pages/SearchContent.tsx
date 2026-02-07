@@ -126,9 +126,9 @@ export default function SearchContent() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-48 skeleton" />
+                <div key={i} className="h-16 skeleton" />
               ))}
             </div>
           ) : ranked.length === 0 ? (
@@ -141,72 +141,55 @@ export default function SearchContent() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-0 border border-white/10 divide-y divide-white/[0.06]">
               {ranked.map(({ agent, score, tier }) => {
                 const tvl = ((agent.totalDeposited ?? 0) - (agent.totalWithdrawn ?? 0)) / 1_000_000;
                 return (
                   <Link
                     key={agent.agentWallet.toString()}
                     href={`/agent/${agent.agentWallet.toString()}`}
-                    className="group border border-white/10 p-6 bg-white/[0.01] hover:bg-white/[0.03] hover:border-emerald-400/30 transition-all duration-300"
+                    className="group flex items-center gap-4 px-5 py-4 bg-white/[0.01] hover:bg-white/[0.03] transition-all duration-200"
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-white font-mono group-hover:text-emerald-400 transition-colors truncate mr-2">
-                        {agent.name}
-                      </h3>
-                      <TierBadge tier={tier} />
-                    </div>
+                    <TierBadge tier={tier} />
 
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="text-xs text-white/40 font-mono">
-                        @{agent.githubHandle || 'blockhelix'}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-white font-mono group-hover:text-emerald-400 transition-colors truncate">
+                          {agent.name}
+                        </h3>
+                        <span className="text-xs text-white/30 font-mono flex-shrink-0">
+                          @{agent.githubHandle || 'blockhelix'}
+                        </span>
                       </div>
-                      <div className="text-[10px] text-white/30 font-mono" title={TIER_LABELS[tier]}>
-                        {(score * 100).toFixed(0)}%
-                      </div>
-                    </div>
-
-                    <div className="w-full h-1 bg-white/5 mb-4">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                          tier === 'S' ? 'bg-amber-400' :
-                          tier === 'A' ? 'bg-emerald-400' :
-                          tier === 'B' ? 'bg-cyan-400' :
-                          'bg-white/20'
-                        }`}
-                        style={{ width: `${Math.max(score * 100, 2)}%` }}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-mono">TVL</div>
-                        <div className="text-sm font-mono text-white/70 tabular-nums">
-                          ${formatUSDC(tvl)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-mono">REVENUE</div>
-                        <div className="text-sm font-mono text-emerald-400 tabular-nums">
-                          ${formatUSDC((agent.totalRevenue ?? 0) / 1_000_000)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-mono">JOBS</div>
-                        <div className="text-sm font-mono text-cyan-400 tabular-nums">
-                          {(agent.totalJobs ?? 0).toLocaleString()}
-                        </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[10px] text-white/20 font-mono">
+                          {agent.agentWallet.toString().slice(0, 4)}...{agent.agentWallet.toString().slice(-4)}
+                        </span>
+                        <span className="text-white/10 mx-1">·</span>
+                        <span className="text-[10px] text-white/25 font-mono" title={TIER_LABELS[tier]}>
+                          {TIER_LABELS[tier]} ({(score * 100).toFixed(0)}%)
+                        </span>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-widest text-white/20 font-mono">
-                        {agent.agentWallet.toString().slice(0, 4)}...{agent.agentWallet.toString().slice(-4)}
-                      </span>
-                      <span className="text-xs text-white/30 group-hover:text-emerald-400 transition-colors font-mono">
-                        VIEW →
-                      </span>
+                    <div className="hidden md:flex items-center gap-6 flex-shrink-0">
+                      <div className="text-right w-24">
+                        <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">TVL</div>
+                        <div className="text-xs font-mono text-white/60 tabular-nums">${formatUSDC(tvl)}</div>
+                      </div>
+                      <div className="text-right w-24">
+                        <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">REVENUE</div>
+                        <div className="text-xs font-mono text-emerald-400 tabular-nums">${formatUSDC((agent.totalRevenue ?? 0) / 1_000_000)}</div>
+                      </div>
+                      <div className="text-right w-16">
+                        <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">JOBS</div>
+                        <div className="text-xs font-mono text-cyan-400 tabular-nums">{(agent.totalJobs ?? 0).toLocaleString()}</div>
+                      </div>
                     </div>
+
+                    <span className="text-xs text-white/20 group-hover:text-emerald-400 transition-colors font-mono flex-shrink-0">
+                      →
+                    </span>
                   </Link>
                 );
               })}

@@ -12,9 +12,6 @@ const REGISTRY_PROGRAM_ID = new PublicKey(
 const USDC_MINT = new PublicKey(
   process.env.USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'
 );
-const PROTOCOL_TREASURY = new PublicKey(
-  process.env.PROTOCOL_TREASURY || '11111111111111111111111111111111'
-);
 const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'https://api.devnet.solana.com';
 
 let cachedKeypair: Keypair | null = null;
@@ -40,16 +37,9 @@ function getProvider(agentKeypair: Keypair): anchor.AnchorProvider {
   return cachedProvider;
 }
 
-function getVaultPda(agentWallet: PublicKey): [PublicKey, number] {
+function getVaultPda(operator: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault'), agentWallet.toBuffer()],
-    VAULT_PROGRAM_ID,
-  );
-}
-
-function getShareMintPda(vaultState: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('shares'), vaultState.toBuffer()],
+    [Buffer.from('vault'), operator.toBuffer()],
     VAULT_PROGRAM_ID,
   );
 }
@@ -80,41 +70,44 @@ export async function routeRevenueToVault(
     const agentKeypair = loadAgentKeypair();
     const provider = getProvider(agentKeypair);
     anchor.setProvider(provider);
-    const agentWallet = agentKeypair.publicKey;
+    const operator = agentKeypair.publicKey;
 
-    const [vaultState] = getVaultPda(agentWallet);
-    const [shareMint] = getShareMintPda(vaultState);
-
+    const [vaultState] = getVaultPda(operator);
     const vaultUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, vaultState, true);
-    const agentUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, agentWallet);
-    const protocolUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, PROTOCOL_TREASURY);
+    const payerUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, operator);
+
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const vaultInfo = await connection.getAccountInfo(vaultState);
+    if (!vaultInfo) {
+      console.log('[revenue] Vault not initialized, skipping');
+      return null;
+    }
 
     const vaultIdl = loadIdl(
       process.env.VAULT_IDL_PATH || `${process.cwd()}/../target/idl/agent_vault.json`
     );
-
     const vaultProgram = new anchor.Program(vaultIdl as anchor.Idl, provider);
 
-    const amountBn = new anchor.BN(amount);
-    const jobIdBn = new anchor.BN(jobId);
+    const vaultAccount = await (vaultProgram.account as any).vaultState.fetch(vaultState);
+    const protocolTreasury = vaultAccount.protocolTreasury as PublicKey;
+    const protocolUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, protocolTreasury);
 
     const tx: string = await (vaultProgram.methods as any)
-      .receiveRevenue(amountBn, jobIdBn)
+      .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
       .accounts({
         vaultState,
-        agentWallet,
+        payer: operator,
         vaultUsdcAccount,
-        shareMint,
-        agentUsdcAccount,
+        payerUsdcAccount,
         protocolUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
 
-    console.log(`Revenue routed: ${amount} micro-USDC, job ${jobId}, tx: ${tx}`);
+    console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${tx}`);
     return { txSignature: tx, vaultState: vaultState.toBase58() };
   } catch (err) {
-    console.error('Revenue routing failed:', err instanceof Error ? err.message : err);
+    console.error('[revenue] Failed:', err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -129,15 +122,14 @@ export async function recordJobOnChain(
     const agentKeypair = loadAgentKeypair();
     const provider = getProvider(agentKeypair);
     anchor.setProvider(provider);
-    const agentWallet = agentKeypair.publicKey;
+    const operator = agentKeypair.publicKey;
 
-    const [vaultState] = getVaultPda(agentWallet);
+    const [vaultState] = getVaultPda(operator);
     const [registryState] = getRegistryPda(vaultState);
 
     const registryIdl = loadIdl(
       process.env.REGISTRY_IDL_PATH || `${process.cwd()}/../target/idl/receipt_registry.json`
     );
-
     const registryProgram = new anchor.Program(registryIdl as anchor.Idl, provider);
 
     let currentJobCounter: anchor.BN;
@@ -145,7 +137,7 @@ export async function recordJobOnChain(
       const registryAccount = await (registryProgram.account as any).registryState.fetch(registryState);
       currentJobCounter = registryAccount.jobCounter as anchor.BN;
     } catch {
-      console.log('Registry not initialized, skipping job recording');
+      console.log('[receipt] Registry not initialized, skipping');
       return null;
     }
 
@@ -163,25 +155,23 @@ export async function recordJobOnChain(
     }
     while (paymentTxBytes.length < 64) paymentTxBytes.push(0);
 
-    const client = clientPubkey
-      ? new PublicKey(clientPubkey)
-      : agentWallet;
+    const client = clientPubkey ? new PublicKey(clientPubkey) : operator;
 
     const tx: string = await (registryProgram.methods as any)
       .recordJob(hashArray, new anchor.BN(paymentAmount), paymentTxBytes)
       .accounts({
         registryState,
         jobReceipt,
-        agentWallet,
+        operator,
         client,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();
 
-    console.log(`Job recorded: id=${currentJobCounter.toString()}, tx: ${tx}`);
+    console.log(`[receipt] Recorded job ${currentJobCounter.toString()}, tx: ${tx}`);
     return { txSignature: tx, jobId: currentJobCounter.toNumber() };
   } catch (err) {
-    console.error('Job recording failed:', err instanceof Error ? err.message : err);
+    console.error('[receipt] Failed:', err instanceof Error ? err.message : err);
     return null;
   }
 }

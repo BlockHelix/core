@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallets } from '@privy-io/react-auth/solana';
 import { Loader2, Play, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatUSDC } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -16,7 +16,10 @@ interface TryAgentWidgetProps {
 type PaymentStatus = 'idle' | 'requesting' | 'paying' | 'running' | 'success' | 'error';
 
 export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAgentWidgetProps) {
-  const { publicKey, connected } = useWallet();
+  const { wallets } = useWallets();
+  const wallet = wallets[0];
+  const publicKey = wallet?.address;
+  const connected = !!wallet;
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [status, setStatus] = useState<PaymentStatus>('idle');
@@ -43,7 +46,7 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
         },
         body: JSON.stringify({
           query: input,
-          wallet: publicKey?.toString(),
+          wallet: publicKey,
         }),
       });
 
@@ -53,7 +56,7 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
 
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
-        const mockProof = `${Date.now()}_${agentId}_${publicKey?.toString().slice(0, 8)}`;
+        const mockProof = `${Date.now()}_${agentId}_${publicKey.slice(0, 8)}`;
         setPaymentProof(mockProof);
 
         setStatus('running');
@@ -67,7 +70,7 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
           },
           body: JSON.stringify({
             query: input,
-            wallet: publicKey?.toString(),
+            wallet: publicKey,
           }),
         });
 
