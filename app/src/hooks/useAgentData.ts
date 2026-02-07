@@ -222,7 +222,12 @@ export function useAgentDetails(agentWallet: PublicKey | null) {
           (a) => (a.account as any).agentWallet.toString() === agentWallet.toString()
         );
         if (agent) {
-          setAgentMetadata(agent.account as any);
+          const am = agent.account as any;
+          setAgentMetadata({
+            ...am,
+            agentId: toNum(am.agentId),
+            createdAt: toNum(am.createdAt),
+          });
         }
 
         const [vaultUsdcAccountInfo, shareMintInfo] = await Promise.all([
@@ -312,7 +317,17 @@ export function useJobReceipts(registryState: PublicKey | null) {
           },
         ]);
 
-        const data = receiptAccounts.map((r) => r.account as any);
+        const data = receiptAccounts.map((r) => {
+          const a = r.account as any;
+          return {
+            ...a,
+            jobId: toNum(a.jobId),
+            paymentAmount: toNum(a.paymentAmount),
+            createdAt: toNum(a.createdAt),
+            challengedAt: toNum(a.challengedAt),
+            resolvedAt: toNum(a.resolvedAt),
+          };
+        });
         setReceipts(data);
         setCache(cacheKey, data);
       } catch (err: any) {
