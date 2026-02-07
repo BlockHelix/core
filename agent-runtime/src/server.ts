@@ -12,6 +12,8 @@ import {
   handleGetAgentsByOwner,
   handleGetAgentConfig,
   handleUpdateAgentConfig,
+  handleDeployOpenClaw,
+  handleStopOpenClaw,
 } from './routes/admin';
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
@@ -29,6 +31,7 @@ export function createApp(): express.Application {
   app.use(cors({
     origin: ['https://www.blockhelix.tech', 'https://blockhelix.tech', 'http://localhost:3000'],
     credentials: true,
+    exposedHeaders: ['PAYMENT-REQUIRED', 'X-Payment-Response'],
   }));
   app.use(express.json({ limit: '1mb' }));
 
@@ -144,6 +147,9 @@ export function createApp(): express.Application {
   app.get('/admin/agents/by-owner', handleGetAgentsByOwner);
   app.get('/admin/agents/:agentId', handleGetAgentConfig);
   app.put('/admin/agents/:agentId', handleUpdateAgentConfig);
+
+  app.post('/admin/openclaw/deploy', handleDeployOpenClaw);
+  app.delete('/admin/openclaw/:agentId', handleStopOpenClaw);
 
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Unhandled error:', err.message);

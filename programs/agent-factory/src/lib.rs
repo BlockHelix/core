@@ -73,6 +73,7 @@ pub mod agent_factory {
             ctx.accounts.vault_program.to_account_info(),
             vault_cpi_accounts,
         );
+        let nonce = ctx.accounts.factory_state.agent_count;
         agent_vault::cpi::initialize(
             vault_cpi_ctx,
             agent_fee_bps,
@@ -81,6 +82,7 @@ pub mod agent_factory {
             lockup_epochs,
             epoch_length,
             arbitrator,
+            nonce,
         )?;
 
         // CPI: ReceiptRegistry::initialize_registry

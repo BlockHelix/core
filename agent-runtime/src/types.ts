@@ -9,6 +9,7 @@ export interface AgentConfig {
   registry: string;
   isActive: boolean;
   apiKey: string;
+  isContainerized?: boolean;
 }
 
 export interface RunRequest {

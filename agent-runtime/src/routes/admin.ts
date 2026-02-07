@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { registerHostedAgent, getAllHostedAgents, getHostedAgent } from '../services/agent-config';
 import { agentStorage } from '../services/storage';
 import { verifyWalletSignature, parseSignMessage, isMessageRecent } from '../services/wallet-verify';
+import { containerManager } from '../services/container-manager';
 import type { AgentConfig } from '../types';
 
 export function handleRegisterAgent(req: Request, res: Response): void {
@@ -190,4 +191,77 @@ export function handleUpdateAgentConfig(req: Request, res: Response): void {
       updatedAt: updated.updatedAt,
     },
   });
+}
+
+export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
+  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet } = req.body;
+
+  if (!agentId || !name || !systemPrompt || !apiKey) {
+    res.status(400).json({
+      error: 'Missing required fields: agentId, name, systemPrompt, apiKey',
+    });
+    return;
+  }
+
+  const existing = getHostedAgent(agentId);
+  if (existing) {
+    res.status(409).json({ error: `Agent already exists: ${agentId}` });
+    return;
+  }
+
+  try {
+    const container = await containerManager.deployAgent({
+      agentId,
+      systemPrompt,
+      anthropicApiKey: apiKey,
+      model,
+    });
+
+    const fullConfig: AgentConfig = {
+      agentId,
+      name,
+      systemPrompt,
+      priceUsdcMicro: priceUsdcMicro ?? 100_000,
+      model: model || 'claude-sonnet-4-20250514',
+      operator: operator || '',
+      vault: vault || '',
+      registry: registry || '',
+      isActive: true,
+      apiKey,
+      isContainerized: true,
+    };
+
+    agentStorage.create(fullConfig, ownerWallet || operator || '');
+
+    res.status(201).json({
+      message: 'OpenClaw agent deployed',
+      agent: {
+        agentId: fullConfig.agentId,
+        name: fullConfig.name,
+        priceUsdcMicro: fullConfig.priceUsdcMicro,
+        model: fullConfig.model,
+        isActive: fullConfig.isActive,
+        isContainerized: true,
+        containerIp: container.privateIp,
+      },
+    });
+  } catch (err) {
+    console.error('[openclaw] Deploy failed:', err);
+    const message = err instanceof Error ? err.message : 'Deploy failed';
+    res.status(500).json({ error: message });
+  }
+}
+
+export async function handleStopOpenClaw(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+
+  try {
+    await containerManager.stopAgent(agentId);
+    agentStorage.update(agentId, { isActive: false });
+    res.json({ message: `Agent ${agentId} stopped` });
+  } catch (err) {
+    console.error('[openclaw] Stop failed:', err);
+    const message = err instanceof Error ? err.message : 'Stop failed';
+    res.status(500).json({ error: message });
+  }
 }
