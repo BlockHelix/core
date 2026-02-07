@@ -192,7 +192,11 @@ export async function deployOpenClaw(params: DeployOpenClawParams): Promise<Regi
     throw new Error('Runtime URL not configured');
   }
 
-  const response = await fetch(`${RUNTIME_URL}/admin/openclaw/deploy`, {
+  const url = `${RUNTIME_URL}/admin/openclaw/deploy`;
+  console.log('[deployOpenClaw] URL:', url);
+  console.log('[deployOpenClaw] params:', JSON.stringify(params, null, 2));
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -200,6 +204,7 @@ export async function deployOpenClaw(params: DeployOpenClawParams): Promise<Regi
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    console.error('[deployOpenClaw] Error:', errorData);
     throw new Error(errorData.error || `OpenClaw deploy failed: ${response.status}`);
   }
 
