@@ -82,7 +82,7 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
       try {
         const vaultPubkey = new PublicKey(agent.vault);
         const [registryState] = findRegistryState(vaultPubkey);
-        const registry = await registryProgram.account.registryState.fetch(registryState);
+        const registry = await registryProgram.account.RegistryState.fetch(registryState);
         const jobSigner = (registry as any).jobSigner?.toString();
         const operator = (registry as any).operator?.toString();
 

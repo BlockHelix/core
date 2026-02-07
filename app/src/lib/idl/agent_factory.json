@@ -1,28 +1,134 @@
 {
+  "accounts": [
+    {
+      "discriminator": [
+        106,
+        95,
+        194,
+        10,
+        53,
+        133,
+        159,
+        163
+      ],
+      "name": "AgentMetadata"
+    },
+    {
+      "discriminator": [
+        91,
+        157,
+        184,
+        99,
+        123,
+        112,
+        102,
+        7
+      ],
+      "name": "FactoryState"
+    }
+  ],
   "address": "7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j",
-  "metadata": {
-    "name": "agent_factory",
-    "version": "0.1.0",
-    "spec": "0.1.0",
-    "description": "One-instruction agent deployment factory"
-  },
+  "errors": [
+    {
+      "code": 6000,
+      "msg": "Name too long",
+      "name": "NameTooLong"
+    },
+    {
+      "code": 6001,
+      "msg": "GitHub handle too long",
+      "name": "GitHubHandleTooLong"
+    },
+    {
+      "code": 6002,
+      "msg": "Endpoint URL too long",
+      "name": "EndpointUrlTooLong"
+    },
+    {
+      "code": 6003,
+      "msg": "Protocol fee below minimum",
+      "name": "ProtocolFeeBelowMinimum"
+    },
+    {
+      "code": 6004,
+      "msg": "Total fees exceed 100%",
+      "name": "TotalFeesExceed100Percent"
+    },
+    {
+      "code": 6005,
+      "msg": "Arithmetic overflow",
+      "name": "ArithmeticOverflow"
+    },
+    {
+      "code": 6006,
+      "msg": "Unauthorized",
+      "name": "Unauthorized"
+    },
+    {
+      "code": 6007,
+      "msg": "Agent is already inactive",
+      "name": "AgentAlreadyInactive"
+    }
+  ],
+  "events": [
+    {
+      "discriminator": [
+        237,
+        44,
+        61,
+        111,
+        90,
+        251,
+        241,
+        34
+      ],
+      "name": "AgentCreated"
+    },
+    {
+      "discriminator": [
+        138,
+        251,
+        82,
+        87,
+        119,
+        148,
+        20,
+        180
+      ],
+      "name": "AgentDeactivated"
+    },
+    {
+      "discriminator": [
+        210,
+        179,
+        162,
+        250,
+        123,
+        250,
+        210,
+        166
+      ],
+      "name": "AgentUpdated"
+    },
+    {
+      "discriminator": [
+        20,
+        86,
+        103,
+        75,
+        20,
+        220,
+        162,
+        63
+      ],
+      "name": "FactoryInitialized"
+    }
+  ],
   "instructions": [
     {
-      "name": "create_agent",
-      "discriminator": [
-        143,
-        66,
-        198,
-        95,
-        110,
-        85,
-        83,
-        249
-      ],
       "accounts": [
         {
           "name": "factory_state",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -38,11 +144,11 @@
                 ]
               }
             ]
-          }
+          },
+          "writable": true
         },
         {
           "name": "agent_metadata",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -60,17 +166,18 @@
                 "path": "factory_state"
               },
               {
+                "account": "FactoryState",
                 "kind": "account",
-                "path": "factory_state.agent_count",
-                "account": "FactoryState"
+                "path": "factory_state.agent_count"
               }
             ]
-          }
+          },
+          "writable": true
         },
         {
           "name": "operator",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "vault_state",
@@ -95,24 +202,24 @@
           "writable": true
         },
         {
-          "name": "vault_program",
-          "address": "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS"
+          "address": "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS",
+          "name": "vault_program"
         },
         {
-          "name": "registry_program",
-          "address": "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9"
+          "address": "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9",
+          "name": "registry_program"
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "token_program"
         },
         {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "name": "associated_token_program"
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
         }
       ],
       "args": [
@@ -162,20 +269,20 @@
             "option": "pubkey"
           }
         }
-      ]
+      ],
+      "discriminator": [
+        143,
+        66,
+        198,
+        95,
+        110,
+        85,
+        83,
+        249
+      ],
+      "name": "create_agent"
     },
     {
-      "name": "deactivate_agent",
-      "discriminator": [
-        205,
-        171,
-        239,
-        225,
-        82,
-        126,
-        96,
-        166
-      ],
       "accounts": [
         {
           "name": "agent_metadata",
@@ -186,24 +293,23 @@
           "signer": true
         }
       ],
-      "args": []
+      "args": [],
+      "discriminator": [
+        205,
+        171,
+        239,
+        225,
+        82,
+        126,
+        96,
+        166
+      ],
+      "name": "deactivate_agent"
     },
     {
-      "name": "initialize_factory",
-      "discriminator": [
-        179,
-        64,
-        75,
-        250,
-        39,
-        254,
-        240,
-        178
-      ],
       "accounts": [
         {
           "name": "factory_state",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -219,19 +325,20 @@
                 ]
               }
             ]
-          }
+          },
+          "writable": true
         },
         {
           "name": "authority",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "protocol_treasury"
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
         }
       ],
       "args": [
@@ -239,20 +346,20 @@
           "name": "min_protocol_fee_bps",
           "type": "u16"
         }
-      ]
+      ],
+      "discriminator": [
+        179,
+        64,
+        75,
+        250,
+        39,
+        254,
+        240,
+        178
+      ],
+      "name": "initialize_factory"
     },
     {
-      "name": "update_agent",
-      "discriminator": [
-        85,
-        2,
-        178,
-        9,
-        119,
-        139,
-        102,
-        164
-      ],
       "accounts": [
         {
           "name": "agent_metadata",
@@ -282,138 +389,30 @@
             "option": "string"
           }
         }
-      ]
-    }
-  ],
-  "accounts": [
-    {
-      "name": "AgentMetadata",
+      ],
       "discriminator": [
-        106,
-        95,
-        194,
-        10,
-        53,
-        133,
-        159,
-        163
-      ]
-    },
-    {
-      "name": "FactoryState",
-      "discriminator": [
-        91,
-        157,
-        184,
-        99,
-        123,
-        112,
-        102,
-        7
-      ]
-    }
-  ],
-  "events": [
-    {
-      "name": "AgentCreated",
-      "discriminator": [
-        237,
-        44,
-        61,
-        111,
-        90,
-        251,
-        241,
-        34
-      ]
-    },
-    {
-      "name": "AgentDeactivated",
-      "discriminator": [
-        138,
-        251,
-        82,
-        87,
+        85,
+        2,
+        178,
+        9,
         119,
-        148,
-        20,
-        180
-      ]
-    },
-    {
-      "name": "AgentUpdated",
-      "discriminator": [
-        210,
-        179,
-        162,
-        250,
-        123,
-        250,
-        210,
-        166
-      ]
-    },
-    {
-      "name": "FactoryInitialized",
-      "discriminator": [
-        20,
-        86,
-        103,
-        75,
-        20,
-        220,
-        162,
-        63
-      ]
+        139,
+        102,
+        164
+      ],
+      "name": "update_agent"
     }
   ],
-  "errors": [
-    {
-      "code": 6000,
-      "name": "NameTooLong",
-      "msg": "Name too long"
-    },
-    {
-      "code": 6001,
-      "name": "GitHubHandleTooLong",
-      "msg": "GitHub handle too long"
-    },
-    {
-      "code": 6002,
-      "name": "EndpointUrlTooLong",
-      "msg": "Endpoint URL too long"
-    },
-    {
-      "code": 6003,
-      "name": "ProtocolFeeBelowMinimum",
-      "msg": "Protocol fee below minimum"
-    },
-    {
-      "code": 6004,
-      "name": "TotalFeesExceed100Percent",
-      "msg": "Total fees exceed 100%"
-    },
-    {
-      "code": 6005,
-      "name": "ArithmeticOverflow",
-      "msg": "Arithmetic overflow"
-    },
-    {
-      "code": 6006,
-      "name": "Unauthorized",
-      "msg": "Unauthorized"
-    },
-    {
-      "code": 6007,
-      "name": "AgentAlreadyInactive",
-      "msg": "Agent is already inactive"
-    }
-  ],
+  "metadata": {
+    "description": "One-instruction agent deployment factory",
+    "name": "agent_factory",
+    "spec": "0.1.0",
+    "version": "0.1.0"
+  },
   "types": [
     {
       "name": "AgentCreated",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "factory",
@@ -443,13 +442,13 @@
             "name": "endpoint_url",
             "type": "string"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "AgentDeactivated",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "agent_id",
@@ -459,13 +458,13 @@
             "name": "operator",
             "type": "pubkey"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "AgentMetadata",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "factory",
@@ -515,13 +514,13 @@
             "name": "bump",
             "type": "u8"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "AgentUpdated",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "agent_id",
@@ -539,13 +538,13 @@
             "name": "endpoint_url",
             "type": "string"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "FactoryInitialized",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "authority",
@@ -559,13 +558,13 @@
             "name": "min_protocol_fee_bps",
             "type": "u16"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "FactoryState",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "authority",
@@ -587,7 +586,8 @@
             "name": "bump",
             "type": "u8"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     }
   ]

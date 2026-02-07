@@ -132,7 +132,7 @@ export function useAgentList() {
 
       try {
         fetchedRef.current = true;
-        const agentAccounts = await factoryProgram.account.agentMetadata.all();
+        const agentAccounts = await factoryProgram.account.AgentMetadata.all();
 
         if (agentAccounts.length === 0) {
           setAgents([]);
@@ -144,8 +144,8 @@ export function useAgentList() {
         const registryPubkeys = vaultPubkeys.map((v) => findRegistryState(v)[0]);
 
         const [vaultInfos, registryInfos] = await Promise.all([
-          vaultProgram.account.vaultState.fetchMultiple(vaultPubkeys),
-          registryProgram.account.registryState.fetchMultiple(registryPubkeys),
+          vaultProgram.account.VaultState.fetchMultiple(vaultPubkeys),
+          registryProgram.account.RegistryState.fetchMultiple(registryPubkeys),
         ]);
 
         const agentsData = agentAccounts.map((a, i) => {
@@ -210,7 +210,7 @@ export function useAgentDetails(agentKey: PublicKey | null) {
       try {
         fetchedRef.current = keyStr;
 
-        const agentAccounts = await factoryProgram.account.agentMetadata.all();
+        const agentAccounts = await factoryProgram.account.AgentMetadata.all();
         const agent = agentAccounts.find((a) => {
           const acct = a.account as any;
           return acct.vault?.toString() === keyStr || acct.operator?.toString() === keyStr;
@@ -232,8 +232,8 @@ export function useAgentDetails(agentKey: PublicKey | null) {
         });
 
         const [vaultData, registryData] = await Promise.all([
-          vaultProgram.account.vaultState.fetch(vault),
-          registryProgram.account.registryState.fetch(registry),
+          vaultProgram.account.VaultState.fetch(vault),
+          registryProgram.account.RegistryState.fetch(registry),
         ]);
 
         const [vaultUsdcAccountInfo, shareMintInfo] = await Promise.all([
@@ -314,7 +314,7 @@ export function useJobReceipts(registryState: PublicKey | null) {
 
       try {
         fetchedRef.current = key;
-        const receiptAccounts = await registryProgram.account.jobReceipt.all([
+        const receiptAccounts = await registryProgram.account.JobReceipt.all([
           {
             memcmp: {
               offset: 8,

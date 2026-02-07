@@ -48,9 +48,9 @@ export function useCreateAgent() {
       const [factoryState] = factoryStateResult;
       console.log('[createAgent] Factory state:', factoryState.toBase58());
 
-      const factoryData = await factoryProgram.account.factoryState.fetch(factoryState);
+      const factoryData = await factoryProgram.account.FactoryState.fetch(factoryState);
       console.log('[createAgent] Factory data:', factoryData);
-      const agentCount = factoryData.agentCount;
+      const agentCount = factoryData.agent_count;
       console.log('[createAgent] Agent count:', agentCount?.toString());
 
       console.log('[createAgent] Finding PDAs...');
@@ -105,7 +105,7 @@ export function useCreateAgent() {
 
       console.log('[createAgent] Calling createAgent method...');
       const jobSignerArg = params.jobSigner ? new PublicKey(params.jobSigner) : null;
-      const method = factoryProgram.methods.createAgent(
+      const method = factoryProgram.methods.create_agent(
         params.name,
         params.githubHandle,
         params.endpointUrl,
@@ -122,20 +122,20 @@ export function useCreateAgent() {
 
       console.log('[createAgent] Setting accounts...');
       const accountsObj = {
-        factoryState,
-        agentMetadata,
+        factory_state: factoryState,
+        agent_metadata: agentMetadata,
         operator: agentWallet,
-        vaultState,
-        shareMint,
-        usdcMint: USDC_MINT,
-        vaultUsdcAccount,
-        protocolTreasury: PROTOCOL_TREASURY,
-        registryState,
-        vaultProgram: PROGRAM_IDS.VAULT,
-        registryProgram: PROGRAM_IDS.REGISTRY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
+        vault_state: vaultState,
+        share_mint: shareMint,
+        usdc_mint: USDC_MINT,
+        vault_usdc_account: vaultUsdcAccount,
+        protocol_treasury: PROTOCOL_TREASURY,
+        registry_state: registryState,
+        vault_program: PROGRAM_IDS.VAULT,
+        registry_program: PROGRAM_IDS.REGISTRY,
+        token_program: TOKEN_PROGRAM_ID,
+        associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+        system_program: SystemProgram.programId,
       };
       console.log('[createAgent] Accounts object keys:', Object.keys(accountsObj));
       const methodBuilder = method.accountsStrict(accountsObj);

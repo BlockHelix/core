@@ -1,24 +1,185 @@
 {
+  "accounts": [
+    {
+      "discriminator": [
+        83,
+        232,
+        10,
+        31,
+        251,
+        49,
+        189,
+        167
+      ],
+      "name": "DepositRecord"
+    },
+    {
+      "discriminator": [
+        228,
+        196,
+        82,
+        165,
+        98,
+        210,
+        235,
+        152
+      ],
+      "name": "VaultState"
+    }
+  ],
   "address": "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS",
-  "metadata": {
-    "name": "agent_vault",
-    "version": "0.1.0",
-    "spec": "0.1.0",
-    "description": "Per-agent USDC vault with SPL share tokens"
-  },
+  "errors": [
+    {
+      "code": 6000,
+      "msg": "Invalid fee configuration",
+      "name": "InvalidFees"
+    },
+    {
+      "code": 6001,
+      "msg": "Arithmetic overflow",
+      "name": "ArithmeticOverflow"
+    },
+    {
+      "code": 6002,
+      "msg": "Amount must be greater than zero",
+      "name": "ZeroAmount"
+    },
+    {
+      "code": 6003,
+      "msg": "Calculated shares would be zero",
+      "name": "ZeroShares"
+    },
+    {
+      "code": 6004,
+      "msg": "Vault is paused",
+      "name": "VaultPaused"
+    },
+    {
+      "code": 6005,
+      "msg": "Deposit would exceed TVL cap",
+      "name": "TVLCapExceeded"
+    },
+    {
+      "code": 6006,
+      "msg": "Lockup period has not expired",
+      "name": "LockupNotExpired"
+    },
+    {
+      "code": 6007,
+      "msg": "Operator must hold minimum shares",
+      "name": "InsufficientOperatorShares"
+    },
+    {
+      "code": 6008,
+      "msg": "Operator cannot withdraw below minimum while active",
+      "name": "OperatorMinSharesRequired"
+    },
+    {
+      "code": 6009,
+      "msg": "Output below minimum slippage tolerance",
+      "name": "SlippageExceeded"
+    },
+    {
+      "code": 6010,
+      "msg": "Vault balance insufficient for 2x slash",
+      "name": "InsufficientVaultBalance"
+    }
+  ],
+  "events": [
+    {
+      "discriminator": [
+        111,
+        141,
+        26,
+        45,
+        161,
+        35,
+        100,
+        57
+      ],
+      "name": "Deposited"
+    },
+    {
+      "discriminator": [
+        194,
+        10,
+        115,
+        158,
+        29,
+        194,
+        157,
+        65
+      ],
+      "name": "RevenueReceived"
+    },
+    {
+      "discriminator": [
+        98,
+        59,
+        249,
+        154,
+        233,
+        53,
+        98,
+        194
+      ],
+      "name": "Slashed"
+    },
+    {
+      "discriminator": [
+        180,
+        43,
+        207,
+        2,
+        18,
+        71,
+        3,
+        75
+      ],
+      "name": "VaultInitialized"
+    },
+    {
+      "discriminator": [
+        198,
+        157,
+        22,
+        151,
+        68,
+        100,
+        162,
+        35
+      ],
+      "name": "VaultPaused"
+    },
+    {
+      "discriminator": [
+        116,
+        95,
+        48,
+        104,
+        229,
+        9,
+        64,
+        84
+      ],
+      "name": "VaultUnpaused"
+    },
+    {
+      "discriminator": [
+        20,
+        89,
+        223,
+        198,
+        194,
+        124,
+        219,
+        13
+      ],
+      "name": "Withdrawn"
+    }
+  ],
   "instructions": [
     {
-      "name": "deposit",
-      "discriminator": [
-        242,
-        35,
-        198,
-        137,
-        82,
-        225,
-        242,
-        182
-      ],
       "accounts": [
         {
           "name": "vault_state",
@@ -26,22 +187,22 @@
         },
         {
           "name": "share_mint",
-          "writable": true,
           "relations": [
             "vault_state"
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "vault_usdc_account",
-          "writable": true,
           "relations": [
             "vault_state"
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "depositor",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "depositor_usdc_account",
@@ -49,8 +210,44 @@
         },
         {
           "name": "depositor_share_account",
-          "writable": true,
           "pda": {
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            },
             "seeds": [
               {
                 "kind": "account",
@@ -97,7 +294,141 @@
                 "kind": "account",
                 "path": "share_mint"
               }
-            ],
+            ]
+          },
+          "writable": true
+        },
+        {
+          "docs": [
+            "Operator's share account to check minimum"
+          ],
+          "name": "operator_share_account"
+        },
+        {
+          "name": "deposit_record",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state"
+              },
+              {
+                "kind": "account",
+                "path": "depositor"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "token_program"
+        },
+        {
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "name": "associated_token_program"
+        },
+        {
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "min_shares_out",
+          "type": "u64"
+        }
+      ],
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "name": "deposit"
+    },
+    {
+      "accounts": [
+        {
+          "name": "vault_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "share_mint",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  104,
+                  97,
+                  114,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "operator",
+          "signer": true,
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault_usdc_account",
+          "pda": {
             "program": {
               "kind": "const",
               "value": [
@@ -134,141 +465,7 @@
                 248,
                 89
               ]
-            }
-          }
-        },
-        {
-          "name": "operator_share_account",
-          "docs": [
-            "Operator's share account to check minimum"
-          ]
-        },
-        {
-          "name": "deposit_record",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  100,
-                  101,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault_state"
-              },
-              {
-                "kind": "account",
-                "path": "depositor"
-              }
-            ]
-          }
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        },
-        {
-          "name": "min_shares_out",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "initialize",
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "operator"
-              },
-              {
-                "kind": "arg",
-                "path": "nonce"
-              }
-            ]
-          }
-        },
-        {
-          "name": "share_mint",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  104,
-                  97,
-                  114,
-                  101,
-                  115
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault_state"
-              }
-            ]
-          }
-        },
-        {
-          "name": "operator",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "usdc_mint"
-        },
-        {
-          "name": "vault_usdc_account",
-          "writable": true,
-          "pda": {
+            },
             "seeds": [
               {
                 "kind": "account",
@@ -315,60 +512,24 @@
                 "kind": "account",
                 "path": "usdc_mint"
               }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
+            ]
+          },
+          "writable": true
         },
         {
           "name": "protocol_treasury"
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "token_program"
         },
         {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "name": "associated_token_program"
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
         }
       ],
       "args": [
@@ -400,20 +561,20 @@
           "name": "nonce",
           "type": "u64"
         }
-      ]
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "name": "initialize"
     },
     {
-      "name": "pause",
-      "discriminator": [
-        211,
-        22,
-        221,
-        251,
-        74,
-        121,
-        193,
-        47
-      ],
       "accounts": [
         {
           "name": "vault_state",
@@ -424,20 +585,20 @@
           "signer": true
         }
       ],
-      "args": []
+      "args": [],
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "name": "pause"
     },
     {
-      "name": "receive_revenue",
-      "discriminator": [
-        154,
-        21,
-        184,
-        235,
-        215,
-        131,
-        44,
-        130
-      ],
       "accounts": [
         {
           "name": "vault_state",
@@ -445,15 +606,15 @@
         },
         {
           "name": "payer",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "vault_usdc_account",
-          "writable": true,
           "relations": [
             "vault_state"
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "payer_usdc_account",
@@ -464,8 +625,8 @@
           "writable": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "token_program"
         }
       ],
       "args": [
@@ -477,20 +638,20 @@
           "name": "job_id",
           "type": "u64"
         }
-      ]
+      ],
+      "discriminator": [
+        154,
+        21,
+        184,
+        235,
+        215,
+        131,
+        44,
+        130
+      ],
+      "name": "receive_revenue"
     },
     {
-      "name": "slash",
-      "discriminator": [
-        204,
-        141,
-        18,
-        161,
-        8,
-        177,
-        92,
-        142
-      ],
       "accounts": [
         {
           "name": "vault_state",
@@ -502,46 +663,46 @@
         },
         {
           "name": "vault_usdc_account",
-          "writable": true,
           "relations": [
             "vault_state"
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "share_mint",
-          "writable": true,
           "relations": [
             "vault_state"
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "operator_share_account",
           "writable": true
         },
         {
-          "name": "client_usdc_account",
           "docs": [
             "1x refund to the client who was wronged"
           ],
+          "name": "client_usdc_account",
           "writable": true
         },
         {
-          "name": "ecosystem_fund_account",
           "docs": [
             "0.75x to ecosystem fund"
           ],
+          "name": "ecosystem_fund_account",
           "writable": true
         },
         {
-          "name": "validator_usdc_account",
           "docs": [
             "0.25x bounty to the reporting validator"
           ],
+          "name": "validator_usdc_account",
           "writable": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "token_program"
         }
       ],
       "args": [
@@ -553,20 +714,20 @@
           "name": "job_id",
           "type": "u64"
         }
-      ]
+      ],
+      "discriminator": [
+        204,
+        141,
+        18,
+        161,
+        8,
+        177,
+        92,
+        142
+      ],
+      "name": "slash"
     },
     {
-      "name": "unpause",
-      "discriminator": [
-        169,
-        144,
-        4,
-        38,
-        10,
-        141,
-        188,
-        255
-      ],
       "accounts": [
         {
           "name": "vault_state",
@@ -580,20 +741,20 @@
           "name": "operator_share_account"
         }
       ],
-      "args": []
+      "args": [],
+      "discriminator": [
+        169,
+        144,
+        4,
+        38,
+        10,
+        141,
+        188,
+        255
+      ],
+      "name": "unpause"
     },
     {
-      "name": "withdraw",
-      "discriminator": [
-        183,
-        18,
-        70,
-        156,
-        148,
-        109,
-        161,
-        34
-      ],
       "accounts": [
         {
           "name": "vault_state",
@@ -601,22 +762,22 @@
         },
         {
           "name": "share_mint",
-          "writable": true,
           "relations": [
             "vault_state"
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "vault_usdc_account",
-          "writable": true,
           "relations": [
             "vault_state"
-          ]
+          ],
+          "writable": true
         },
         {
           "name": "withdrawer",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "withdrawer_usdc_account",
@@ -628,7 +789,6 @@
         },
         {
           "name": "deposit_record",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -652,11 +812,12 @@
                 "path": "withdrawer"
               }
             ]
-          }
+          },
+          "writable": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "token_program"
         }
       ],
       "args": [
@@ -668,192 +829,30 @@
           "name": "min_assets_out",
           "type": "u64"
         }
-      ]
-    }
-  ],
-  "accounts": [
-    {
-      "name": "DepositRecord",
+      ],
       "discriminator": [
-        83,
-        232,
-        10,
-        31,
-        251,
-        49,
-        189,
-        167
-      ]
-    },
-    {
-      "name": "VaultState",
-      "discriminator": [
-        228,
-        196,
-        82,
-        165,
-        98,
-        210,
-        235,
-        152
-      ]
-    }
-  ],
-  "events": [
-    {
-      "name": "Deposited",
-      "discriminator": [
-        111,
-        141,
-        26,
-        45,
-        161,
-        35,
-        100,
-        57
-      ]
-    },
-    {
-      "name": "RevenueReceived",
-      "discriminator": [
-        194,
-        10,
-        115,
-        158,
-        29,
-        194,
-        157,
-        65
-      ]
-    },
-    {
-      "name": "Slashed",
-      "discriminator": [
-        98,
-        59,
-        249,
-        154,
-        233,
-        53,
-        98,
-        194
-      ]
-    },
-    {
-      "name": "VaultInitialized",
-      "discriminator": [
-        180,
-        43,
-        207,
-        2,
+        183,
         18,
-        71,
-        3,
-        75
-      ]
-    },
-    {
-      "name": "VaultPaused",
-      "discriminator": [
-        198,
-        157,
-        22,
-        151,
-        68,
-        100,
-        162,
-        35
-      ]
-    },
-    {
-      "name": "VaultUnpaused",
-      "discriminator": [
-        116,
-        95,
-        48,
-        104,
-        229,
-        9,
-        64,
-        84
-      ]
-    },
-    {
-      "name": "Withdrawn",
-      "discriminator": [
-        20,
-        89,
-        223,
-        198,
-        194,
-        124,
-        219,
-        13
-      ]
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "name": "withdraw"
     }
   ],
-  "errors": [
-    {
-      "code": 6000,
-      "name": "InvalidFees",
-      "msg": "Invalid fee configuration"
-    },
-    {
-      "code": 6001,
-      "name": "ArithmeticOverflow",
-      "msg": "Arithmetic overflow"
-    },
-    {
-      "code": 6002,
-      "name": "ZeroAmount",
-      "msg": "Amount must be greater than zero"
-    },
-    {
-      "code": 6003,
-      "name": "ZeroShares",
-      "msg": "Calculated shares would be zero"
-    },
-    {
-      "code": 6004,
-      "name": "VaultPaused",
-      "msg": "Vault is paused"
-    },
-    {
-      "code": 6005,
-      "name": "TVLCapExceeded",
-      "msg": "Deposit would exceed TVL cap"
-    },
-    {
-      "code": 6006,
-      "name": "LockupNotExpired",
-      "msg": "Lockup period has not expired"
-    },
-    {
-      "code": 6007,
-      "name": "InsufficientOperatorShares",
-      "msg": "Operator must hold minimum shares"
-    },
-    {
-      "code": 6008,
-      "name": "OperatorMinSharesRequired",
-      "msg": "Operator cannot withdraw below minimum while active"
-    },
-    {
-      "code": 6009,
-      "name": "SlippageExceeded",
-      "msg": "Output below minimum slippage tolerance"
-    },
-    {
-      "code": 6010,
-      "name": "InsufficientVaultBalance",
-      "msg": "Vault balance insufficient for 2x slash"
-    }
-  ],
+  "metadata": {
+    "description": "Per-agent USDC vault with SPL share tokens",
+    "name": "agent_vault",
+    "spec": "0.1.0",
+    "version": "0.1.0"
+  },
   "types": [
     {
       "name": "DepositRecord",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -875,13 +874,13 @@
             "name": "bump",
             "type": "u8"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "Deposited",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -899,13 +898,13 @@
             "name": "shares",
             "type": "u64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "RevenueReceived",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -927,13 +926,13 @@
             "name": "protocol_cut",
             "type": "u64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "Slashed",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -975,13 +974,13 @@
             "name": "depositor_shares_burned",
             "type": "u64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "VaultInitialized",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -999,25 +998,25 @@
             "name": "max_tvl",
             "type": "u64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "VaultPaused",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
             "type": "pubkey"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "VaultState",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "operator",
@@ -1107,25 +1106,25 @@
             "name": "nonce",
             "type": "u64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "VaultUnpaused",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
             "type": "pubkey"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "Withdrawn",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -1143,7 +1142,8 @@
             "name": "usdc_out",
             "type": "u64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     }
   ]

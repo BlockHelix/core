@@ -1,24 +1,165 @@
 {
+  "accounts": [
+    {
+      "discriminator": [
+        182,
+        153,
+        181,
+        190,
+        176,
+        28,
+        68,
+        221
+      ],
+      "name": "JobReceipt"
+    },
+    {
+      "discriminator": [
+        29,
+        34,
+        224,
+        195,
+        175,
+        183,
+        99,
+        97
+      ],
+      "name": "RegistryState"
+    }
+  ],
   "address": "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9",
-  "metadata": {
-    "name": "receipt_registry",
-    "version": "0.1.0",
-    "spec": "0.1.0",
-    "description": "Immutable job log with challenge windows"
-  },
+  "errors": [
+    {
+      "code": 6000,
+      "msg": "Unauthorized",
+      "name": "Unauthorized"
+    },
+    {
+      "code": 6001,
+      "msg": "Challenge window expired",
+      "name": "ChallengeWindowExpired"
+    },
+    {
+      "code": 6002,
+      "msg": "Challenge window still active",
+      "name": "ChallengeWindowActive"
+    },
+    {
+      "code": 6003,
+      "msg": "Job is not active",
+      "name": "JobNotActive"
+    },
+    {
+      "code": 6004,
+      "msg": "Job is not challenged",
+      "name": "JobNotChallenged"
+    },
+    {
+      "code": 6005,
+      "msg": "Arithmetic overflow",
+      "name": "ArithmeticOverflow"
+    },
+    {
+      "code": 6006,
+      "msg": "Receipt already verified",
+      "name": "AlreadyVerified"
+    }
+  ],
+  "events": [
+    {
+      "discriminator": [
+        203,
+        112,
+        90,
+        24,
+        19,
+        50,
+        66,
+        108
+      ],
+      "name": "JobChallenged"
+    },
+    {
+      "discriminator": [
+        208,
+        205,
+        49,
+        160,
+        98,
+        139,
+        192,
+        217
+      ],
+      "name": "JobFinalized"
+    },
+    {
+      "discriminator": [
+        173,
+        56,
+        68,
+        8,
+        221,
+        71,
+        217,
+        54
+      ],
+      "name": "JobRecorded"
+    },
+    {
+      "discriminator": [
+        132,
+        52,
+        43,
+        42,
+        170,
+        148,
+        136,
+        196
+      ],
+      "name": "JobResolved"
+    },
+    {
+      "discriminator": [
+        178,
+        229,
+        102,
+        47,
+        105,
+        251,
+        235,
+        226
+      ],
+      "name": "JobSignerUpdated"
+    },
+    {
+      "discriminator": [
+        189,
+        58,
+        109,
+        214,
+        74,
+        78,
+        181,
+        8
+      ],
+      "name": "ReceiptVerified"
+    },
+    {
+      "discriminator": [
+        144,
+        138,
+        62,
+        105,
+        58,
+        38,
+        100,
+        177
+      ],
+      "name": "RegistryInitialized"
+    }
+  ],
   "instructions": [
     {
-      "name": "challenge_job",
-      "discriminator": [
-        28,
-        73,
-        26,
-        36,
-        93,
-        69,
-        213,
-        253
-      ],
       "accounts": [
         {
           "name": "registry_state",
@@ -43,20 +184,20 @@
             ]
           }
         }
-      ]
+      ],
+      "discriminator": [
+        28,
+        73,
+        26,
+        36,
+        93,
+        69,
+        213,
+        253
+      ],
+      "name": "challenge_job"
     },
     {
-      "name": "finalize_job",
-      "discriminator": [
-        141,
-        52,
-        35,
-        150,
-        40,
-        6,
-        140,
-        27
-      ],
       "accounts": [
         {
           "name": "registry_state"
@@ -71,24 +212,23 @@
           "name": "_job_id",
           "type": "u64"
         }
-      ]
+      ],
+      "discriminator": [
+        141,
+        52,
+        35,
+        150,
+        40,
+        6,
+        140,
+        27
+      ],
+      "name": "finalize_job"
     },
     {
-      "name": "initialize_registry",
-      "discriminator": [
-        189,
-        181,
-        20,
-        17,
-        174,
-        57,
-        249,
-        59
-      ],
       "accounts": [
         {
           "name": "registry_state",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -109,7 +249,8 @@
                 "path": "vault"
               }
             ]
-          }
+          },
+          "writable": true
         },
         {
           "name": "vault"
@@ -119,12 +260,12 @@
         },
         {
           "name": "operator",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
         }
       ],
       "args": [
@@ -132,20 +273,20 @@
           "name": "challenge_window",
           "type": "i64"
         }
-      ]
+      ],
+      "discriminator": [
+        189,
+        181,
+        20,
+        17,
+        174,
+        57,
+        249,
+        59
+      ],
+      "name": "initialize_registry"
     },
     {
-      "name": "record_job",
-      "discriminator": [
-        54,
-        124,
-        168,
-        158,
-        236,
-        237,
-        107,
-        206
-      ],
       "accounts": [
         {
           "name": "registry_state",
@@ -153,7 +294,6 @@
         },
         {
           "name": "job_receipt",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -169,24 +309,25 @@
                 "path": "registry_state"
               },
               {
+                "account": "RegistryState",
                 "kind": "account",
-                "path": "registry_state.job_counter",
-                "account": "RegistryState"
+                "path": "registry_state.job_counter"
               }
             ]
-          }
+          },
+          "writable": true
         },
         {
           "name": "signer",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "client"
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
         }
       ],
       "args": [
@@ -212,10 +353,40 @@
             ]
           }
         }
-      ]
+      ],
+      "discriminator": [
+        54,
+        124,
+        168,
+        158,
+        236,
+        237,
+        107,
+        206
+      ],
+      "name": "record_job"
     },
     {
-      "name": "resolve_against_agent",
+      "accounts": [
+        {
+          "name": "registry_state",
+          "writable": true
+        },
+        {
+          "name": "job_receipt",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_job_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         16,
         177,
@@ -226,6 +397,9 @@
         21,
         154
       ],
+      "name": "resolve_against_agent"
+    },
+    {
       "accounts": [
         {
           "name": "registry_state",
@@ -245,10 +419,7 @@
           "name": "_job_id",
           "type": "u64"
         }
-      ]
-    },
-    {
-      "name": "resolve_for_agent",
+      ],
       "discriminator": [
         19,
         102,
@@ -259,39 +430,9 @@
         133,
         171
       ],
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "job_receipt",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_job_id",
-          "type": "u64"
-        }
-      ]
+      "name": "resolve_for_agent"
     },
     {
-      "name": "set_job_signer",
-      "discriminator": [
-        10,
-        220,
-        31,
-        215,
-        124,
-        99,
-        222,
-        23
-      ],
       "accounts": [
         {
           "name": "registry_state",
@@ -307,20 +448,20 @@
           "name": "new_signer",
           "type": "pubkey"
         }
-      ]
+      ],
+      "discriminator": [
+        10,
+        220,
+        31,
+        215,
+        124,
+        99,
+        222,
+        23
+      ],
+      "name": "set_job_signer"
     },
     {
-      "name": "verify_receipt",
-      "discriminator": [
-        202,
-        144,
-        21,
-        149,
-        181,
-        189,
-        23,
-        170
-      ],
       "accounts": [
         {
           "name": "job_receipt",
@@ -336,172 +477,30 @@
           "name": "_job_id",
           "type": "u64"
         }
-      ]
-    }
-  ],
-  "accounts": [
-    {
-      "name": "JobReceipt",
+      ],
       "discriminator": [
-        182,
-        153,
-        181,
-        190,
-        176,
-        28,
-        68,
-        221
-      ]
-    },
-    {
-      "name": "RegistryState",
-      "discriminator": [
-        29,
-        34,
-        224,
-        195,
-        175,
-        183,
-        99,
-        97
-      ]
-    }
-  ],
-  "events": [
-    {
-      "name": "JobChallenged",
-      "discriminator": [
-        203,
-        112,
-        90,
-        24,
-        19,
-        50,
-        66,
-        108
-      ]
-    },
-    {
-      "name": "JobFinalized",
-      "discriminator": [
-        208,
-        205,
-        49,
-        160,
-        98,
-        139,
-        192,
-        217
-      ]
-    },
-    {
-      "name": "JobRecorded",
-      "discriminator": [
-        173,
-        56,
-        68,
-        8,
-        221,
-        71,
-        217,
-        54
-      ]
-    },
-    {
-      "name": "JobResolved",
-      "discriminator": [
-        132,
-        52,
-        43,
-        42,
-        170,
-        148,
-        136,
-        196
-      ]
-    },
-    {
-      "name": "JobSignerUpdated",
-      "discriminator": [
-        178,
-        229,
-        102,
-        47,
-        105,
-        251,
-        235,
-        226
-      ]
-    },
-    {
-      "name": "ReceiptVerified",
-      "discriminator": [
-        189,
-        58,
-        109,
-        214,
-        74,
-        78,
-        181,
-        8
-      ]
-    },
-    {
-      "name": "RegistryInitialized",
-      "discriminator": [
+        202,
         144,
-        138,
-        62,
-        105,
-        58,
-        38,
-        100,
-        177
-      ]
+        21,
+        149,
+        181,
+        189,
+        23,
+        170
+      ],
+      "name": "verify_receipt"
     }
   ],
-  "errors": [
-    {
-      "code": 6000,
-      "name": "Unauthorized",
-      "msg": "Unauthorized"
-    },
-    {
-      "code": 6001,
-      "name": "ChallengeWindowExpired",
-      "msg": "Challenge window expired"
-    },
-    {
-      "code": 6002,
-      "name": "ChallengeWindowActive",
-      "msg": "Challenge window still active"
-    },
-    {
-      "code": 6003,
-      "name": "JobNotActive",
-      "msg": "Job is not active"
-    },
-    {
-      "code": 6004,
-      "name": "JobNotChallenged",
-      "msg": "Job is not challenged"
-    },
-    {
-      "code": 6005,
-      "name": "ArithmeticOverflow",
-      "msg": "Arithmetic overflow"
-    },
-    {
-      "code": 6006,
-      "name": "AlreadyVerified",
-      "msg": "Receipt already verified"
-    }
-  ],
+  "metadata": {
+    "description": "Immutable job log with challenge windows",
+    "name": "receipt_registry",
+    "spec": "0.1.0",
+    "version": "0.1.0"
+  },
   "types": [
     {
       "name": "JobChallenged",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -519,13 +518,13 @@
             "name": "challenged_at",
             "type": "i64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "JobFinalized",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -539,13 +538,13 @@
             "name": "finalized_at",
             "type": "i64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "JobReceipt",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -613,13 +612,13 @@
             "name": "bump",
             "type": "u8"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "JobRecorded",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -641,13 +640,13 @@
             "name": "created_at",
             "type": "i64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "JobResolved",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -669,13 +668,13 @@
             "name": "resolved_at",
             "type": "i64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "JobSignerUpdated",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -693,7 +692,8 @@
             "name": "new_signer",
             "type": "pubkey"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
@@ -722,7 +722,6 @@
     {
       "name": "ReceiptVerified",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -740,13 +739,13 @@
             "name": "verified_at",
             "type": "i64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "RegistryInitialized",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -764,13 +763,13 @@
             "name": "challenge_window",
             "type": "i64"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     },
     {
       "name": "RegistryState",
       "type": {
-        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -808,7 +807,8 @@
             "name": "bump",
             "type": "u8"
           }
-        ]
+        ],
+        "kind": "struct"
       }
     }
   ]

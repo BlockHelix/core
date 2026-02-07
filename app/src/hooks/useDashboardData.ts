@@ -37,7 +37,7 @@ export function useDashboardData() {
         const userPubkey = new PublicKey(wallet.address);
 
         const [depositRecords, agentAccounts] = await Promise.all([
-          vaultProgram.account.depositRecord.all([
+          vaultProgram.account.DepositRecord.all([
             {
               memcmp: {
                 offset: 8 + 32,
@@ -45,7 +45,7 @@ export function useDashboardData() {
               },
             },
           ]),
-          factoryProgram.account.agentMetadata.all(),
+          factoryProgram.account.AgentMetadata.all(),
         ]);
 
         if (depositRecords.length === 0) {
@@ -54,7 +54,7 @@ export function useDashboardData() {
         }
 
         const vaultPubkeys = depositRecords.map((r) => (r.account as any).vault as PublicKey);
-        const vaultInfos = await vaultProgram.account.vaultState.fetchMultiple(vaultPubkeys);
+        const vaultInfos = await vaultProgram.account.VaultState.fetchMultiple(vaultPubkeys);
 
         const positionsData = await Promise.all(
           depositRecords.map(async (record, i) => {
@@ -68,14 +68,14 @@ export function useDashboardData() {
 
             try {
               const userShareAccount = await getAssociatedTokenAddress(
-                vaultData.shareMint,
+                vaultData.share_mint,
                 userPubkey
               );
 
               const [shareBalanceInfo, vaultUsdcInfo, shareMintInfo] = await Promise.all([
                 connection.getTokenAccountBalance(userShareAccount),
-                connection.getTokenAccountBalance(vaultData.vaultUsdcAccount),
-                connection.getTokenSupply(vaultData.shareMint),
+                connection.getTokenAccountBalance(vaultData.vault_usdc_account),
+                connection.getTokenSupply(vaultData.share_mint),
               ]);
 
               const balance = parseFloat(shareBalanceInfo.value.amount) / 1_000_000;
@@ -86,7 +86,7 @@ export function useDashboardData() {
               return {
                 vaultState: vaultPubkeys[i],
                 agentName: agent ? (agent.account as any).name : 'Unknown Agent',
-                agentWallet: vaultData.agentWallet,
+                agentWallet: vaultData.agent_wallet,
                 shareBalance: balance,
                 usdcValue: balance * sharePrice,
                 deposited: Number(recordData.totalDeposited) / 1_000_000,
