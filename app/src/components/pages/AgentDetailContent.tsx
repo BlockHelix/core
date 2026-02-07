@@ -206,7 +206,7 @@ export default function AgentDetailContent() {
 
         <div className="mb-12">
           <TryAgentWidget
-            agentId={agentMetadata.operator.toString()}
+            agentId={agentMetadata.vault.toString()}
             price={0.10}
             endpointUrl={agentMetadata.endpointUrl}
             agentName={agentMetadata.name}
@@ -214,7 +214,7 @@ export default function AgentDetailContent() {
         </div>
 
         <div className="mb-12">
-          <HireAgentForm agentId={agentMetadata.operator.toString()} endpointUrl={agentMetadata.endpointUrl} agentName={agentMetadata.name} />
+          <HireAgentForm agentId={agentMetadata.vault.toString()} endpointUrl={agentMetadata.endpointUrl} agentName={agentMetadata.name} />
         </div>
 
         <div className="mb-12">

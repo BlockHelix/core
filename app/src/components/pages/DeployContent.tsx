@@ -140,7 +140,7 @@ export default function DeployContent() {
         toast('Agent created on-chain! Registering with runtime...', 'success');
         try {
           await registerAgentWithRuntime({
-            agentId: agentWalletAddress,
+            agentId: vaultStr,
             name,
             systemPrompt,
             priceUsdcMicro,
@@ -159,7 +159,7 @@ export default function DeployContent() {
       } else if (agentType === 'openclaw') {
         toast('On-chain creation complete! Starting container...', 'success');
         await deployOpenClaw({
-          agentId: agentWalletAddress,
+          agentId: vaultStr,
           name,
           systemPrompt,
           priceUsdcMicro,
@@ -173,7 +173,7 @@ export default function DeployContent() {
       } else {
         toast('On-chain creation complete! Registering endpoint...', 'success');
         await registerCustomAgent({
-          agentId: agentWalletAddress,
+          agentId: vaultStr,
           name,
           endpointUrl,
           priceUsdcMicro,

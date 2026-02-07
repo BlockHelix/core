@@ -88,7 +88,7 @@ export default function OpenClawContent() {
 
       toast('On-chain creation complete! Starting container...', 'success');
       await deployOpenClaw({
-        agentId: agentWalletAddress,
+        agentId: vaultStr,
         name,
         systemPrompt,
         priceUsdcMicro,
