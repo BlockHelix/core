@@ -123,8 +123,6 @@ export default function DeployContent() {
         maxTvl: 10_000_000,
         lockupEpochs: 1,
         epochLength: 86400,
-        targetApyBps: 1000,
-        lendingFloorBps: 300,
         arbitrator: PROTOCOL_TREASURY.toString(),
       });
 
