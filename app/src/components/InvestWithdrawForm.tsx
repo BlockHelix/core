@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { PublicKey } from '@solana/web3.js';
+import { useState, useEffect } from 'react';
+import { PublicKey, Connection } from '@solana/web3.js';
+import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeposit, useWithdraw } from '@/hooks/useVaultTransactions';
 import { formatUSDC, formatShares } from '@/lib/format';
 import { toast } from '@/lib/toast';
+import { RPC_URL } from '@/lib/anchor';
+import { ExternalLink } from 'lucide-react';
+
+const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 
 interface InvestWithdrawFormProps {
   vaultPubkey: PublicKey | null;
@@ -18,13 +23,39 @@ export function InvestWithdrawForm({
   shareMint,
   sharePrice
 }: InvestWithdrawFormProps) {
-  const { authenticated: connected } = useAuth();
+  const { authenticated: connected, walletAddress } = useAuth();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
 
   const { deposit, isLoading: depositLoading } = useDeposit();
   const { withdraw, isLoading: withdrawLoading } = useWithdraw();
+
+  useEffect(() => {
+    async function fetchBalance() {
+      if (!walletAddress) {
+        setUsdcBalance(null);
+        return;
+      }
+
+      setBalanceLoading(true);
+      try {
+        const connection = new Connection(RPC_URL, 'confirmed');
+        const walletPubkey = new PublicKey(walletAddress);
+        const ata = await getAssociatedTokenAddress(USDC_MINT, walletPubkey);
+        const account = await getAccount(connection, ata);
+        setUsdcBalance(Number(account.amount) / 1_000_000);
+      } catch {
+        setUsdcBalance(0);
+      } finally {
+        setBalanceLoading(false);
+      }
+    }
+
+    fetchBalance();
+  }, [walletAddress]);
 
   const estimatedShares = depositAmount ? parseFloat(depositAmount) / sharePrice : 0;
   const estimatedUsdc = withdrawAmount ? parseFloat(withdrawAmount) * sharePrice : 0;
@@ -84,6 +115,7 @@ export function InvestWithdrawForm({
   };
 
   const isLoading = depositLoading || withdrawLoading;
+  const hasNoUsdc = usdcBalance !== null && usdcBalance === 0;
 
   return (
     <div className="border border-white/10 overflow-hidden">
@@ -113,15 +145,57 @@ export function InvestWithdrawForm({
       <div className="p-6">
         {activeTab === 'deposit' ? (
           <div className="space-y-5">
+            {connected && hasNoUsdc && (
+              <div className="p-4 border border-amber-400/30 bg-amber-400/5">
+                <div className="text-[10px] uppercase tracking-widest text-amber-400 font-bold mb-2 font-mono">
+                  NO USDC BALANCE
+                </div>
+                <p className="text-xs text-white/60 mb-3">
+                  You need devnet USDC to deposit. Get free test USDC from Circle&apos;s faucet.
+                </p>
+                <a
+                  href="https://faucet.circle.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Get Devnet USDC
+                </a>
+              </div>
+            )}
+
             <div>
-              <label className="block text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">USDC AMOUNT</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-[10px] uppercase tracking-widest text-white/30 font-mono">USDC AMOUNT</label>
+                {connected && usdcBalance !== null && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      {[25, 50, 75].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => setDepositAmount(((usdcBalance * pct) / 100).toFixed(2))}
+                          disabled={usdcBalance === 0}
+                          className="px-1.5 py-0.5 text-[9px] font-mono text-white/40 border border-white/20 hover:border-emerald-400 hover:text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-white/40 font-mono">
+                      Bal: <span className="text-white/60">{formatUSDC(usdcBalance)}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
               <input
                 type="number"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
                 placeholder="0.00"
                 className="w-full bg-black/30 border border-white/30 px-4 py-2.5 font-mono tabular-nums text-base text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-colors duration-300"
-                disabled={!connected || isLoading}
+                disabled={!connected || isLoading || hasNoUsdc}
               />
               {depositAmount && (
                 <div className="mt-2 flex items-baseline gap-2 text-sm">
@@ -138,7 +212,7 @@ export function InvestWithdrawForm({
             {connected ? (
               <button
                 onClick={handleDeposit}
-                disabled={!depositAmount || parseFloat(depositAmount) <= 0 || isLoading}
+                disabled={!depositAmount || parseFloat(depositAmount) <= 0 || isLoading || hasNoUsdc}
                 className="w-full bg-emerald-400 text-black font-bold py-3 text-xs tracking-widest hover:bg-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
               >
                 {isLoading ? 'PROCESSING...' : 'EXECUTE DEPOSIT'}

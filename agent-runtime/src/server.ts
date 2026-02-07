@@ -31,7 +31,7 @@ export function createApp(): express.Application {
   app.use(cors({
     origin: ['https://www.blockhelix.tech', 'https://blockhelix.tech', 'http://localhost:3000'],
     credentials: true,
-    exposedHeaders: ['PAYMENT-REQUIRED', 'X-Payment-Response'],
+    exposedHeaders: ['payment-required', 'x-payment-response', 'PAYMENT-REQUIRED', 'X-Payment-Response'],
   }));
   app.use(express.json({ limit: '1mb' }));
 
