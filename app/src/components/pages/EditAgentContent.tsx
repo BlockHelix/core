@@ -5,14 +5,18 @@ import { useWallets } from '@privy-io/react-auth/solana';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Key, Check, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { PublicKey } from '@solana/web3.js';
 import { getAgentDetail, updateAgentConfig, type AgentDetail } from '@/lib/runtime';
 import { formatUSDC } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import { CopyButton } from '@/components/CopyButton';
 import WalletButton from '@/components/WalletButton';
 import PriceInput from '@/components/create/PriceInput';
+import { useSetJobSigner } from '@/hooks/useSetJobSigner';
+import { usePrograms } from '@/hooks/usePrograms';
+import { findRegistryState } from '@/lib/pda';
 import bs58 from 'bs58';
 
 interface EditAgentContentProps {
@@ -36,6 +40,11 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
   const [isActive, setIsActive] = useState(true);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { setJobSigner, isLoading: isSettingJobSigner } = useSetJobSigner();
+  const { registryProgram } = usePrograms();
+  const [currentJobSigner, setCurrentJobSigner] = useState<string | null>(null);
+  const [jobSignerStatus, setJobSignerStatus] = useState<'loading' | 'not_set' | 'set' | 'error'>('loading');
 
   useEffect(() => {
     if (!connected || !wallet?.address) {
@@ -62,6 +71,38 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
 
     fetchAgent();
   }, [agentId, connected, wallet?.address]);
+
+  useEffect(() => {
+    if (!agent?.vault || !registryProgram) {
+      setJobSignerStatus('loading');
+      return;
+    }
+
+    const fetchJobSigner = async () => {
+      try {
+        const vaultPubkey = new PublicKey(agent.vault);
+        const [registryState] = findRegistryState(vaultPubkey);
+        const registry = await registryProgram.account.registryState.fetch(registryState);
+        const jobSigner = (registry as any).jobSigner?.toString();
+        const operator = (registry as any).operator?.toString();
+
+        setCurrentJobSigner(jobSigner);
+
+        if (jobSigner === operator) {
+          setJobSignerStatus('not_set');
+        } else if (agent.agentWallet && jobSigner === agent.agentWallet) {
+          setJobSignerStatus('set');
+        } else {
+          setJobSignerStatus('not_set');
+        }
+      } catch (err) {
+        console.error('Failed to fetch job signer:', err);
+        setJobSignerStatus('error');
+      }
+    };
+
+    fetchJobSigner();
+  }, [agent?.vault, agent?.agentWallet, registryProgram]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -276,7 +317,7 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-white/40 mb-2 font-mono">
-                  AGENT WALLET
+                  OPERATOR
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-mono text-white">
@@ -298,6 +339,66 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
               </div>
             </div>
           </div>
+
+          {agent.agentWallet && (
+            <div className="mb-8 border border-white/10 p-6 bg-white/[0.01]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-white/40 mb-2 font-mono">
+                    JOB SIGNER (HOT WALLET)
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-mono text-white">
+                      {agent.agentWallet.slice(0, 8)}...{agent.agentWallet.slice(-8)}
+                    </span>
+                    <CopyButton value={agent.agentWallet} />
+                  </div>
+                  <p className="text-xs text-white/40 max-w-md">
+                    This wallet signs job receipts on-chain. Delegate it from your operator wallet to enable automatic job recording.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {jobSignerStatus === 'loading' && (
+                    <span className="text-xs text-white/40 font-mono">Loading...</span>
+                  )}
+                  {jobSignerStatus === 'set' && (
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-mono">
+                      <Check className="w-3 h-3" /> Delegated
+                    </span>
+                  )}
+                  {jobSignerStatus === 'not_set' && (
+                    <button
+                      onClick={async () => {
+                        if (!agent.vault || !agent.agentWallet) return;
+                        try {
+                          const tx = await setJobSigner(
+                            new PublicKey(agent.vault),
+                            new PublicKey(agent.agentWallet)
+                          );
+                          if (tx) {
+                            toast('Job signer delegated!', 'success');
+                            setJobSignerStatus('set');
+                          }
+                        } catch (err: any) {
+                          toast(err.message || 'Failed to delegate', 'error');
+                        }
+                      }}
+                      disabled={isSettingJobSigner}
+                      className="inline-flex items-center gap-2 bg-orange-500 text-black font-medium px-4 py-2 text-xs uppercase tracking-widest hover:bg-orange-400 transition-colors duration-300 disabled:opacity-50 font-mono"
+                    >
+                      <Key className="w-3 h-3" />
+                      {isSettingJobSigner ? 'Signing...' : 'Delegate'}
+                    </button>
+                  )}
+                  {jobSignerStatus === 'error' && (
+                    <span className="inline-flex items-center gap-1 text-xs text-red-400 font-mono">
+                      <AlertCircle className="w-3 h-3" /> Error
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-8">
             <div className="space-y-6 pb-8 border-b border-white/10">

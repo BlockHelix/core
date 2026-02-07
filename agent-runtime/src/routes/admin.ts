@@ -125,6 +125,7 @@ export function handleGetAgentConfig(req: Request, res: Response): void {
     registry: agent.registry,
     isActive: agent.isActive,
     ownerWallet: agent.ownerWallet,
+    agentWallet: agent.agentWallet,
     createdAt: agent.createdAt,
     updatedAt: agent.updatedAt,
   });

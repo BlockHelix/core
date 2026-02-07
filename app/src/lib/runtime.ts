@@ -89,6 +89,7 @@ export interface AgentDetail extends AgentSummary {
   systemPrompt: string;
   registry: string;
   ownerWallet: string;
+  agentWallet?: string;
 }
 
 export interface UpdateAgentParams {
