@@ -26,8 +26,8 @@ export function useDeposit() {
     try {
       const depositor = new PublicKey(wallet.address);
 
-      const vaultData = await vaultProgram.account.VaultState.fetch(vaultState);
-      const usdcMint = vaultData.usdc_mint as PublicKey;
+      const vaultData = await vaultProgram.account.vaultState.fetch(vaultState);
+      const usdcMint = vaultData.usdcMint as PublicKey;
       const operator = vaultData.operator as PublicKey;
 
       const depositorUsdcAccount = await getAssociatedTokenAddress(
@@ -58,17 +58,17 @@ export function useDeposit() {
       const tx = await vaultProgram.methods
         .deposit(amountMicroUsdc, new BN(0))
         .accountsPartial({
-          vault_state: vaultState,
-          share_mint: shareMint,
-          vault_usdc_account: vaultUsdcAccount,
+          vaultState: vaultState,
+          shareMint: shareMint,
+          vaultUsdcAccount: vaultUsdcAccount,
           depositor: depositor,
-          depositor_usdc_account: depositorUsdcAccount,
-          depositor_share_account: depositorShareAccount,
-          operator_share_account: operatorShareAccount,
-          deposit_record: depositRecord,
-          token_program: TOKEN_PROGRAM_ID,
-          associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
-          system_program: SystemProgram.programId,
+          depositorUsdcAccount: depositorUsdcAccount,
+          depositorShareAccount: depositorShareAccount,
+          operatorShareAccount: operatorShareAccount,
+          depositRecord: depositRecord,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
         .rpc();
 
@@ -112,8 +112,8 @@ export function useWithdraw() {
     try {
       const withdrawer = new PublicKey(wallet.address);
 
-      const vaultData = await vaultProgram.account.VaultState.fetch(vaultState);
-      const usdcMint = vaultData.usdc_mint as PublicKey;
+      const vaultData = await vaultProgram.account.vaultState.fetch(vaultState);
+      const usdcMint = vaultData.usdcMint as PublicKey;
 
       const withdrawerUsdcAccount = await getAssociatedTokenAddress(
         usdcMint,
@@ -138,14 +138,14 @@ export function useWithdraw() {
       const tx = await vaultProgram.methods
         .withdraw(shareMicroAmount, new BN(0))
         .accountsPartial({
-          vault_state: vaultState,
-          share_mint: shareMint,
-          vault_usdc_account: vaultUsdcAccount,
+          vaultState: vaultState,
+          shareMint: shareMint,
+          vaultUsdcAccount: vaultUsdcAccount,
           withdrawer,
-          withdrawer_usdc_account: withdrawerUsdcAccount,
-          withdrawer_share_account: withdrawerShareAccount,
-          deposit_record: depositRecord,
-          token_program: TOKEN_PROGRAM_ID,
+          withdrawerUsdcAccount: withdrawerUsdcAccount,
+          withdrawerShareAccount: withdrawerShareAccount,
+          depositRecord: depositRecord,
+          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
 

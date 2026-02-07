@@ -1,191 +1,20 @@
-// Auto-generated from IDL
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/receipt_registry.json`.
+ */
 export type ReceiptRegistry = {
-  "accounts": [
-    {
-      "discriminator": [
-        182,
-        153,
-        181,
-        190,
-        176,
-        28,
-        68,
-        221
-      ],
-      "name": "JobReceipt"
-    },
-    {
-      "discriminator": [
-        29,
-        34,
-        224,
-        195,
-        175,
-        183,
-        99,
-        97
-      ],
-      "name": "RegistryState"
-    }
-  ],
   "address": "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9",
-  "errors": [
-    {
-      "code": 6000,
-      "msg": "Unauthorized",
-      "name": "Unauthorized"
-    },
-    {
-      "code": 6001,
-      "msg": "Challenge window expired",
-      "name": "ChallengeWindowExpired"
-    },
-    {
-      "code": 6002,
-      "msg": "Challenge window still active",
-      "name": "ChallengeWindowActive"
-    },
-    {
-      "code": 6003,
-      "msg": "Job is not active",
-      "name": "JobNotActive"
-    },
-    {
-      "code": 6004,
-      "msg": "Job is not challenged",
-      "name": "JobNotChallenged"
-    },
-    {
-      "code": 6005,
-      "msg": "Arithmetic overflow",
-      "name": "ArithmeticOverflow"
-    },
-    {
-      "code": 6006,
-      "msg": "Receipt already verified",
-      "name": "AlreadyVerified"
-    }
-  ],
-  "events": [
-    {
-      "discriminator": [
-        203,
-        112,
-        90,
-        24,
-        19,
-        50,
-        66,
-        108
-      ],
-      "name": "JobChallenged"
-    },
-    {
-      "discriminator": [
-        208,
-        205,
-        49,
-        160,
-        98,
-        139,
-        192,
-        217
-      ],
-      "name": "JobFinalized"
-    },
-    {
-      "discriminator": [
-        173,
-        56,
-        68,
-        8,
-        221,
-        71,
-        217,
-        54
-      ],
-      "name": "JobRecorded"
-    },
-    {
-      "discriminator": [
-        132,
-        52,
-        43,
-        42,
-        170,
-        148,
-        136,
-        196
-      ],
-      "name": "JobResolved"
-    },
-    {
-      "discriminator": [
-        178,
-        229,
-        102,
-        47,
-        105,
-        251,
-        235,
-        226
-      ],
-      "name": "JobSignerUpdated"
-    },
-    {
-      "discriminator": [
-        189,
-        58,
-        109,
-        214,
-        74,
-        78,
-        181,
-        8
-      ],
-      "name": "ReceiptVerified"
-    },
-    {
-      "discriminator": [
-        144,
-        138,
-        62,
-        105,
-        58,
-        38,
-        100,
-        177
-      ],
-      "name": "RegistryInitialized"
-    }
-  ],
+  "metadata": {
+    "name": "receiptRegistry",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Immutable job log with challenge windows"
+  },
   "instructions": [
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "job_receipt",
-          "writable": true
-        },
-        {
-          "name": "challenger",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_reason_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ],
+      "name": "challengeJob",
       "discriminator": [
         28,
         73,
@@ -196,24 +25,34 @@ export type ReceiptRegistry = {
         213,
         253
       ],
-      "name": "challenge_job"
-    },
-    {
       "accounts": [
         {
-          "name": "registry_state"
+          "name": "registryState",
+          "writable": true
         },
         {
-          "name": "job_receipt",
+          "name": "jobReceipt",
           "writable": true
+        },
+        {
+          "name": "challenger",
+          "signer": true
         }
       ],
       "args": [
         {
-          "name": "_job_id",
-          "type": "u64"
+          "name": "reasonHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
-      ],
+      ]
+    },
+    {
+      "name": "finalizeJob",
       "discriminator": [
         141,
         52,
@@ -224,12 +63,38 @@ export type ReceiptRegistry = {
         140,
         27
       ],
-      "name": "finalize_job"
-    },
-    {
       "accounts": [
         {
-          "name": "registry_state",
+          "name": "registryState"
+        },
+        {
+          "name": "jobReceipt",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "jobId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initializeRegistry",
+      "discriminator": [
+        189,
+        181,
+        20,
+        17,
+        174,
+        57,
+        249,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "registryState",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -250,51 +115,51 @@ export type ReceiptRegistry = {
                 "path": "vault"
               }
             ]
-          },
-          "writable": true
+          }
         },
         {
           "name": "vault"
         },
         {
-          "name": "protocol_authority"
+          "name": "protocolAuthority"
         },
         {
           "name": "operator",
-          "signer": true,
-          "writable": true
+          "writable": true,
+          "signer": true
         },
         {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "challenge_window",
+          "name": "challengeWindow",
           "type": "i64"
         }
-      ],
-      "discriminator": [
-        189,
-        181,
-        20,
-        17,
-        174,
-        57,
-        249,
-        59
-      ],
-      "name": "initialize_registry"
+      ]
     },
     {
+      "name": "recordJob",
+      "discriminator": [
+        54,
+        124,
+        168,
+        158,
+        236,
+        237,
+        107,
+        206
+      ],
       "accounts": [
         {
-          "name": "registry_state",
+          "name": "registryState",
           "writable": true
         },
         {
-          "name": "job_receipt",
+          "name": "jobReceipt",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -307,33 +172,32 @@ export type ReceiptRegistry = {
               },
               {
                 "kind": "account",
-                "path": "registry_state"
+                "path": "registryState"
               },
               {
-                "account": "RegistryState",
                 "kind": "account",
-                "path": "registry_state.job_counter"
+                "path": "registry_state.job_counter",
+                "account": "registryState"
               }
             ]
-          },
-          "writable": true
+          }
         },
         {
           "name": "signer",
-          "signer": true,
-          "writable": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "client"
         },
         {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "artifact_hash",
+          "name": "artifactHash",
           "type": {
             "array": [
               "u8",
@@ -342,11 +206,11 @@ export type ReceiptRegistry = {
           }
         },
         {
-          "name": "payment_amount",
+          "name": "paymentAmount",
           "type": "u64"
         },
         {
-          "name": "payment_tx",
+          "name": "paymentTx",
           "type": {
             "array": [
               "u8",
@@ -354,40 +218,10 @@ export type ReceiptRegistry = {
             ]
           }
         }
-      ],
-      "discriminator": [
-        54,
-        124,
-        168,
-        158,
-        236,
-        237,
-        107,
-        206
-      ],
-      "name": "record_job"
+      ]
     },
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "job_receipt",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_job_id",
-          "type": "u64"
-        }
-      ],
+      "name": "resolveAgainstAgent",
       "discriminator": [
         16,
         177,
@@ -398,16 +232,13 @@ export type ReceiptRegistry = {
         21,
         154
       ],
-      "name": "resolve_against_agent"
-    },
-    {
       "accounts": [
         {
-          "name": "registry_state",
+          "name": "registryState",
           "writable": true
         },
         {
-          "name": "job_receipt",
+          "name": "jobReceipt",
           "writable": true
         },
         {
@@ -417,10 +248,13 @@ export type ReceiptRegistry = {
       ],
       "args": [
         {
-          "name": "_job_id",
+          "name": "jobId",
           "type": "u64"
         }
-      ],
+      ]
+    },
+    {
+      "name": "resolveForAgent",
       "discriminator": [
         19,
         102,
@@ -431,25 +265,29 @@ export type ReceiptRegistry = {
         133,
         171
       ],
-      "name": "resolve_for_agent"
-    },
-    {
       "accounts": [
         {
-          "name": "registry_state",
+          "name": "registryState",
           "writable": true
         },
         {
-          "name": "operator",
+          "name": "jobReceipt",
+          "writable": true
+        },
+        {
+          "name": "authority",
           "signer": true
         }
       ],
       "args": [
         {
-          "name": "new_signer",
-          "type": "pubkey"
+          "name": "jobId",
+          "type": "u64"
         }
-      ],
+      ]
+    },
+    {
+      "name": "setJobSigner",
       "discriminator": [
         10,
         220,
@@ -460,25 +298,25 @@ export type ReceiptRegistry = {
         222,
         23
       ],
-      "name": "set_job_signer"
-    },
-    {
       "accounts": [
         {
-          "name": "job_receipt",
+          "name": "registryState",
           "writable": true
         },
         {
-          "name": "client",
+          "name": "operator",
           "signer": true
         }
       ],
       "args": [
         {
-          "name": "_job_id",
-          "type": "u64"
+          "name": "newSigner",
+          "type": "pubkey"
         }
-      ],
+      ]
+    },
+    {
+      "name": "verifyReceipt",
       "discriminator": [
         202,
         144,
@@ -489,335 +327,27 @@ export type ReceiptRegistry = {
         23,
         170
       ],
-      "name": "verify_receipt"
+      "accounts": [
+        {
+          "name": "jobReceipt",
+          "writable": true
+        },
+        {
+          "name": "client",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "jobId",
+          "type": "u64"
+        }
+      ]
     }
   ],
-  "metadata": {
-    "description": "Immutable job log with challenge windows",
-    "name": "receipt_registry",
-    "spec": "0.1.0",
-    "version": "0.1.0"
-  },
-  "types": [
-    {
-      "name": "JobChallenged",
-      "type": {
-        "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "challenger",
-            "type": "pubkey"
-          },
-          {
-            "name": "challenged_at",
-            "type": "i64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "JobFinalized",
-      "type": {
-        "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "finalized_at",
-            "type": "i64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "JobReceipt",
-      "type": {
-        "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "client",
-            "type": "pubkey"
-          },
-          {
-            "name": "artifact_hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "payment_amount",
-            "type": "u64"
-          },
-          {
-            "name": "payment_tx",
-            "type": {
-              "array": [
-                "u8",
-                64
-              ]
-            }
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "JobStatus"
-              }
-            }
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          },
-          {
-            "name": "challenged_at",
-            "type": "i64"
-          },
-          {
-            "name": "resolved_at",
-            "type": "i64"
-          },
-          {
-            "name": "challenger",
-            "type": "pubkey"
-          },
-          {
-            "name": "client_verified",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "JobRecorded",
-      "type": {
-        "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "client",
-            "type": "pubkey"
-          },
-          {
-            "name": "payment_amount",
-            "type": "u64"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "JobResolved",
-      "type": {
-        "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "JobStatus"
-              }
-            }
-          },
-          {
-            "name": "resolved_at",
-            "type": "i64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "JobSignerUpdated",
-      "type": {
-        "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
-          {
-            "name": "operator",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_signer",
-            "type": "pubkey"
-          },
-          {
-            "name": "new_signer",
-            "type": "pubkey"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "JobStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Active"
-          },
-          {
-            "name": "Finalized"
-          },
-          {
-            "name": "Challenged"
-          },
-          {
-            "name": "Resolved"
-          },
-          {
-            "name": "Rejected"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ReceiptVerified",
-      "type": {
-        "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "client",
-            "type": "pubkey"
-          },
-          {
-            "name": "verified_at",
-            "type": "i64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "RegistryInitialized",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "operator",
-            "type": "pubkey"
-          },
-          {
-            "name": "protocol_authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "challenge_window",
-            "type": "i64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "RegistryState",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "operator",
-            "type": "pubkey"
-          },
-          {
-            "name": "protocol_authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_signer",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_counter",
-            "type": "u64"
-          },
-          {
-            "name": "challenge_window",
-            "type": "i64"
-          },
-          {
-            "name": "total_challenged",
-            "type": "u64"
-          },
-          {
-            "name": "total_resolved_against",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ],
-        "kind": "struct"
-      }
-    }
-  ]
-};
-
-export const IDL: ReceiptRegistry = {
   "accounts": [
     {
+      "name": "jobReceipt",
       "discriminator": [
         182,
         153,
@@ -827,10 +357,10 @@ export const IDL: ReceiptRegistry = {
         28,
         68,
         221
-      ],
-      "name": "JobReceipt"
+      ]
     },
     {
+      "name": "registryState",
       "discriminator": [
         29,
         34,
@@ -840,50 +370,12 @@ export const IDL: ReceiptRegistry = {
         183,
         99,
         97
-      ],
-      "name": "RegistryState"
-    }
-  ],
-  "address": "jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9",
-  "errors": [
-    {
-      "code": 6000,
-      "msg": "Unauthorized",
-      "name": "Unauthorized"
-    },
-    {
-      "code": 6001,
-      "msg": "Challenge window expired",
-      "name": "ChallengeWindowExpired"
-    },
-    {
-      "code": 6002,
-      "msg": "Challenge window still active",
-      "name": "ChallengeWindowActive"
-    },
-    {
-      "code": 6003,
-      "msg": "Job is not active",
-      "name": "JobNotActive"
-    },
-    {
-      "code": 6004,
-      "msg": "Job is not challenged",
-      "name": "JobNotChallenged"
-    },
-    {
-      "code": 6005,
-      "msg": "Arithmetic overflow",
-      "name": "ArithmeticOverflow"
-    },
-    {
-      "code": 6006,
-      "msg": "Receipt already verified",
-      "name": "AlreadyVerified"
+      ]
     }
   ],
   "events": [
     {
+      "name": "jobChallenged",
       "discriminator": [
         203,
         112,
@@ -893,10 +385,10 @@ export const IDL: ReceiptRegistry = {
         50,
         66,
         108
-      ],
-      "name": "JobChallenged"
+      ]
     },
     {
+      "name": "jobFinalized",
       "discriminator": [
         208,
         205,
@@ -906,10 +398,10 @@ export const IDL: ReceiptRegistry = {
         139,
         192,
         217
-      ],
-      "name": "JobFinalized"
+      ]
     },
     {
+      "name": "jobRecorded",
       "discriminator": [
         173,
         56,
@@ -919,10 +411,10 @@ export const IDL: ReceiptRegistry = {
         71,
         217,
         54
-      ],
-      "name": "JobRecorded"
+      ]
     },
     {
+      "name": "jobResolved",
       "discriminator": [
         132,
         52,
@@ -932,10 +424,10 @@ export const IDL: ReceiptRegistry = {
         148,
         136,
         196
-      ],
-      "name": "JobResolved"
+      ]
     },
     {
+      "name": "jobSignerUpdated",
       "discriminator": [
         178,
         229,
@@ -945,10 +437,10 @@ export const IDL: ReceiptRegistry = {
         251,
         235,
         226
-      ],
-      "name": "JobSignerUpdated"
+      ]
     },
     {
+      "name": "receiptVerified",
       "discriminator": [
         189,
         58,
@@ -958,10 +450,10 @@ export const IDL: ReceiptRegistry = {
         78,
         181,
         8
-      ],
-      "name": "ReceiptVerified"
+      ]
     },
     {
+      "name": "registryInitialized",
       "discriminator": [
         144,
         138,
@@ -971,360 +463,58 @@ export const IDL: ReceiptRegistry = {
         38,
         100,
         177
-      ],
-      "name": "RegistryInitialized"
+      ]
     }
   ],
-  "instructions": [
+  "errors": [
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "job_receipt",
-          "writable": true
-        },
-        {
-          "name": "challenger",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_reason_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ],
-      "discriminator": [
-        28,
-        73,
-        26,
-        36,
-        93,
-        69,
-        213,
-        253
-      ],
-      "name": "challenge_job"
+      "code": 6000,
+      "name": "unauthorized",
+      "msg": "unauthorized"
     },
     {
-      "accounts": [
-        {
-          "name": "registry_state"
-        },
-        {
-          "name": "job_receipt",
-          "writable": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_job_id",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        141,
-        52,
-        35,
-        150,
-        40,
-        6,
-        140,
-        27
-      ],
-      "name": "finalize_job"
+      "code": 6001,
+      "name": "challengeWindowExpired",
+      "msg": "Challenge window expired"
     },
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "vault"
-        },
-        {
-          "name": "protocol_authority"
-        },
-        {
-          "name": "operator",
-          "signer": true,
-          "writable": true
-        },
-        {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "challenge_window",
-          "type": "i64"
-        }
-      ],
-      "discriminator": [
-        189,
-        181,
-        20,
-        17,
-        174,
-        57,
-        249,
-        59
-      ],
-      "name": "initialize_registry"
+      "code": 6002,
+      "name": "challengeWindowActive",
+      "msg": "Challenge window still active"
     },
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "job_receipt",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  106,
-                  111,
-                  98
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "registry_state"
-              },
-              {
-                "account": "RegistryState",
-                "kind": "account",
-                "path": "registry_state.job_counter"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "signer",
-          "signer": true,
-          "writable": true
-        },
-        {
-          "name": "client"
-        },
-        {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "artifact_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "payment_amount",
-          "type": "u64"
-        },
-        {
-          "name": "payment_tx",
-          "type": {
-            "array": [
-              "u8",
-              64
-            ]
-          }
-        }
-      ],
-      "discriminator": [
-        54,
-        124,
-        168,
-        158,
-        236,
-        237,
-        107,
-        206
-      ],
-      "name": "record_job"
+      "code": 6003,
+      "name": "jobNotActive",
+      "msg": "Job is not active"
     },
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "job_receipt",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_job_id",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        16,
-        177,
-        176,
-        172,
-        55,
-        92,
-        21,
-        154
-      ],
-      "name": "resolve_against_agent"
+      "code": 6004,
+      "name": "jobNotChallenged",
+      "msg": "Job is not challenged"
     },
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "job_receipt",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_job_id",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        19,
-        102,
-        229,
-        126,
-        46,
-        161,
-        133,
-        171
-      ],
-      "name": "resolve_for_agent"
+      "code": 6005,
+      "name": "arithmeticOverflow",
+      "msg": "Arithmetic overflow"
     },
     {
-      "accounts": [
-        {
-          "name": "registry_state",
-          "writable": true
-        },
-        {
-          "name": "operator",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "new_signer",
-          "type": "pubkey"
-        }
-      ],
-      "discriminator": [
-        10,
-        220,
-        31,
-        215,
-        124,
-        99,
-        222,
-        23
-      ],
-      "name": "set_job_signer"
-    },
-    {
-      "accounts": [
-        {
-          "name": "job_receipt",
-          "writable": true
-        },
-        {
-          "name": "client",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "_job_id",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        202,
-        144,
-        21,
-        149,
-        181,
-        189,
-        23,
-        170
-      ],
-      "name": "verify_receipt"
+      "code": 6006,
+      "name": "alreadyVerified",
+      "msg": "Receipt already verified"
     }
   ],
-  "metadata": {
-    "description": "Immutable job log with challenge windows",
-    "name": "receipt_registry",
-    "spec": "0.1.0",
-    "version": "0.1.0"
-  },
   "types": [
     {
-      "name": "JobChallenged",
+      "name": "jobChallenged",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "registry",
             "type": "pubkey"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
@@ -1332,43 +522,43 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "challenged_at",
+            "name": "challengedAt",
             "type": "i64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "JobFinalized",
+      "name": "jobFinalized",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "registry",
             "type": "pubkey"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
-            "name": "finalized_at",
+            "name": "finalizedAt",
             "type": "i64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "JobReceipt",
+      "name": "jobReceipt",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "registry",
             "type": "pubkey"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
@@ -1376,7 +566,7 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "artifact_hash",
+            "name": "artifactHash",
             "type": {
               "array": [
                 "u8",
@@ -1385,11 +575,11 @@ export const IDL: ReceiptRegistry = {
             }
           },
           {
-            "name": "payment_amount",
+            "name": "paymentAmount",
             "type": "u64"
           },
           {
-            "name": "payment_tx",
+            "name": "paymentTx",
             "type": {
               "array": [
                 "u8",
@@ -1401,20 +591,20 @@ export const IDL: ReceiptRegistry = {
             "name": "status",
             "type": {
               "defined": {
-                "name": "JobStatus"
+                "name": "jobStatus"
               }
             }
           },
           {
-            "name": "created_at",
+            "name": "createdAt",
             "type": "i64"
           },
           {
-            "name": "challenged_at",
+            "name": "challengedAt",
             "type": "i64"
           },
           {
-            "name": "resolved_at",
+            "name": "resolvedAt",
             "type": "i64"
           },
           {
@@ -1422,27 +612,27 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "client_verified",
+            "name": "clientVerified",
             "type": "bool"
           },
           {
             "name": "bump",
             "type": "u8"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "JobRecorded",
+      "name": "jobRecorded",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "registry",
             "type": "pubkey"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
@@ -1450,48 +640,48 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "payment_amount",
+            "name": "paymentAmount",
             "type": "u64"
           },
           {
-            "name": "created_at",
+            "name": "createdAt",
             "type": "i64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "JobResolved",
+      "name": "jobResolved",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "registry",
             "type": "pubkey"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
             "name": "status",
             "type": {
               "defined": {
-                "name": "JobStatus"
+                "name": "jobStatus"
               }
             }
           },
           {
-            "name": "resolved_at",
+            "name": "resolvedAt",
             "type": "i64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "JobSignerUpdated",
+      "name": "jobSignerUpdated",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "registry",
@@ -1502,50 +692,50 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "old_signer",
+            "name": "oldSigner",
             "type": "pubkey"
           },
           {
-            "name": "new_signer",
+            "name": "newSigner",
             "type": "pubkey"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "JobStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Active"
-          },
-          {
-            "name": "Finalized"
-          },
-          {
-            "name": "Challenged"
-          },
-          {
-            "name": "Resolved"
-          },
-          {
-            "name": "Rejected"
           }
         ]
       }
     },
     {
-      "name": "ReceiptVerified",
+      "name": "jobStatus",
       "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "active"
+          },
+          {
+            "name": "finalized"
+          },
+          {
+            "name": "challenged"
+          },
+          {
+            "name": "resolved"
+          },
+          {
+            "name": "rejected"
+          }
+        ]
+      }
+    },
+    {
+      "name": "receiptVerified",
+      "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "registry",
             "type": "pubkey"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
@@ -1553,16 +743,16 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "verified_at",
+            "name": "verifiedAt",
             "type": "i64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "RegistryInitialized",
+      "name": "registryInitialized",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -1573,20 +763,20 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "protocol_authority",
+            "name": "protocolAuthority",
             "type": "pubkey"
           },
           {
-            "name": "challenge_window",
+            "name": "challengeWindow",
             "type": "i64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "RegistryState",
+      "name": "registryState",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -1597,35 +787,34 @@ export const IDL: ReceiptRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "protocol_authority",
+            "name": "protocolAuthority",
             "type": "pubkey"
           },
           {
-            "name": "job_signer",
+            "name": "jobSigner",
             "type": "pubkey"
           },
           {
-            "name": "job_counter",
+            "name": "jobCounter",
             "type": "u64"
           },
           {
-            "name": "challenge_window",
+            "name": "challengeWindow",
             "type": "i64"
           },
           {
-            "name": "total_challenged",
+            "name": "totalChallenged",
             "type": "u64"
           },
           {
-            "name": "total_resolved_against",
+            "name": "totalResolvedAgainst",
             "type": "u64"
           },
           {
             "name": "bump",
             "type": "u8"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     }
   ]

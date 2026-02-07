@@ -1,254 +1,62 @@
-// Auto-generated from IDL
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/agent_vault.json`.
+ */
 export type AgentVault = {
-  "accounts": [
-    {
-      "discriminator": [
-        83,
-        232,
-        10,
-        31,
-        251,
-        49,
-        189,
-        167
-      ],
-      "name": "DepositRecord"
-    },
-    {
-      "discriminator": [
-        228,
-        196,
-        82,
-        165,
-        98,
-        210,
-        235,
-        152
-      ],
-      "name": "VaultState"
-    }
-  ],
   "address": "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS",
-  "errors": [
-    {
-      "code": 6000,
-      "msg": "Invalid fee configuration",
-      "name": "InvalidFees"
-    },
-    {
-      "code": 6001,
-      "msg": "Arithmetic overflow",
-      "name": "ArithmeticOverflow"
-    },
-    {
-      "code": 6002,
-      "msg": "Amount must be greater than zero",
-      "name": "ZeroAmount"
-    },
-    {
-      "code": 6003,
-      "msg": "Calculated shares would be zero",
-      "name": "ZeroShares"
-    },
-    {
-      "code": 6004,
-      "msg": "Vault is paused",
-      "name": "VaultPaused"
-    },
-    {
-      "code": 6005,
-      "msg": "Deposit would exceed TVL cap",
-      "name": "TVLCapExceeded"
-    },
-    {
-      "code": 6006,
-      "msg": "Lockup period has not expired",
-      "name": "LockupNotExpired"
-    },
-    {
-      "code": 6007,
-      "msg": "Operator must hold minimum shares",
-      "name": "InsufficientOperatorShares"
-    },
-    {
-      "code": 6008,
-      "msg": "Operator cannot withdraw below minimum while active",
-      "name": "OperatorMinSharesRequired"
-    },
-    {
-      "code": 6009,
-      "msg": "Output below minimum slippage tolerance",
-      "name": "SlippageExceeded"
-    },
-    {
-      "code": 6010,
-      "msg": "Vault balance insufficient for 2x slash",
-      "name": "InsufficientVaultBalance"
-    }
-  ],
-  "events": [
-    {
-      "discriminator": [
-        111,
-        141,
-        26,
-        45,
-        161,
-        35,
-        100,
-        57
-      ],
-      "name": "Deposited"
-    },
-    {
-      "discriminator": [
-        194,
-        10,
-        115,
-        158,
-        29,
-        194,
-        157,
-        65
-      ],
-      "name": "RevenueReceived"
-    },
-    {
-      "discriminator": [
-        98,
-        59,
-        249,
-        154,
-        233,
-        53,
-        98,
-        194
-      ],
-      "name": "Slashed"
-    },
-    {
-      "discriminator": [
-        180,
-        43,
-        207,
-        2,
-        18,
-        71,
-        3,
-        75
-      ],
-      "name": "VaultInitialized"
-    },
-    {
-      "discriminator": [
-        198,
-        157,
-        22,
-        151,
-        68,
-        100,
-        162,
-        35
-      ],
-      "name": "VaultPaused"
-    },
-    {
-      "discriminator": [
-        116,
-        95,
-        48,
-        104,
-        229,
-        9,
-        64,
-        84
-      ],
-      "name": "VaultUnpaused"
-    },
-    {
-      "discriminator": [
-        20,
-        89,
-        223,
-        198,
-        194,
-        124,
-        219,
-        13
-      ],
-      "name": "Withdrawn"
-    }
-  ],
+  "metadata": {
+    "name": "agentVault",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Per-agent USDC vault with SPL share tokens"
+  },
   "instructions": [
     {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
       "accounts": [
         {
-          "name": "vault_state",
+          "name": "vaultState",
           "writable": true
         },
         {
-          "name": "share_mint",
+          "name": "shareMint",
+          "writable": true,
           "relations": [
-            "vault_state"
-          ],
-          "writable": true
+            "vaultState"
+          ]
         },
         {
-          "name": "vault_usdc_account",
+          "name": "vaultUsdcAccount",
+          "writable": true,
           "relations": [
-            "vault_state"
-          ],
-          "writable": true
+            "vaultState"
+          ]
         },
         {
           "name": "depositor",
-          "signer": true,
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "depositorUsdcAccount",
           "writable": true
         },
         {
-          "name": "depositor_usdc_account",
-          "writable": true
-        },
-        {
-          "name": "depositor_share_account",
+          "name": "depositorShareAccount",
+          "writable": true,
           "pda": {
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            },
             "seeds": [
               {
                 "kind": "account",
@@ -293,20 +101,57 @@ export type AgentVault = {
               },
               {
                 "kind": "account",
-                "path": "share_mint"
+                "path": "shareMint"
               }
-            ]
-          },
-          "writable": true
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
+          "name": "operatorShareAccount",
           "docs": [
             "Operator's share account to check minimum"
-          ],
-          "name": "operator_share_account"
+          ]
         },
         {
-          "name": "deposit_record",
+          "name": "depositRecord",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -323,27 +168,26 @@ export type AgentVault = {
               },
               {
                 "kind": "account",
-                "path": "vault_state"
+                "path": "vaultState"
               },
               {
                 "kind": "account",
                 "path": "depositor"
               }
             ]
-          },
-          "writable": true
+          }
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "name": "associated_token_program"
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -352,26 +196,27 @@ export type AgentVault = {
           "type": "u64"
         },
         {
-          "name": "min_shares_out",
+          "name": "minSharesOut",
           "type": "u64"
         }
-      ],
-      "discriminator": [
-        242,
-        35,
-        198,
-        137,
-        82,
-        225,
-        242,
-        182
-      ],
-      "name": "deposit"
+      ]
     },
     {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
       "accounts": [
         {
-          "name": "vault_state",
+          "name": "vaultState",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -393,11 +238,11 @@ export type AgentVault = {
                 "path": "nonce"
               }
             ]
-          },
-          "writable": true
+          }
         },
         {
-          "name": "share_mint",
+          "name": "shareMint",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -413,64 +258,27 @@ export type AgentVault = {
               },
               {
                 "kind": "account",
-                "path": "vault_state"
+                "path": "vaultState"
               }
             ]
-          },
-          "writable": true
+          }
         },
         {
           "name": "operator",
-          "signer": true,
-          "writable": true
+          "writable": true,
+          "signer": true
         },
         {
-          "name": "usdc_mint"
+          "name": "usdcMint"
         },
         {
-          "name": "vault_usdc_account",
+          "name": "vaultUsdcAccount",
+          "writable": true,
           "pda": {
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            },
             "seeds": [
               {
                 "kind": "account",
-                "path": "vault_state"
+                "path": "vaultState"
               },
               {
                 "kind": "const",
@@ -511,47 +319,83 @@ export type AgentVault = {
               },
               {
                 "kind": "account",
-                "path": "usdc_mint"
+                "path": "usdcMint"
               }
-            ]
-          },
-          "writable": true
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
-          "name": "protocol_treasury"
+          "name": "protocolTreasury"
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "name": "associated_token_program"
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "agent_fee_bps",
+          "name": "agentFeeBps",
           "type": "u16"
         },
         {
-          "name": "protocol_fee_bps",
+          "name": "protocolFeeBps",
           "type": "u16"
         },
         {
-          "name": "max_tvl",
+          "name": "maxTvl",
           "type": "u64"
         },
         {
-          "name": "lockup_epochs",
+          "name": "lockupEpochs",
           "type": "u8"
         },
         {
-          "name": "epoch_length",
+          "name": "epochLength",
           "type": "i64"
         },
         {
@@ -562,31 +406,10 @@ export type AgentVault = {
           "name": "nonce",
           "type": "u64"
         }
-      ],
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
-      "name": "initialize"
+      ]
     },
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "operator",
-          "signer": true
-        }
-      ],
-      "args": [],
+      "name": "pause",
       "discriminator": [
         211,
         22,
@@ -597,49 +420,20 @@ export type AgentVault = {
         193,
         47
       ],
-      "name": "pause"
-    },
-    {
       "accounts": [
         {
-          "name": "vault_state",
+          "name": "vaultState",
           "writable": true
         },
         {
-          "name": "payer",
-          "signer": true,
-          "writable": true
-        },
-        {
-          "name": "vault_usdc_account",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "payer_usdc_account",
-          "writable": true
-        },
-        {
-          "name": "protocol_usdc_account",
-          "writable": true
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
+          "name": "operator",
+          "signer": true
         }
       ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        },
-        {
-          "name": "job_id",
-          "type": "u64"
-        }
-      ],
+      "args": []
+    },
+    {
+      "name": "receiveRevenue",
       "discriminator": [
         154,
         21,
@@ -650,72 +444,49 @@ export type AgentVault = {
         44,
         130
       ],
-      "name": "receive_revenue"
-    },
-    {
       "accounts": [
         {
-          "name": "vault_state",
+          "name": "vaultState",
           "writable": true
         },
         {
-          "name": "authority",
+          "name": "payer",
+          "writable": true,
           "signer": true
         },
         {
-          "name": "vault_usdc_account",
+          "name": "vaultUsdcAccount",
+          "writable": true,
           "relations": [
-            "vault_state"
-          ],
+            "vaultState"
+          ]
+        },
+        {
+          "name": "payerUsdcAccount",
           "writable": true
         },
         {
-          "name": "share_mint",
-          "relations": [
-            "vault_state"
-          ],
+          "name": "protocolUsdcAccount",
           "writable": true
         },
         {
-          "name": "operator_share_account",
-          "writable": true
-        },
-        {
-          "docs": [
-            "1x refund to the client who was wronged"
-          ],
-          "name": "client_usdc_account",
-          "writable": true
-        },
-        {
-          "docs": [
-            "0.75x to ecosystem fund"
-          ],
-          "name": "ecosystem_fund_account",
-          "writable": true
-        },
-        {
-          "docs": [
-            "0.25x bounty to the reporting validator"
-          ],
-          "name": "validator_usdc_account",
-          "writable": true
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "job_payment",
+          "name": "amount",
           "type": "u64"
         },
         {
-          "name": "job_id",
+          "name": "jobId",
           "type": "u64"
         }
-      ],
+      ]
+    },
+    {
+      "name": "slash",
       "discriminator": [
         204,
         141,
@@ -726,23 +497,72 @@ export type AgentVault = {
         92,
         142
       ],
-      "name": "slash"
-    },
-    {
       "accounts": [
         {
-          "name": "vault_state",
+          "name": "vaultState",
           "writable": true
         },
         {
-          "name": "operator",
+          "name": "authority",
           "signer": true
         },
         {
-          "name": "operator_share_account"
+          "name": "vaultUsdcAccount",
+          "writable": true,
+          "relations": [
+            "vaultState"
+          ]
+        },
+        {
+          "name": "shareMint",
+          "writable": true,
+          "relations": [
+            "vaultState"
+          ]
+        },
+        {
+          "name": "operatorShareAccount",
+          "writable": true
+        },
+        {
+          "name": "clientUsdcAccount",
+          "docs": [
+            "1x refund to the client who was wronged"
+          ],
+          "writable": true
+        },
+        {
+          "name": "ecosystemFundAccount",
+          "docs": [
+            "0.75x to ecosystem fund"
+          ],
+          "writable": true
+        },
+        {
+          "name": "validatorUsdcAccount",
+          "docs": [
+            "0.25x bounty to the reporting validator"
+          ],
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "jobPayment",
+          "type": "u64"
+        },
+        {
+          "name": "jobId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "unpause",
       "discriminator": [
         169,
         144,
@@ -753,43 +573,68 @@ export type AgentVault = {
         188,
         255
       ],
-      "name": "unpause"
-    },
-    {
       "accounts": [
         {
-          "name": "vault_state",
+          "name": "vaultState",
           "writable": true
         },
         {
-          "name": "share_mint",
-          "relations": [
-            "vault_state"
-          ],
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "operatorShareAccount"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "vaultState",
           "writable": true
         },
         {
-          "name": "vault_usdc_account",
+          "name": "shareMint",
+          "writable": true,
           "relations": [
-            "vault_state"
-          ],
-          "writable": true
+            "vaultState"
+          ]
+        },
+        {
+          "name": "vaultUsdcAccount",
+          "writable": true,
+          "relations": [
+            "vaultState"
+          ]
         },
         {
           "name": "withdrawer",
-          "signer": true,
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "withdrawerUsdcAccount",
           "writable": true
         },
         {
-          "name": "withdrawer_usdc_account",
+          "name": "withdrawerShareAccount",
           "writable": true
         },
         {
-          "name": "withdrawer_share_account",
-          "writable": true
-        },
-        {
-          "name": "deposit_record",
+          "name": "depositRecord",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -806,19 +651,18 @@ export type AgentVault = {
               },
               {
                 "kind": "account",
-                "path": "vault_state"
+                "path": "vaultState"
               },
               {
                 "kind": "account",
                 "path": "withdrawer"
               }
             ]
-          },
-          "writable": true
+          }
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
@@ -827,332 +671,15 @@ export type AgentVault = {
           "type": "u64"
         },
         {
-          "name": "min_assets_out",
+          "name": "minAssetsOut",
           "type": "u64"
         }
-      ],
-      "discriminator": [
-        183,
-        18,
-        70,
-        156,
-        148,
-        109,
-        161,
-        34
-      ],
-      "name": "withdraw"
+      ]
     }
   ],
-  "metadata": {
-    "description": "Per-agent USDC vault with SPL share tokens",
-    "name": "agent_vault",
-    "spec": "0.1.0",
-    "version": "0.1.0"
-  },
-  "types": [
-    {
-      "name": "DepositRecord",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "depositor",
-            "type": "pubkey"
-          },
-          {
-            "name": "last_deposit_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "total_deposited",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "Deposited",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "depositor",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "shares",
-            "type": "u64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "RevenueReceived",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "vault_cut",
-            "type": "u64"
-          },
-          {
-            "name": "protocol_cut",
-            "type": "u64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "Slashed",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "job_payment",
-            "type": "u64"
-          },
-          {
-            "name": "slash_total",
-            "type": "u64"
-          },
-          {
-            "name": "job_id",
-            "type": "u64"
-          },
-          {
-            "name": "client_refund",
-            "type": "u64"
-          },
-          {
-            "name": "ecosystem_fund_amount",
-            "type": "u64"
-          },
-          {
-            "name": "validator_bounty",
-            "type": "u64"
-          },
-          {
-            "name": "validator",
-            "type": "pubkey"
-          },
-          {
-            "name": "operator_shares_burned",
-            "type": "u64"
-          },
-          {
-            "name": "depositor_shares_burned",
-            "type": "u64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "VaultInitialized",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "operator",
-            "type": "pubkey"
-          },
-          {
-            "name": "arbitrator",
-            "type": "pubkey"
-          },
-          {
-            "name": "max_tvl",
-            "type": "u64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "VaultPaused",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "VaultState",
-      "type": {
-        "fields": [
-          {
-            "name": "operator",
-            "type": "pubkey"
-          },
-          {
-            "name": "arbitrator",
-            "type": "pubkey"
-          },
-          {
-            "name": "usdc_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "share_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "vault_usdc_account",
-            "type": "pubkey"
-          },
-          {
-            "name": "protocol_treasury",
-            "type": "pubkey"
-          },
-          {
-            "name": "agent_fee_bps",
-            "type": "u16"
-          },
-          {
-            "name": "protocol_fee_bps",
-            "type": "u16"
-          },
-          {
-            "name": "total_revenue",
-            "type": "u64"
-          },
-          {
-            "name": "total_jobs",
-            "type": "u64"
-          },
-          {
-            "name": "total_slashed",
-            "type": "u64"
-          },
-          {
-            "name": "slash_events",
-            "type": "u32"
-          },
-          {
-            "name": "max_tvl",
-            "type": "u64"
-          },
-          {
-            "name": "virtual_shares",
-            "type": "u64"
-          },
-          {
-            "name": "virtual_assets",
-            "type": "u64"
-          },
-          {
-            "name": "lockup_epochs",
-            "type": "u8"
-          },
-          {
-            "name": "epoch_length",
-            "type": "i64"
-          },
-          {
-            "name": "paused",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "share_mint_bump",
-            "type": "u8"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          },
-          {
-            "name": "nonce",
-            "type": "u64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "VaultUnpaused",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "Withdrawn",
-      "type": {
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "withdrawer",
-            "type": "pubkey"
-          },
-          {
-            "name": "shares",
-            "type": "u64"
-          },
-          {
-            "name": "usdc_out",
-            "type": "u64"
-          }
-        ],
-        "kind": "struct"
-      }
-    }
-  ]
-};
-
-export const IDL: AgentVault = {
   "accounts": [
     {
+      "name": "depositRecord",
       "discriminator": [
         83,
         232,
@@ -1162,10 +689,10 @@ export const IDL: AgentVault = {
         49,
         189,
         167
-      ],
-      "name": "DepositRecord"
+      ]
     },
     {
+      "name": "vaultState",
       "discriminator": [
         228,
         196,
@@ -1175,70 +702,12 @@ export const IDL: AgentVault = {
         210,
         235,
         152
-      ],
-      "name": "VaultState"
-    }
-  ],
-  "address": "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS",
-  "errors": [
-    {
-      "code": 6000,
-      "msg": "Invalid fee configuration",
-      "name": "InvalidFees"
-    },
-    {
-      "code": 6001,
-      "msg": "Arithmetic overflow",
-      "name": "ArithmeticOverflow"
-    },
-    {
-      "code": 6002,
-      "msg": "Amount must be greater than zero",
-      "name": "ZeroAmount"
-    },
-    {
-      "code": 6003,
-      "msg": "Calculated shares would be zero",
-      "name": "ZeroShares"
-    },
-    {
-      "code": 6004,
-      "msg": "Vault is paused",
-      "name": "VaultPaused"
-    },
-    {
-      "code": 6005,
-      "msg": "Deposit would exceed TVL cap",
-      "name": "TVLCapExceeded"
-    },
-    {
-      "code": 6006,
-      "msg": "Lockup period has not expired",
-      "name": "LockupNotExpired"
-    },
-    {
-      "code": 6007,
-      "msg": "Operator must hold minimum shares",
-      "name": "InsufficientOperatorShares"
-    },
-    {
-      "code": 6008,
-      "msg": "Operator cannot withdraw below minimum while active",
-      "name": "OperatorMinSharesRequired"
-    },
-    {
-      "code": 6009,
-      "msg": "Output below minimum slippage tolerance",
-      "name": "SlippageExceeded"
-    },
-    {
-      "code": 6010,
-      "msg": "Vault balance insufficient for 2x slash",
-      "name": "InsufficientVaultBalance"
+      ]
     }
   ],
   "events": [
     {
+      "name": "deposited",
       "discriminator": [
         111,
         141,
@@ -1248,10 +717,10 @@ export const IDL: AgentVault = {
         35,
         100,
         57
-      ],
-      "name": "Deposited"
+      ]
     },
     {
+      "name": "revenueReceived",
       "discriminator": [
         194,
         10,
@@ -1261,10 +730,10 @@ export const IDL: AgentVault = {
         194,
         157,
         65
-      ],
-      "name": "RevenueReceived"
+      ]
     },
     {
+      "name": "slashed",
       "discriminator": [
         98,
         59,
@@ -1274,10 +743,10 @@ export const IDL: AgentVault = {
         53,
         98,
         194
-      ],
-      "name": "Slashed"
+      ]
     },
     {
+      "name": "vaultInitialized",
       "discriminator": [
         180,
         43,
@@ -1287,10 +756,10 @@ export const IDL: AgentVault = {
         71,
         3,
         75
-      ],
-      "name": "VaultInitialized"
+      ]
     },
     {
+      "name": "vaultPaused",
       "discriminator": [
         198,
         157,
@@ -1300,10 +769,10 @@ export const IDL: AgentVault = {
         100,
         162,
         35
-      ],
-      "name": "VaultPaused"
+      ]
     },
     {
+      "name": "vaultUnpaused",
       "discriminator": [
         116,
         95,
@@ -1313,10 +782,10 @@ export const IDL: AgentVault = {
         9,
         64,
         84
-      ],
-      "name": "VaultUnpaused"
+      ]
     },
     {
+      "name": "withdrawn",
       "discriminator": [
         20,
         89,
@@ -1326,685 +795,71 @@ export const IDL: AgentVault = {
         124,
         219,
         13
-      ],
-      "name": "Withdrawn"
+      ]
     }
   ],
-  "instructions": [
+  "errors": [
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "share_mint",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "vault_usdc_account",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "depositor",
-          "signer": true,
-          "writable": true
-        },
-        {
-          "name": "depositor_usdc_account",
-          "writable": true
-        },
-        {
-          "name": "depositor_share_account",
-          "pda": {
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            },
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "depositor"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "share_mint"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "docs": [
-            "Operator's share account to check minimum"
-          ],
-          "name": "operator_share_account"
-        },
-        {
-          "name": "deposit_record",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  100,
-                  101,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault_state"
-              },
-              {
-                "kind": "account",
-                "path": "depositor"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
-        },
-        {
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "name": "associated_token_program"
-        },
-        {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        },
-        {
-          "name": "min_shares_out",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        242,
-        35,
-        198,
-        137,
-        82,
-        225,
-        242,
-        182
-      ],
-      "name": "deposit"
+      "code": 6000,
+      "name": "invalidFees",
+      "msg": "Invalid fee configuration"
     },
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "operator"
-              },
-              {
-                "kind": "arg",
-                "path": "nonce"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "share_mint",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  104,
-                  97,
-                  114,
-                  101,
-                  115
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault_state"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "operator",
-          "signer": true,
-          "writable": true
-        },
-        {
-          "name": "usdc_mint"
-        },
-        {
-          "name": "vault_usdc_account",
-          "pda": {
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            },
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "vault_state"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "usdc_mint"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "protocol_treasury"
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
-        },
-        {
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "name": "associated_token_program"
-        },
-        {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "agent_fee_bps",
-          "type": "u16"
-        },
-        {
-          "name": "protocol_fee_bps",
-          "type": "u16"
-        },
-        {
-          "name": "max_tvl",
-          "type": "u64"
-        },
-        {
-          "name": "lockup_epochs",
-          "type": "u8"
-        },
-        {
-          "name": "epoch_length",
-          "type": "i64"
-        },
-        {
-          "name": "arbitrator",
-          "type": "pubkey"
-        },
-        {
-          "name": "nonce",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
-      "name": "initialize"
+      "code": 6001,
+      "name": "arithmeticOverflow",
+      "msg": "Arithmetic overflow"
     },
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "operator",
-          "signer": true
-        }
-      ],
-      "args": [],
-      "discriminator": [
-        211,
-        22,
-        221,
-        251,
-        74,
-        121,
-        193,
-        47
-      ],
-      "name": "pause"
+      "code": 6002,
+      "name": "zeroAmount",
+      "msg": "Amount must be greater than zero"
     },
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "payer",
-          "signer": true,
-          "writable": true
-        },
-        {
-          "name": "vault_usdc_account",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "payer_usdc_account",
-          "writable": true
-        },
-        {
-          "name": "protocol_usdc_account",
-          "writable": true
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        },
-        {
-          "name": "job_id",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        154,
-        21,
-        184,
-        235,
-        215,
-        131,
-        44,
-        130
-      ],
-      "name": "receive_revenue"
+      "code": 6003,
+      "name": "zeroShares",
+      "msg": "Calculated shares would be zero"
     },
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "signer": true
-        },
-        {
-          "name": "vault_usdc_account",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "share_mint",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "operator_share_account",
-          "writable": true
-        },
-        {
-          "docs": [
-            "1x refund to the client who was wronged"
-          ],
-          "name": "client_usdc_account",
-          "writable": true
-        },
-        {
-          "docs": [
-            "0.75x to ecosystem fund"
-          ],
-          "name": "ecosystem_fund_account",
-          "writable": true
-        },
-        {
-          "docs": [
-            "0.25x bounty to the reporting validator"
-          ],
-          "name": "validator_usdc_account",
-          "writable": true
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "job_payment",
-          "type": "u64"
-        },
-        {
-          "name": "job_id",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        204,
-        141,
-        18,
-        161,
-        8,
-        177,
-        92,
-        142
-      ],
-      "name": "slash"
+      "code": 6004,
+      "name": "vaultPaused",
+      "msg": "Vault is paused"
     },
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "operator",
-          "signer": true
-        },
-        {
-          "name": "operator_share_account"
-        }
-      ],
-      "args": [],
-      "discriminator": [
-        169,
-        144,
-        4,
-        38,
-        10,
-        141,
-        188,
-        255
-      ],
-      "name": "unpause"
+      "code": 6005,
+      "name": "tvlCapExceeded",
+      "msg": "Deposit would exceed TVL cap"
     },
     {
-      "accounts": [
-        {
-          "name": "vault_state",
-          "writable": true
-        },
-        {
-          "name": "share_mint",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "vault_usdc_account",
-          "relations": [
-            "vault_state"
-          ],
-          "writable": true
-        },
-        {
-          "name": "withdrawer",
-          "signer": true,
-          "writable": true
-        },
-        {
-          "name": "withdrawer_usdc_account",
-          "writable": true
-        },
-        {
-          "name": "withdrawer_share_account",
-          "writable": true
-        },
-        {
-          "name": "deposit_record",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  100,
-                  101,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault_state"
-              },
-              {
-                "kind": "account",
-                "path": "withdrawer"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "shares",
-          "type": "u64"
-        },
-        {
-          "name": "min_assets_out",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        183,
-        18,
-        70,
-        156,
-        148,
-        109,
-        161,
-        34
-      ],
-      "name": "withdraw"
+      "code": 6006,
+      "name": "lockupNotExpired",
+      "msg": "Lockup period has not expired"
+    },
+    {
+      "code": 6007,
+      "name": "insufficientOperatorShares",
+      "msg": "Operator must hold minimum shares"
+    },
+    {
+      "code": 6008,
+      "name": "operatorMinSharesRequired",
+      "msg": "Operator cannot withdraw below minimum while active"
+    },
+    {
+      "code": 6009,
+      "name": "slippageExceeded",
+      "msg": "Output below minimum slippage tolerance"
+    },
+    {
+      "code": 6010,
+      "name": "insufficientVaultBalance",
+      "msg": "Vault balance insufficient for 2x slash"
     }
   ],
-  "metadata": {
-    "description": "Per-agent USDC vault with SPL share tokens",
-    "name": "agent_vault",
-    "spec": "0.1.0",
-    "version": "0.1.0"
-  },
   "types": [
     {
-      "name": "DepositRecord",
+      "name": "depositRecord",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -2015,24 +870,24 @@ export const IDL: AgentVault = {
             "type": "pubkey"
           },
           {
-            "name": "last_deposit_epoch",
+            "name": "lastDepositEpoch",
             "type": "u64"
           },
           {
-            "name": "total_deposited",
+            "name": "totalDeposited",
             "type": "u64"
           },
           {
             "name": "bump",
             "type": "u8"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "Deposited",
+      "name": "deposited",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -2050,13 +905,13 @@ export const IDL: AgentVault = {
             "name": "shares",
             "type": "u64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "RevenueReceived",
+      "name": "revenueReceived",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -2067,51 +922,51 @@ export const IDL: AgentVault = {
             "type": "u64"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
-            "name": "vault_cut",
+            "name": "vaultCut",
             "type": "u64"
           },
           {
-            "name": "protocol_cut",
+            "name": "protocolCut",
             "type": "u64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "Slashed",
+      "name": "slashed",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
             "type": "pubkey"
           },
           {
-            "name": "job_payment",
+            "name": "jobPayment",
             "type": "u64"
           },
           {
-            "name": "slash_total",
+            "name": "slashTotal",
             "type": "u64"
           },
           {
-            "name": "job_id",
+            "name": "jobId",
             "type": "u64"
           },
           {
-            "name": "client_refund",
+            "name": "clientRefund",
             "type": "u64"
           },
           {
-            "name": "ecosystem_fund_amount",
+            "name": "ecosystemFundAmount",
             "type": "u64"
           },
           {
-            "name": "validator_bounty",
+            "name": "validatorBounty",
             "type": "u64"
           },
           {
@@ -2119,20 +974,20 @@ export const IDL: AgentVault = {
             "type": "pubkey"
           },
           {
-            "name": "operator_shares_burned",
+            "name": "operatorSharesBurned",
             "type": "u64"
           },
           {
-            "name": "depositor_shares_burned",
+            "name": "depositorSharesBurned",
             "type": "u64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "VaultInitialized",
+      "name": "vaultInitialized",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -2147,28 +1002,28 @@ export const IDL: AgentVault = {
             "type": "pubkey"
           },
           {
-            "name": "max_tvl",
+            "name": "maxTvl",
             "type": "u64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "VaultPaused",
+      "name": "vaultPaused",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
             "type": "pubkey"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "VaultState",
+      "name": "vaultState",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "operator",
@@ -2179,63 +1034,63 @@ export const IDL: AgentVault = {
             "type": "pubkey"
           },
           {
-            "name": "usdc_mint",
+            "name": "usdcMint",
             "type": "pubkey"
           },
           {
-            "name": "share_mint",
+            "name": "shareMint",
             "type": "pubkey"
           },
           {
-            "name": "vault_usdc_account",
+            "name": "vaultUsdcAccount",
             "type": "pubkey"
           },
           {
-            "name": "protocol_treasury",
+            "name": "protocolTreasury",
             "type": "pubkey"
           },
           {
-            "name": "agent_fee_bps",
+            "name": "agentFeeBps",
             "type": "u16"
           },
           {
-            "name": "protocol_fee_bps",
+            "name": "protocolFeeBps",
             "type": "u16"
           },
           {
-            "name": "total_revenue",
+            "name": "totalRevenue",
             "type": "u64"
           },
           {
-            "name": "total_jobs",
+            "name": "totalJobs",
             "type": "u64"
           },
           {
-            "name": "total_slashed",
+            "name": "totalSlashed",
             "type": "u64"
           },
           {
-            "name": "slash_events",
+            "name": "slashEvents",
             "type": "u32"
           },
           {
-            "name": "max_tvl",
+            "name": "maxTvl",
             "type": "u64"
           },
           {
-            "name": "virtual_shares",
+            "name": "virtualShares",
             "type": "u64"
           },
           {
-            "name": "virtual_assets",
+            "name": "virtualAssets",
             "type": "u64"
           },
           {
-            "name": "lockup_epochs",
+            "name": "lockupEpochs",
             "type": "u8"
           },
           {
-            "name": "epoch_length",
+            "name": "epochLength",
             "type": "i64"
           },
           {
@@ -2247,36 +1102,36 @@ export const IDL: AgentVault = {
             "type": "u8"
           },
           {
-            "name": "share_mint_bump",
+            "name": "shareMintBump",
             "type": "u8"
           },
           {
-            "name": "created_at",
+            "name": "createdAt",
             "type": "i64"
           },
           {
             "name": "nonce",
             "type": "u64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "VaultUnpaused",
+      "name": "vaultUnpaused",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
             "type": "pubkey"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     },
     {
-      "name": "Withdrawn",
+      "name": "withdrawn",
       "type": {
+        "kind": "struct",
         "fields": [
           {
             "name": "vault",
@@ -2291,11 +1146,10 @@ export const IDL: AgentVault = {
             "type": "u64"
           },
           {
-            "name": "usdc_out",
+            "name": "usdcOut",
             "type": "u64"
           }
-        ],
-        "kind": "struct"
+        ]
       }
     }
   ]
