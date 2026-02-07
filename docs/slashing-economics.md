@@ -1,3 +1,5 @@
+> **Superseded.** The 75/10/15 split below has been replaced by a 50/50 model (client refund + ecosystem fund). See [`BRAIN.md`](./BRAIN.md) for the current design.
+
 # Slashing Mechanism Economics: A Deep Analysis
 
 ## Summary
