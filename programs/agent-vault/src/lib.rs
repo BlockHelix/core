@@ -521,6 +521,20 @@ pub mod agent_vault {
 
         require!(amount <= vault.operator_bond, VaultError::InsufficientBond);
 
+        // Ensure depositors can still withdraw after bond removal
+        let vault_balance = ctx.accounts.vault_usdc_account.amount;
+        let share_supply = ctx.accounts.share_mint.supply;
+        if share_supply > 0 {
+            // Calculate what depositors are owed (balance minus bond = depositor assets)
+            let depositor_assets = vault_balance
+                .checked_sub(vault.operator_bond)
+                .ok_or(VaultError::ArithmeticOverflow)?;
+            let remaining_after_unstake = vault_balance
+                .checked_sub(amount)
+                .ok_or(VaultError::ArithmeticOverflow)?;
+            require!(remaining_after_unstake >= depositor_assets, VaultError::DepositorFundsAtRisk);
+        }
+
         let agent_wallet = ctx.accounts.vault_state.agent_wallet;
         let vault_seeds: &[&[u8]] = &[
             b"vault",
@@ -857,6 +871,7 @@ pub struct UnstakeBond<'info> {
         mut,
         has_one = agent_wallet,
         has_one = vault_usdc_account,
+        has_one = share_mint,
     )]
     pub vault_state: Account<'info, VaultState>,
 
@@ -865,6 +880,8 @@ pub struct UnstakeBond<'info> {
 
     #[account(mut)]
     pub vault_usdc_account: Account<'info, TokenAccount>,
+
+    pub share_mint: Account<'info, Mint>,
 
     #[account(
         mut,
@@ -949,6 +966,8 @@ pub enum VaultError {
     VaultNotPaused,
     #[msg("7-day cooldown period not met")]
     CooldownNotMet,
+    #[msg("Cannot unstake - would put depositor funds at risk")]
+    DepositorFundsAtRisk,
 }
 
 #[event]
