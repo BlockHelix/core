@@ -26,7 +26,7 @@ export interface RegisterAgentResponse {
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL ||
   (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-    ? 'http://agents.blockhelix.tech'
+    ? 'https://agents.blockhelix.tech'
     : 'http://localhost:3001');
 
 export async function registerAgentWithRuntime(
