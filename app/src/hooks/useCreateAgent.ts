@@ -19,8 +19,6 @@ export interface CreateAgentParams {
   maxTvl: number;
   lockupEpochs: number;
   epochLength: number;
-  targetApyBps: number;
-  lendingFloorBps: number;
   arbitrator: string;
 }
 
@@ -101,8 +99,6 @@ export function useCreateAgent() {
         maxTvl: dump(params.maxTvl),
         lockupEpochs: dump(params.lockupEpochs),
         epochLength: dump(params.epochLength),
-        targetApyBps: dump(params.targetApyBps),
-        lendingFloorBps: dump(params.lendingFloorBps),
         arbitrator: dump(params.arbitrator),
       });
 
@@ -117,8 +113,6 @@ export function useCreateAgent() {
         new BN(params.maxTvl),
         params.lockupEpochs,
         new BN(params.epochLength),
-        params.targetApyBps,
-        params.lendingFloorBps,
         new PublicKey(params.arbitrator)
       );
       console.log('[createAgent] Method created:', method);
@@ -127,7 +121,7 @@ export function useCreateAgent() {
       const accountsObj = {
         factoryState,
         agentMetadata,
-        agentWallet,
+        operator: agentWallet,
         vaultState,
         shareMint,
         usdcMint: USDC_MINT,
