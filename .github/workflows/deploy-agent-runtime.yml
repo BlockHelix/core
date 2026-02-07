@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'agent-runtime/**'
-      - 'target/idl/**'
 
 env:
   AWS_REGION: us-east-1
@@ -43,11 +42,6 @@ jobs:
         run: |
           npm ci
           npm run build
-
-      - name: Copy IDL files
-        run: |
-          mkdir -p agent-runtime/idl
-          cp target/idl/*.json agent-runtime/idl/
 
       - name: Build and push Docker image
         working-directory: agent-runtime
