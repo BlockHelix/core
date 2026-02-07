@@ -4,6 +4,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use agent_vault::cpi::accounts::Initialize as VaultInitialize;
 use agent_vault::program::AgentVault;
 use receipt_registry::cpi::accounts::InitializeRegistry as RegistryInit;
+use receipt_registry::cpi::accounts::SetJobSigner as RegistrySetJobSigner;
 use receipt_registry::program::ReceiptRegistry;
 
 declare_id!("7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j");
@@ -44,6 +45,7 @@ pub mod agent_factory {
         lockup_epochs: u8,
         epoch_length: i64,
         arbitrator: Pubkey,
+        job_signer: Option<Pubkey>,
     ) -> Result<()> {
         require!(name.len() <= 64, FactoryError::NameTooLong);
         require!(github_handle.len() <= 64, FactoryError::GitHubHandleTooLong);
@@ -98,6 +100,19 @@ pub mod agent_factory {
             registry_cpi_accounts,
         );
         receipt_registry::cpi::initialize_registry(registry_cpi_ctx, challenge_window)?;
+
+        // CPI: ReceiptRegistry::set_job_signer (optional)
+        if let Some(signer) = job_signer {
+            let set_signer_accounts = RegistrySetJobSigner {
+                registry_state: ctx.accounts.registry_state.to_account_info(),
+                operator: ctx.accounts.operator.to_account_info(),
+            };
+            let set_signer_ctx = CpiContext::new(
+                ctx.accounts.registry_program.to_account_info(),
+                set_signer_accounts,
+            );
+            receipt_registry::cpi::set_job_signer(set_signer_ctx, signer)?;
+        }
 
         let clock = Clock::get()?;
         let agent_id = ctx.accounts.factory_state.agent_count;

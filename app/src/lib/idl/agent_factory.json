@@ -155,6 +155,12 @@
         {
           "name": "arbitrator",
           "type": "pubkey"
+        },
+        {
+          "name": "job_signer",
+          "type": {
+            "option": "pubkey"
+          }
         }
       ]
     },

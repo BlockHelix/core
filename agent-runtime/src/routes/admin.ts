@@ -1,12 +1,41 @@
 import { Request, Response } from 'express';
+import { Keypair } from '@solana/web3.js';
 import { registerHostedAgent, getAllHostedAgents, getHostedAgent } from '../services/agent-config';
 import { agentStorage } from '../services/storage';
 import { verifyWalletSignature, parseSignMessage, isMessageRecent } from '../services/wallet-verify';
 import { containerManager } from '../services/container-manager';
+import { encrypt } from '../services/crypto';
 import type { AgentConfig } from '../types';
 
+const pendingKeypairs = new Map<string, { keypair: Keypair; createdAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of pendingKeypairs) {
+    if (now - value.createdAt > 10 * 60 * 1000) {
+      pendingKeypairs.delete(key);
+    }
+  }
+}, 60 * 1000);
+
+export function handleGenerateKeypair(req: Request, res: Response): void {
+  const keypair = Keypair.generate();
+  const publicKey = keypair.publicKey.toBase58();
+
+  pendingKeypairs.set(publicKey, { keypair, createdAt: Date.now() });
+
+  res.json({ publicKey });
+}
+
+export function getPendingKeypair(publicKey: string): Keypair | null {
+  const entry = pendingKeypairs.get(publicKey);
+  if (!entry) return null;
+  pendingKeypairs.delete(publicKey);
+  return entry.keypair;
+}
+
 export async function handleRegisterAgent(req: Request, res: Response): Promise<void> {
-  const config = req.body as Partial<AgentConfig> & { ownerWallet?: string };
+  const config = req.body as Partial<AgentConfig> & { ownerWallet?: string; jobSignerPubkey?: string };
 
   if (!config.agentId || !config.name || !config.systemPrompt || !config.operator || !config.apiKey) {
     res.status(400).json({
@@ -21,6 +50,17 @@ export async function handleRegisterAgent(req: Request, res: Response): Promise<
     return;
   }
 
+  let agentWallet = config.agentWallet;
+  let walletSecretKey = config.walletSecretKey;
+
+  if (config.jobSignerPubkey) {
+    const pendingKeypair = getPendingKeypair(config.jobSignerPubkey);
+    if (pendingKeypair) {
+      agentWallet = pendingKeypair.publicKey.toBase58();
+      walletSecretKey = JSON.stringify(Array.from(pendingKeypair.secretKey));
+    }
+  }
+
   const fullConfig: AgentConfig = {
     agentId: config.agentId,
     name: config.name,
@@ -32,6 +72,8 @@ export async function handleRegisterAgent(req: Request, res: Response): Promise<
     registry: config.registry || '',
     isActive: config.isActive ?? true,
     apiKey: config.apiKey,
+    agentWallet,
+    walletSecretKey,
   };
 
   await registerHostedAgent(fullConfig, config.ownerWallet || config.operator);
@@ -195,7 +237,7 @@ export async function handleUpdateAgentConfig(req: Request, res: Response): Prom
 }
 
 export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
-  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet } = req.body;
+  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey } = req.body;
 
   if (!agentId || !name || !systemPrompt || !apiKey) {
     res.status(400).json({
@@ -208,6 +250,17 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
   if (existing) {
     res.status(409).json({ error: `Agent already exists: ${agentId}` });
     return;
+  }
+
+  let agentWallet: string | undefined;
+  let walletSecretKey: string | undefined;
+
+  if (jobSignerPubkey) {
+    const pendingKeypair = getPendingKeypair(jobSignerPubkey);
+    if (pendingKeypair) {
+      agentWallet = pendingKeypair.publicKey.toBase58();
+      walletSecretKey = JSON.stringify(Array.from(pendingKeypair.secretKey));
+    }
   }
 
   try {
@@ -230,6 +283,8 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       isActive: true,
       apiKey,
       isContainerized: true,
+      agentWallet,
+      walletSecretKey,
     };
 
     await agentStorage.create(fullConfig, ownerWallet || operator || '');

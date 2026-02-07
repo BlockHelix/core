@@ -161,6 +161,12 @@ export type AgentFactory = {
         {
           "name": "arbitrator",
           "type": "pubkey"
+        },
+        {
+          "name": "jobSigner",
+          "type": {
+            "option": "pubkey"
+          }
         }
       ]
     },

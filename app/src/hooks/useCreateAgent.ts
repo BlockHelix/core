@@ -20,6 +20,7 @@ export interface CreateAgentParams {
   lockupEpochs: number;
   epochLength: number;
   arbitrator: string;
+  jobSigner?: string;
 }
 
 export function useCreateAgent() {
@@ -103,6 +104,7 @@ export function useCreateAgent() {
       });
 
       console.log('[createAgent] Calling createAgent method...');
+      const jobSignerArg = params.jobSigner ? new PublicKey(params.jobSigner) : null;
       const method = factoryProgram.methods.createAgent(
         params.name,
         params.githubHandle,
@@ -113,7 +115,8 @@ export function useCreateAgent() {
         new BN(params.maxTvl),
         params.lockupEpochs,
         new BN(params.epochLength),
-        new PublicKey(params.arbitrator)
+        new PublicKey(params.arbitrator),
+        jobSignerArg
       );
       console.log('[createAgent] Method created:', method);
 

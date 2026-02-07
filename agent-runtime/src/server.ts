@@ -13,6 +13,7 @@ import {
   handleUpdateAgentConfig,
   handleDeployOpenClaw,
   handleStopOpenClaw,
+  handleGenerateKeypair,
 } from './routes/admin';
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
@@ -201,6 +202,7 @@ export function createApp(): express.Application {
 
   app.post('/v1/test', handleTest);
 
+  app.post('/admin/keypair', handleGenerateKeypair);
   app.post('/admin/agents', handleRegisterAgent);
   app.get('/admin/agents', handleListAgentsAdmin);
   app.get('/admin/agents/by-owner', handleGetAgentsByOwner);
