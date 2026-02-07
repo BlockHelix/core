@@ -145,8 +145,16 @@ export function useX402() {
       return response;
     }
 
-    const paymentRequiredHeader = response.headers.get('payment-required');
+    // Debug: log all available headers
+    console.log('[x402] 402 received, available headers:');
+    response.headers.forEach((value, key) => {
+      console.log(`  ${key}: ${value.substring(0, 50)}...`);
+    });
+
+    // Try both cases
+    const paymentRequiredHeader = response.headers.get('payment-required') || response.headers.get('Payment-Required');
     if (!paymentRequiredHeader) {
+      console.error('[x402] payment-required header not found in response');
       throw new Error('402 response missing payment-required header');
     }
 

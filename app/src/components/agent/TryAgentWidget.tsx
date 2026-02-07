@@ -5,6 +5,7 @@ import { useWallets } from '@privy-io/react-auth/solana';
 import { Loader2, Play, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatUSDC } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { useX402 } from '@/hooks/useX402';
 
 interface TryAgentWidgetProps {
   agentId: string;
@@ -20,6 +21,7 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
   const wallet = wallets[0];
   const publicKey = wallet?.address;
   const connected = !!wallet;
+  const { fetchWithPayment, isReady } = useX402();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [status, setStatus] = useState<PaymentStatus>('idle');
@@ -34,12 +36,19 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
       return;
     }
 
+    if (!isReady) {
+      setError('Wallet not ready for payments');
+      return;
+    }
+
     setError(null);
     setOutput('');
     setStatus('requesting');
 
     try {
-      const response = await fetch(`${endpointUrl}/v1/agent/${agentId}/run`, {
+      setStatus('paying');
+
+      const response = await fetchWithPayment(`${endpointUrl}/v1/agent/${agentId}/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,45 +59,19 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
         }),
       });
 
-      if (response.status === 402) {
-        const paymentData = await response.json();
-        setStatus('paying');
+      setStatus('running');
 
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        const mockProof = `${Date.now()}_${agentId}_${publicKey.slice(0, 8)}`;
-        setPaymentProof(mockProof);
-
-        setStatus('running');
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const retryResponse = await fetch(`${endpointUrl}/v1/agent/${agentId}/run`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Payment-Proof': mockProof,
-          },
-          body: JSON.stringify({
-            query: input,
-            wallet: publicKey,
-          }),
-        });
-
-        if (!retryResponse.ok) {
-          throw new Error(`Agent execution failed: ${retryResponse.statusText}`);
-        }
-
-        const result = await retryResponse.json();
-        setOutput(result.response || result.output || JSON.stringify(result, null, 2));
-        setStatus('success');
-      } else if (response.ok) {
-        const result = await response.json();
-        setOutput(result.response || result.output || JSON.stringify(result, null, 2));
-        setStatus('success');
-      } else {
-        throw new Error(`Request failed: ${response.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Agent execution failed: ${response.statusText}`);
       }
+
+      const result = await response.json();
+      setOutput(result.response || result.output || JSON.stringify(result, null, 2));
+      setPaymentProof(result.paymentTx || 'confirmed');
+      setStatus('success');
     } catch (err: any) {
+      console.error('[TryAgent] Error:', err);
       setError(err.message || 'Failed to run agent');
       setStatus('error');
     }
