@@ -48,7 +48,11 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
     try {
       setStatus('paying');
 
-      const response = await fetchWithPayment(`${endpointUrl}/v1/agent/${agentId}/run`, {
+      let baseUrl = endpointUrl.replace(/\/+$/, '');
+      if (baseUrl.includes('/v1/agent/') && baseUrl.includes('/run')) {
+        baseUrl = baseUrl.replace(/\/v1\/agent\/[^/]+\/run$/, '');
+      }
+      const response = await fetchWithPayment(`${baseUrl}/v1/agent/${agentId}/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

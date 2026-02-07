@@ -111,7 +111,7 @@ export default function DeployContent() {
 
       const onChainEndpoint = agentType === 'custom'
         ? endpointUrl
-        : `${runtimeBaseUrl}/v1/agent/${agentWalletAddress}/run`;
+        : runtimeBaseUrl;
 
       const result = await createAgent({
         name,

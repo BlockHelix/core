@@ -58,7 +58,11 @@ export function HireAgentForm({ agentId, endpointUrl, agentName }: Props) {
     setResult(null);
 
     try {
-      const baseUrl = endpointUrl.replace(/\/+$/, '');
+      let baseUrl = endpointUrl.replace(/\/+$/, '');
+      // If endpoint already includes the run path, extract just the base
+      if (baseUrl.includes('/v1/agent/') && baseUrl.includes('/run')) {
+        baseUrl = baseUrl.replace(/\/v1\/agent\/[^/]+\/run$/, '');
+      }
       const inputText = jobType === 'analyze'
         ? `Analyze this GitHub repository for DeFi vulnerabilities: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`
         : `Generate patches for vulnerabilities in this GitHub repository: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`;

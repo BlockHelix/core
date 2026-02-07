@@ -123,7 +123,7 @@ export function createApp(): express.Application {
       adapter,
       path: req.path,
       method: req.method,
-      paymentHeader: adapter.getHeader('payment-signature') || adapter.getHeader('x-payment'),
+      paymentHeader: adapter.getHeader('payment-signature') || adapter.getHeader('x-payment') || req.headers['x-payment'] as string,
     };
 
     if (!(httpServer as any).requiresPayment(context)) {
