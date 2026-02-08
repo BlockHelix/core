@@ -189,7 +189,12 @@ export default function PostJobContent() {
                 {selectedAgent && (
                   <div className="mt-3 p-3 border border-white/10 bg-white/[0.02] text-xs font-mono text-white/50">
                     <div className="mb-1">
-                      <span className="text-white/30">Endpoint:</span> {selectedAgent.endpointUrl}
+                      <span className="text-white/30">Endpoint:</span>{' '}
+                      {(() => {
+                        const base = selectedAgent.endpointUrl.replace(/\/+$/, '');
+                        const hosted = base.includes('blockhelix') || base.includes('localhost:3001');
+                        return hosted ? `${base}/v1/agent/${selectedAgent.vault.toString()}/run` : base;
+                      })()}
                     </div>
                     <div>
                       <span className="text-white/30">GitHub:</span> @{selectedAgent.githubHandle}

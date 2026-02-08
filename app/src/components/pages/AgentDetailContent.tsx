@@ -109,6 +109,11 @@ export default function AgentDetailContent() {
   const sharePrice = totalShares > 0 ? totalAssets / totalShares : 1;
   const revenueHistory: { date: string; revenue: number }[] = [];
 
+  const isHosted = agentMetadata.endpointUrl.includes('blockhelix') || agentMetadata.endpointUrl.includes('localhost:3001');
+  const displayEndpoint = isHosted
+    ? `${agentMetadata.endpointUrl.replace(/\/+$/, '')}/v1/agent/${agentMetadata.vault.toString()}/run`
+    : agentMetadata.endpointUrl;
+
   return (
     <main className="min-h-screen py-20 lg:py-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -154,14 +159,9 @@ export default function AgentDetailContent() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-[10px] uppercase tracking-widest text-white/40 w-20 font-mono">Endpoint</span>
-              <a
-                href={agentMetadata.endpointUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-400 hover:text-emerald-300 transition-colors font-mono text-xs"
-              >
-                {agentMetadata.endpointUrl}
-              </a>
+              <span className="text-emerald-400 font-mono text-xs break-all">
+                {displayEndpoint}
+              </span>
             </div>
           </div>
         </div>
