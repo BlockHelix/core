@@ -194,6 +194,17 @@ class AgentStorage {
     return this.decryptAgent(agent);
   }
 
+  async getAsync(agentId: string): Promise<StoredAgent | null> {
+    let agent = this.agents.get(agentId);
+    if (!agent && USE_S3) {
+      console.log(`[storage] Agent ${agentId} not in memory, reloading from S3...`);
+      await this.loadFromS3();
+      agent = this.agents.get(agentId);
+    }
+    if (!agent) return null;
+    return this.decryptAgent(agent);
+  }
+
   getByOwner(ownerWallet: string): StoredAgent[] {
     return Array.from(this.agents.values())
       .filter((agent) => agent.ownerWallet === ownerWallet)

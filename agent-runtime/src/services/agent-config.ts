@@ -101,12 +101,15 @@ function onChainToAgentConfig(onChain: OnChainAgentMetadata): AgentConfig {
 
 export async function getAgentConfig(agentId: string): Promise<AgentConfig | null> {
   // First check local storage (for hosted agents with custom config)
-  const hosted = agentStorage.get(agentId);
+  // Use async getter to reload from S3 if not in memory (handles container replacement)
+  const hosted = await agentStorage.getAsync(agentId);
   if (hosted) return hosted;
 
   // Try to load from on-chain by numeric ID
+  // CRITICAL: Only treat as numeric if the ENTIRE string is a valid integer
+  // parseInt("9gdE...", 10) returns 9 which would load the wrong agent!
   const numericId = parseInt(agentId, 10);
-  if (!isNaN(numericId)) {
+  if (!isNaN(numericId) && numericId.toString() === agentId) {
     const onChain = await loadAgentFromChain(numericId);
     if (onChain && onChain.isActive) {
       return onChainToAgentConfig(onChain);
