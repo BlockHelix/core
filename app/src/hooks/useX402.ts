@@ -18,7 +18,6 @@ import {
 import { RPC_URL } from '@/lib/anchor';
 
 const USDC_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
-const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
 interface PaymentOption {
   scheme: string;
@@ -99,8 +98,8 @@ export function useX402() {
     const sourceAta = await getAssociatedTokenAddress(mint, payerPubkey);
     const destAta = await getAssociatedTokenAddress(mint, payToPubkey);
 
-    // x402 exact SVM scheme requires exactly 4 instructions:
-    // 1. ComputeLimit, 2. ComputePrice, 3. TransferChecked, 4. Memo
+    // x402 exact SVM scheme requires exactly 3 instructions:
+    // 1. ComputeLimit, 2. ComputePrice, 3. TransferChecked
     const instructions = [
       ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 }),
       ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
@@ -113,15 +112,6 @@ export function useX402() {
         mintInfo.decimals
       ),
     ];
-
-    // Add memo for uniqueness
-    const nonce = crypto.getRandomValues(new Uint8Array(16));
-    const memoData = Array.from(nonce).map(b => b.toString(16).padStart(2, '0')).join('');
-    instructions.push({
-      keys: [],
-      programId: MEMO_PROGRAM_ID,
-      data: Buffer.from(memoData),
-    });
 
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
 
