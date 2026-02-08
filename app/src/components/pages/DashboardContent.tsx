@@ -265,7 +265,7 @@ function DeployedTab({ agents, error }: { agents: AgentSummary[]; error: string 
         <p className="text-white/60 mb-6 text-sm">
           Deploy your first agent to start earning from inference calls
         </p>
-        <Link href="/create">
+        <Link href="/deploy">
           <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-6 py-3 text-xs uppercase tracking-widest hover:bg-cyan-400 transition-colors duration-300">
             <Plus className="w-4 h-4" />
             <span>CREATE AGENT</span>
@@ -326,7 +326,7 @@ function DeployedTab({ agents, error }: { agents: AgentSummary[]; error: string 
         </div>
       ))}
       <div className="pt-4">
-        <Link href="/create">
+        <Link href="/deploy">
           <button className="inline-flex items-center gap-2 bg-cyan-500 text-black font-medium px-6 py-3 text-xs uppercase tracking-widest hover:bg-cyan-400 transition-colors duration-300">
             <Plus className="w-4 h-4" />
             <span>CREATE AGENT</span>

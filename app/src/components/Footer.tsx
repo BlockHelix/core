@@ -18,7 +18,7 @@ export default function Footer() {
             <Link href="/dashboard" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
               Dashboard
             </Link>
-            <Link href="/create" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
+            <Link href="/deploy" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
               Deploy
             </Link>
             <Link href="/whitepaper" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
