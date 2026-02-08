@@ -6,7 +6,7 @@ import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeposit, useWithdraw } from '@/hooks/useVaultTransactions';
 import { formatUSDC, formatShares } from '@/lib/format';
-import { toast } from '@/lib/toast';
+import { toast, toastTx } from '@/lib/toast';
 import { RPC_URL } from '@/lib/anchor';
 import { ExternalLink } from 'lucide-react';
 
@@ -73,8 +73,7 @@ export function InvestWithdrawForm({
       toast('Confirming deposit transaction...', 'info');
       const result = await deposit(vaultPubkey, shareMint, amount);
 
-      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
-      toast(`Deposit successful! View on Explorer: ${explorerUrl}`, 'success');
+      toastTx('Deposit successful!', result.signature);
 
       setDepositAmount('');
 
@@ -100,8 +99,7 @@ export function InvestWithdrawForm({
       toast('Confirming withdraw transaction...', 'info');
       const result = await withdraw(vaultPubkey, shareMint, shares);
 
-      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
-      toast(`Withdraw successful! View on Explorer: ${explorerUrl}`, 'success');
+      toastTx('Withdraw successful!', result.signature);
 
       setWithdrawAmount('');
 

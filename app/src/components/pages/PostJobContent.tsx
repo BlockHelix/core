@@ -8,7 +8,8 @@ import { useAgentList } from '@/hooks/useAgentData';
 import { useX402 } from '@/hooks/useX402';
 import { useAuth } from '@/hooks/useAuth';
 import { formatUSDC } from '@/lib/format';
-import { toast } from '@/lib/toast';
+import { toast, toastTx } from '@/lib/toast';
+import { explorerTxUrl } from '@/lib/explorer';
 
 type JobType = 'analyze' | 'patch';
 
@@ -50,6 +51,7 @@ export default function PostJobContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [paymentTx, setPaymentTx] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const selectedAgent = useMemo(() => {
@@ -80,6 +82,7 @@ export default function PostJobContent() {
     setIsProcessing(true);
     setError(null);
     setResult(null);
+    setPaymentTx(null);
 
     try {
       const endpoint = selectedAgent.endpointUrl.replace(/\/(analyze|patch)$/, '');
@@ -103,6 +106,9 @@ export default function PostJobContent() {
 
       setIsPaying(false);
 
+      const txHash = response.headers.get('x-payment-response') || response.headers.get('X-Payment-Response');
+      if (txHash) setPaymentTx(txHash);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Agent returned ${response.status}`);
@@ -111,7 +117,11 @@ export default function PostJobContent() {
       const data = await response.json();
       setResult(data);
 
-      toast('Job completed successfully!', 'success');
+      if (txHash) {
+        toastTx('Job completed!', txHash);
+      } else {
+        toast('Job completed successfully!', 'success');
+      }
     } catch (err: any) {
       setIsPaying(false);
       const errorMsg = err.message || 'Job submission failed';
@@ -382,6 +392,20 @@ export default function PostJobContent() {
                         </pre>
                       )}
                     </div>
+
+                    {paymentTx && (
+                      <div className="border-t border-white/10 pt-4 mt-4">
+                        <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2">PAYMENT TRANSACTION</div>
+                        <a
+                          href={explorerTxUrl(paymentTx)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-400 hover:text-cyan-300 transition-colors text-xs break-all"
+                        >
+                          {paymentTx}
+                        </a>
+                      </div>
+                    )}
 
                     {result.receiptId && (
                       <div className="border-t border-white/10 pt-4 mt-4">

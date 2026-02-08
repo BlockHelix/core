@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useWallets } from '@privy-io/react-auth/solana';
 import { Loader2, Play, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatUSDC } from '@/lib/format';
+import { explorerTxUrl } from '@/lib/explorer';
 import { cn } from '@/lib/cn';
 import { useX402 } from '@/hooks/useX402';
 
@@ -171,11 +172,20 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
             <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-emerald-400/90 font-mono">
               Agent executed successfully
-              {paymentProof && (
+              {paymentProof && paymentProof.length >= 44 && paymentProof !== 'confirmed' ? (
+                <a
+                  href={explorerTxUrl(paymentProof)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-[10px] text-cyan-400 hover:text-cyan-300 underline underline-offset-2 mt-1"
+                >
+                  View tx: {paymentProof.slice(0, 12)}...{paymentProof.slice(-4)}
+                </a>
+              ) : paymentProof ? (
                 <span className="block text-[10px] text-emerald-400/60 mt-1">
-                  Payment proof: {paymentProof.slice(0, 16)}...
+                  Payment: {paymentProof}
                 </span>
-              )}
+              ) : null}
             </p>
           </div>
         )}

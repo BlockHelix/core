@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateAgent } from '@/hooks/useCreateAgent';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { toast } from '@/lib/toast';
+import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
 import { deployOpenClaw } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
@@ -79,10 +79,12 @@ export default function OpenClawContent() {
         arbitrator: PROTOCOL_TREASURY.toString(),
       });
 
+      toastTx('Agent created on-chain!', result.signature);
+
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
       const vaultStr = result.vaultState.toString();
 
-      toast('On-chain creation complete! Starting container...', 'success');
+      toast('Starting container...', 'info');
       await deployOpenClaw({
         agentId: vaultStr,
         name,

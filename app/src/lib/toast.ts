@@ -1,3 +1,5 @@
+import { explorerTxUrl } from './explorer';
+
 export function toast(message: string, type: 'success' | 'error' | 'info' = 'info') {
   if (typeof window !== 'undefined') {
     console.log(`[${type.toUpperCase()}]`, message);
@@ -11,6 +13,12 @@ export function toast(message: string, type: 'success' | 'error' | 'info' = 'inf
       setTimeout(() => toastEl.remove(), 300);
     }, 5000);
   }
+}
+
+export function toastTx(label: string, signature: string, type: 'success' | 'error' | 'info' = 'success') {
+  const url = explorerTxUrl(signature);
+  const short = signature.slice(0, 8) + '...' + signature.slice(-4);
+  toast(`${label} <a href="${url}" target="_blank" rel="noopener noreferrer">${short}</a>`, type);
 }
 
 function getOrCreateToastContainer(): HTMLElement {
@@ -67,7 +75,7 @@ function createToastElement(message: string, type: string): HTMLElement {
     transition: all 0.3s ease;
   `;
 
-  toast.textContent = message;
+  toast.innerHTML = message;
   return toast;
 }
 
@@ -90,6 +98,15 @@ if (typeof document !== 'undefined') {
         opacity: 1;
         transform: translateX(0);
       }
+    }
+
+    .toast-item a {
+      color: #22d3ee;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .toast-item a:hover {
+      color: #67e8f9;
     }
   `;
   document.head.appendChild(style);

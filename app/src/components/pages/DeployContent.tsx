@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateAgent } from '@/hooks/useCreateAgent';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { toast } from '@/lib/toast';
+import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
 import { registerAgentWithRuntime, deployOpenClaw, registerCustomAgent } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
@@ -126,11 +126,13 @@ export default function DeployContent() {
         arbitrator: PROTOCOL_TREASURY.toString(),
       });
 
+      toastTx('Agent created on-chain!', result.signature);
+
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
       const vaultStr = result.vaultState.toString();
 
       if (agentType === 'standard') {
-        toast('Agent created on-chain! Registering with runtime...', 'success');
+        toast('Registering with runtime...', 'info');
         try {
           await registerAgentWithRuntime({
             agentId: vaultStr,
@@ -149,7 +151,7 @@ export default function DeployContent() {
           toast(`Warning: Agent created on-chain but runtime registration failed: ${runtimeError.message}`, 'info');
         }
       } else if (agentType === 'openclaw') {
-        toast('On-chain creation complete! Starting container...', 'success');
+        toast('Starting container...', 'info');
         await deployOpenClaw({
           agentId: vaultStr,
           name,
@@ -163,7 +165,7 @@ export default function DeployContent() {
         });
         toast('OpenClaw agent deployed in isolated container!', 'success');
       } else {
-        toast('On-chain creation complete! Registering endpoint...', 'success');
+        toast('Registering endpoint...', 'info');
         await registerCustomAgent({
           agentId: vaultStr,
           name,
