@@ -7,7 +7,7 @@ import { useCreateAgent } from '@/hooks/useCreateAgent';
 import { useWallets } from '@privy-io/react-auth/solana';
 import { toast } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
-import { deployOpenClaw, generateJobSignerKeypair } from '@/lib/runtime';
+import { deployOpenClaw } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
 import PriceInput from '@/components/create/PriceInput';
 
@@ -57,9 +57,6 @@ export default function OpenClawContent() {
     }
 
     try {
-      toast('Generating agent keypair...', 'info');
-      const jobSignerPubkey = await generateJobSignerKeypair();
-
       toast('Creating agent on-chain...', 'info');
 
       const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
@@ -80,7 +77,6 @@ export default function OpenClawContent() {
         lockupEpochs: 1,
         epochLength: 86400,
         arbitrator: PROTOCOL_TREASURY.toString(),
-        jobSigner: jobSignerPubkey,
       });
 
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
@@ -97,7 +93,6 @@ export default function OpenClawContent() {
         registry: '',
         apiKey,
         ownerWallet: wallet?.address,
-        jobSignerPubkey,
       });
       toast('OpenClaw agent deployed in isolated container!', 'success');
 

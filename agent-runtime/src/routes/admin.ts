@@ -53,7 +53,7 @@ export async function handleRegisterAgent(req: Request, res: Response): Promise<
   let agentWallet = config.agentWallet;
   let walletSecretKey = config.walletSecretKey;
 
-  if (config.jobSignerPubkey) {
+  if (config.jobSignerPubkey && !walletSecretKey) {
     const pendingKeypair = getPendingKeypair(config.jobSignerPubkey);
     if (pendingKeypair) {
       agentWallet = pendingKeypair.publicKey.toBase58();
@@ -237,7 +237,7 @@ export async function handleUpdateAgentConfig(req: Request, res: Response): Prom
 }
 
 export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
-  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey } = req.body;
+  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey } = req.body;
 
   if (!agentId || !name || !systemPrompt || !apiKey) {
     res.status(400).json({
@@ -253,14 +253,16 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
   }
 
   let agentWallet: string | undefined;
-  let walletSecretKey: string | undefined;
+  let walletSecretKey: string | undefined = bodySecretKey;
 
-  if (jobSignerPubkey) {
+  if (jobSignerPubkey && !walletSecretKey) {
     const pendingKeypair = getPendingKeypair(jobSignerPubkey);
     if (pendingKeypair) {
       agentWallet = pendingKeypair.publicKey.toBase58();
       walletSecretKey = JSON.stringify(Array.from(pendingKeypair.secretKey));
     }
+  } else if (jobSignerPubkey && walletSecretKey) {
+    agentWallet = jobSignerPubkey;
   }
 
   try {

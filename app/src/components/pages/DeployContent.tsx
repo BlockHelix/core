@@ -7,7 +7,7 @@ import { useCreateAgent } from '@/hooks/useCreateAgent';
 import { useWallets } from '@privy-io/react-auth/solana';
 import { toast } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
-import { registerAgentWithRuntime, deployOpenClaw, registerCustomAgent, generateJobSignerKeypair } from '@/lib/runtime';
+import { registerAgentWithRuntime, deployOpenClaw, registerCustomAgent } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
 import TestAgentPanel from '@/components/create/TestAgentPanel';
 import PriceInput from '@/components/create/PriceInput';
@@ -107,12 +107,6 @@ export default function DeployContent() {
         throw new Error('Wallet address not available');
       }
 
-      let jobSignerPubkey: string | undefined;
-      if (agentType !== 'custom') {
-        toast('Generating job signer...', 'info');
-        jobSignerPubkey = await generateJobSignerKeypair();
-      }
-
       toast('Creating agent on-chain...', 'info');
 
       const onChainEndpoint = agentType === 'custom'
@@ -130,7 +124,6 @@ export default function DeployContent() {
         lockupEpochs: 1,
         epochLength: 86400,
         arbitrator: PROTOCOL_TREASURY.toString(),
-        jobSigner: jobSignerPubkey,
       });
 
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
@@ -149,7 +142,6 @@ export default function DeployContent() {
             registry: '',
             apiKey,
             ownerWallet: wallet?.address,
-            jobSignerPubkey,
           });
           toast('Agent registered with runtime!', 'success');
         } catch (runtimeError: any) {

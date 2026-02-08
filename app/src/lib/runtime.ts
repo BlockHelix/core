@@ -10,7 +10,6 @@ export interface RegisterAgentParams {
   isActive?: boolean;
   apiKey: string;
   ownerWallet?: string;
-  jobSignerPubkey?: string;
   operator?: string;
 }
 
@@ -54,7 +53,6 @@ export async function registerAgentWithRuntime(
       isActive: params.isActive ?? true,
       apiKey: params.apiKey,
       ownerWallet: params.ownerWallet,
-      jobSignerPubkey: params.jobSignerPubkey,
       operator: params.operator || params.agentWallet,
     }),
   });
@@ -78,24 +76,6 @@ export async function checkRuntimeHealth(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-export async function generateJobSignerKeypair(): Promise<string> {
-  if (!RUNTIME_URL) {
-    throw new Error('Runtime URL not configured');
-  }
-
-  const response = await fetch(`${RUNTIME_URL}/admin/keypair`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to generate keypair');
-  }
-
-  const { publicKey } = await response.json();
-  return publicKey;
 }
 
 export interface AgentSummary {
@@ -186,7 +166,6 @@ export interface DeployOpenClawParams {
   registry?: string;
   apiKey: string;
   ownerWallet?: string;
-  jobSignerPubkey?: string;
 }
 
 export async function deployOpenClaw(params: DeployOpenClawParams): Promise<RegisterAgentResponse> {

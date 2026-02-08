@@ -41,7 +41,11 @@ export function useCreateAgent() {
     try {
       const agentWallet = new PublicKey(wallet.address);
       const [factoryState] = findFactoryState();
-      const factoryData = await factoryProgram.account.factoryState.fetch(factoryState);
+
+      const [factoryData, { blockhash, lastValidBlockHeight }] = await Promise.all([
+        factoryProgram.account.factoryState.fetch(factoryState),
+        connection.getLatestBlockhash('confirmed'),
+      ]);
       const agentCount = factoryData.agentCount;
 
       const [agentMetadata] = findAgentMetadata(factoryState, agentCount.toNumber());
@@ -50,19 +54,11 @@ export function useCreateAgent() {
       const [shareMint] = findShareMint(vaultState);
       const [registryState] = findRegistryState(vaultState);
 
-      const vaultUsdcAccount = await getAssociatedTokenAddress(
-        USDC_MINT,
-        vaultState,
-        true
-      );
-
-      const operatorUsdcAccount = await getAssociatedTokenAddress(
-        USDC_MINT,
-        agentWallet
-      );
+      const vaultUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, vaultState, true);
+      const operatorUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, agentWallet);
 
       const jobSignerArg = params.jobSigner ? new PublicKey(params.jobSigner) : null;
-      const method = factoryProgram.methods.createAgent(
+      const transaction = await factoryProgram.methods.createAgent(
         params.name,
         params.githubHandle,
         params.endpointUrl,
@@ -74,9 +70,7 @@ export function useCreateAgent() {
         new BN(params.epochLength),
         new PublicKey(params.arbitrator),
         jobSignerArg
-      );
-
-      const methodBuilder = method.accountsPartial({
+      ).accountsPartial({
         factoryState,
         agentMetadata,
         operator: agentWallet,
@@ -92,10 +86,8 @@ export function useCreateAgent() {
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-      });
+      }).transaction();
 
-      const transaction = await methodBuilder.transaction();
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = agentWallet;
 

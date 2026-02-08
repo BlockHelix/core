@@ -2,7 +2,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import fs from 'fs';
 import { agentStorage } from './storage';
-import type { AgentConfig, OnChainAgentMetadata } from '../types';
+import type { AgentConfig } from '../types';
 import { FACTORY_PROGRAM_ID, RPC_URL } from '../config';
 
 const DEFAULT_PROMPT = process.env.DEFAULT_AGENT_PROMPT || 'You are a helpful AI assistant.';
@@ -28,22 +28,20 @@ function getReadOnlyProvider(): anchor.AnchorProvider {
 export interface ReplayStats {
   agentsSynced: number;
   agentsSkipped: number;
-  vaultStats: { agentId: string; tvl: number; revenue: number; jobs: number }[];
   errors: string[];
 }
 
 export async function replayFromChain(): Promise<ReplayStats> {
-  const stats: ReplayStats = { agentsSynced: 0, agentsSkipped: 0, vaultStats: [], errors: [] };
+  const stats: ReplayStats = { agentsSynced: 0, agentsSkipped: 0, errors: [] };
 
   console.log('[replay] Starting on-chain replay...');
 
   const provider = getReadOnlyProvider();
-  const connection = provider.connection;
 
   let factoryProgram: anchor.Program;
   try {
     const factoryIdl = loadIdl(
-      process.env.FACTORY_IDL_PATH || `${process.cwd()}/../target/idl/agent_factory.json`
+      process.env.FACTORY_IDL_PATH || `${process.cwd()}/target/idl/agent_factory.json`
     );
     factoryProgram = new anchor.Program(factoryIdl, provider);
   } catch (err) {
@@ -51,16 +49,6 @@ export async function replayFromChain(): Promise<ReplayStats> {
     console.error(`[replay] ${msg}`);
     stats.errors.push(msg);
     return stats;
-  }
-
-  let vaultProgram: anchor.Program | null = null;
-  try {
-    const vaultIdl = loadIdl(
-      process.env.VAULT_IDL_PATH || `${process.cwd()}/../target/idl/agent_vault.json`
-    );
-    vaultProgram = new anchor.Program(vaultIdl, provider);
-  } catch {
-    console.warn('[replay] Could not load vault IDL, skipping vault stats');
   }
 
   // 1. Fetch all agents from factory
@@ -109,35 +97,6 @@ export async function replayFromChain(): Promise<ReplayStats> {
     stats.agentsSynced++;
   }
 
-  // 3. Pull vault stats for each agent
-  if (vaultProgram) {
-    for (const account of agentAccounts) {
-      const onChain = account.account as any;
-      const agentId = onChain.agentId?.toString?.() ?? onChain.agentId;
-      const vaultPubkey = onChain.vault as PublicKey;
-
-      try {
-        const vaultData = await (vaultProgram.account as any).vaultState.fetch(vaultPubkey);
-        const v = vaultData as any;
-
-        const vaultUsdcAccount = v.vaultUsdcAccount as PublicKey;
-        let tvl = 0;
-        try {
-          const balance = await connection.getTokenAccountBalance(vaultUsdcAccount);
-          tvl = parseFloat(balance.value.amount) / 1_000_000;
-        } catch { /* token account may not exist */ }
-
-        const revenue = (v.totalRevenue as anchor.BN).toNumber() / 1_000_000;
-        const jobs = (v.totalJobs as anchor.BN).toNumber();
-
-        stats.vaultStats.push({ agentId: agentId.toString(), tvl, revenue, jobs });
-        console.log(`[replay] Vault ${agentId}: TVL=$${tvl.toFixed(2)} revenue=$${revenue.toFixed(2)} jobs=${jobs}`);
-      } catch {
-        // vault may not be initialized
-      }
-    }
-  }
-
   console.log(`[replay] Complete: ${stats.agentsSynced} synced, ${stats.agentsSkipped} skipped, ${stats.errors.length} errors`);
   return stats;
 }
@@ -156,7 +115,7 @@ export function subscribeToFactory(): void {
     let factoryProgram: anchor.Program;
     try {
       const factoryIdl = loadIdl(
-        process.env.FACTORY_IDL_PATH || `${process.cwd()}/../target/idl/agent_factory.json`
+        process.env.FACTORY_IDL_PATH || `${process.cwd()}/target/idl/agent_factory.json`
       );
       const provider = getReadOnlyProvider();
       factoryProgram = new anchor.Program(factoryIdl, provider);

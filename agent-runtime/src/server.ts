@@ -18,6 +18,7 @@ import {
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
+import { startVaultRefresh, getVaultStats, getAllVaultStats } from './services/vault-cache';
 import { agentStorage } from './services/storage';
 import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
 import { EmbeddedFacilitatorClient } from './services/embedded-facilitator';
@@ -54,6 +55,7 @@ export function createApp(): express.Application {
     .then((stats) => {
       lastReplay = stats;
       subscribeToFactory();
+      startVaultRefresh();
     })
     .catch((err) => { console.error('[startup] Failed:', err); });
 
@@ -90,7 +92,91 @@ export function createApp(): express.Application {
 
   console.log('[x402] Configured payment route: POST /v1/agent/*/run, payTo:', AGENT_WALLET);
 
-  // Sanitize payment headers before x402 middleware - invalid values crash it
+  // Routes that don't need payment - MUST be before x402 middleware
+  app.get('/health', (_req, res) => {
+    const agents = getAllHostedAgents();
+    const kmsEnabled = isKmsEnabled();
+    const kmsPubkey = getKmsPublicKey();
+    res.json({
+      status: 'ok',
+      service: 'BlockHelix Agent Runtime',
+      version: '0.3.0',
+      network: NETWORK,
+      facilitator: USE_EMBEDDED_FACILITATOR ? 'embedded' : 'http',
+      kms: kmsEnabled ? { enabled: true, publicKey: kmsPubkey?.toBase58() } : { enabled: false },
+      replay: lastReplay ? {
+        agentsSynced: lastReplay.agentsSynced,
+        agentsSkipped: lastReplay.agentsSkipped,
+        errors: lastReplay.errors.length,
+      } : 'pending',
+      vaults: Object.fromEntries(getAllVaultStats()),
+      hostedAgents: agents.map(a => ({
+        agentId: a.agentId,
+        name: a.name,
+        price: `$${(a.priceUsdcMicro / 1_000_000).toFixed(2)} USDC`,
+        active: a.isActive,
+      })),
+    });
+  });
+
+  app.get('/v1/agents', (_req, res) => {
+    const agents = getAllHostedAgents();
+    res.json({
+      agents: agents.map(a => {
+        const vault = getVaultStats(a.agentId);
+        return {
+          agentId: a.agentId,
+          name: a.name,
+          priceUsdcMicro: a.priceUsdcMicro,
+          model: a.model,
+          isActive: a.isActive,
+          vault: vault ? { tvl: vault.tvl, revenue: vault.revenue, jobs: vault.jobs } : null,
+        };
+      }),
+    });
+  });
+
+  app.get('/v1/agent/:agentId', async (req, res) => {
+    const { agentId } = req.params;
+    const agent = await getAgentConfig(agentId);
+    if (!agent) {
+      res.status(404).json({ error: `Agent not found: ${agentId}` });
+      return;
+    }
+    const vaultStats = getVaultStats(agentId);
+    res.json({
+      agentId: agent.agentId,
+      name: agent.name,
+      priceUsdcMicro: agent.priceUsdcMicro,
+      model: agent.model,
+      isActive: agent.isActive,
+      vault: agent.vault || null,
+      registry: agent.registry || null,
+      vaultStats: vaultStats ? { tvl: vaultStats.tvl, revenue: vaultStats.revenue, jobs: vaultStats.jobs } : null,
+    });
+  });
+
+  app.post('/v1/test', handleTest);
+
+  app.post('/admin/keypair', handleGenerateKeypair);
+  app.post('/admin/agents', handleRegisterAgent);
+  app.get('/admin/agents', handleListAgentsAdmin);
+  app.get('/admin/agents/by-owner', handleGetAgentsByOwner);
+  app.get('/admin/agents/:agentId', handleGetAgentConfig);
+  app.put('/admin/agents/:agentId', handleUpdateAgentConfig);
+  app.post('/admin/replay', async (_req, res) => {
+    try {
+      const stats = await replayFromChain();
+      lastReplay = stats;
+      res.json({ message: 'Replay complete', stats });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Replay failed' });
+    }
+  });
+  app.post('/admin/openclaw/deploy', handleDeployOpenClaw);
+  app.delete('/admin/openclaw/:agentId', handleStopOpenClaw);
+
+  // x402 payment middleware - only affects routes defined AFTER this
   app.use((req, _res, next) => {
     for (const header of ['payment-signature', 'x-payment']) {
       const val = req.headers[header];
@@ -110,88 +196,19 @@ export function createApp(): express.Application {
     next();
   });
 
+  app.use((_req, res, next) => {
+    const origWriteHead = res.writeHead;
+    (res as any).writeHead = function (this: any, statusCode: number, ...rest: any[]) {
+      this.setHeader('Access-Control-Allow-Origin', '*');
+      this.setHeader('Access-Control-Expose-Headers', 'payment-required, PAYMENT-REQUIRED, x-payment-response, PAYMENT-RESPONSE');
+      return origWriteHead.call(this, statusCode, ...rest);
+    };
+    next();
+  });
+
   app.use(paymentMiddleware(staticRoutes, resourceServer));
 
-  app.get('/health', (_req, res) => {
-    const agents = getAllHostedAgents();
-    const kmsEnabled = isKmsEnabled();
-    const kmsPubkey = getKmsPublicKey();
-    res.json({
-      status: 'ok',
-      service: 'BlockHelix Agent Runtime',
-      version: '0.3.0',
-      network: NETWORK,
-      facilitator: USE_EMBEDDED_FACILITATOR ? 'embedded' : 'http',
-      kms: kmsEnabled ? { enabled: true, publicKey: kmsPubkey?.toBase58() } : { enabled: false },
-      replay: lastReplay ? {
-        agentsSynced: lastReplay.agentsSynced,
-        agentsSkipped: lastReplay.agentsSkipped,
-        vaults: lastReplay.vaultStats,
-        errors: lastReplay.errors.length,
-      } : 'pending',
-      hostedAgents: agents.map(a => ({
-        agentId: a.agentId,
-        name: a.name,
-        price: `$${(a.priceUsdcMicro / 1_000_000).toFixed(2)} USDC`,
-        active: a.isActive,
-      })),
-    });
-  });
-
-  app.post('/admin/replay', async (_req, res) => {
-    try {
-      const stats = await replayFromChain();
-      lastReplay = stats;
-      res.json({ message: 'Replay complete', stats });
-    } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Replay failed' });
-    }
-  });
-
-  app.get('/v1/agents', (_req, res) => {
-    const agents = getAllHostedAgents();
-    res.json({
-      agents: agents.map(a => ({
-        agentId: a.agentId,
-        name: a.name,
-        priceUsdcMicro: a.priceUsdcMicro,
-        model: a.model,
-        isActive: a.isActive,
-      })),
-    });
-  });
-
-  app.get('/v1/agent/:agentId', async (req, res) => {
-    const { agentId } = req.params;
-    const agent = await getAgentConfig(agentId);
-    if (!agent) {
-      res.status(404).json({ error: `Agent not found: ${agentId}` });
-      return;
-    }
-    res.json({
-      agentId: agent.agentId,
-      name: agent.name,
-      priceUsdcMicro: agent.priceUsdcMicro,
-      model: agent.model,
-      isActive: agent.isActive,
-      vault: agent.vault || null,
-      registry: agent.registry || null,
-    });
-  });
-
   app.post('/v1/agent/:agentId/run', handleRun);
-
-  app.post('/v1/test', handleTest);
-
-  app.post('/admin/keypair', handleGenerateKeypair);
-  app.post('/admin/agents', handleRegisterAgent);
-  app.get('/admin/agents', handleListAgentsAdmin);
-  app.get('/admin/agents/by-owner', handleGetAgentsByOwner);
-  app.get('/admin/agents/:agentId', handleGetAgentConfig);
-  app.put('/admin/agents/:agentId', handleUpdateAgentConfig);
-
-  app.post('/admin/openclaw/deploy', handleDeployOpenClaw);
-  app.delete('/admin/openclaw/:agentId', handleStopOpenClaw);
 
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Unhandled error:', err.message);

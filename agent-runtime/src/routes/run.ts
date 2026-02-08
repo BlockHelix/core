@@ -102,50 +102,37 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
 
     const jobTimestamp = Date.now();
 
-    let revenueResult = null;
-    let receiptResult = null;
-
     const canSign = useKms || agentKeypair;
     const vaultPubkey = agent.vault ? new PublicKey(agent.vault) : null;
 
-    console.log(`[run] Routing check: canSign=${!!canSign}, hasKeypair=${!!agentKeypair}, operator=${operatorPubkey?.toBase58()}, vault=${vaultPubkey?.toBase58()}, usdcAmount=${usdcAmount}`);
-
-    if (canSign && operatorPubkey && vaultPubkey) {
-      const [revResult, recResult] = await Promise.allSettled([
-        usdcAmount > 0 && agentKeypair
-          ? routeRevenueToVault(agentKeypair, vaultPubkey, operatorPubkey, usdcAmount, jobTimestamp)
-          : Promise.resolve(null),
-        recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
-      ]);
-
-      if (revResult.status === 'rejected') {
-        console.error('[run] Revenue routing failed:', revResult.reason);
-      }
-      if (recResult.status === 'rejected') {
-        console.error('[run] Job recording failed:', recResult.reason);
-      }
-
-      revenueResult = revResult.status === 'fulfilled' ? revResult.value : null;
-      receiptResult = recResult.status === 'fulfilled' ? recResult.value : null;
-
-      console.log(`[run] Results: revenue=${revenueResult?.txSignature ?? 'none'}, receipt=${receiptResult?.txSignature ?? 'none'}`);
-      if (useKms) console.log('[run] Signed receipt with KMS');
-    } else {
-      console.log('[run] No signing capability, operator, or vault - skipping on-chain recording');
-    }
-
     const elapsed = Date.now() - startTime;
-    console.log(`[run] Completed in ${elapsed}ms, tokens: ${llmResponse.inputTokens}+${llmResponse.outputTokens}`);
+    console.log(`[run] LLM done in ${elapsed}ms, tokens: ${llmResponse.inputTokens}+${llmResponse.outputTokens}`);
 
     const response: RunResponse = {
       output: llmResponse.output,
       agentId,
-      jobId: receiptResult?.jobId ?? null,
-      receiptTx: receiptResult?.txSignature ?? null,
-      revenueTx: revenueResult?.txSignature ?? null,
+      jobId: null,
+      receiptTx: null,
+      revenueTx: null,
     };
 
     res.json(response);
+
+    if (canSign && operatorPubkey && vaultPubkey) {
+      console.log(`[run] Firing background tx: vault=${vaultPubkey.toBase58()}, usdcAmount=${usdcAmount}`);
+      Promise.allSettled([
+        usdcAmount > 0 && agentKeypair
+          ? routeRevenueToVault(agentKeypair, vaultPubkey, operatorPubkey, usdcAmount, jobTimestamp)
+          : Promise.resolve(null),
+        recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
+      ]).then(([revResult, recResult]) => {
+        if (revResult.status === 'rejected') console.error('[run] Revenue routing failed:', revResult.reason);
+        if (recResult.status === 'rejected') console.error('[run] Job recording failed:', recResult.reason);
+        const rev = revResult.status === 'fulfilled' ? revResult.value : null;
+        const rec = recResult.status === 'fulfilled' ? recResult.value : null;
+        console.log(`[run] Background tx done: revenue=${rev?.txSignature ?? 'none'}, receipt=${rec?.txSignature ?? 'none'}`);
+      });
+    }
   } catch (err) {
     console.error(`[run] Failed for agent ${agentId}:`, err);
     const message = err instanceof Error ? err.message : 'Agent execution failed';
