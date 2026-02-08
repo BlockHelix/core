@@ -56,6 +56,11 @@ export function useCreateAgent() {
         true
       );
 
+      const operatorUsdcAccount = await getAssociatedTokenAddress(
+        USDC_MINT,
+        agentWallet
+      );
+
       const jobSignerArg = params.jobSigner ? new PublicKey(params.jobSigner) : null;
       const method = factoryProgram.methods.createAgent(
         params.name,
@@ -80,6 +85,7 @@ export function useCreateAgent() {
         usdcMint: USDC_MINT,
         vaultUsdcAccount,
         protocolTreasury: PROTOCOL_TREASURY,
+        operatorUsdcAccount,
         registryState,
         vaultProgram: PROGRAM_IDS.VAULT,
         registryProgram: PROGRAM_IDS.REGISTRY,
