@@ -34,14 +34,17 @@ export function createApp(): express.Application {
   const app = express();
   app.set('trust proxy', true);
 
-  // Handle preflight OPTIONS immediately before ANY other middleware
-  app.options('*', (_req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Payment, Payment-Signature');
-    res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    res.status(204).end();
+  // Handle preflight OPTIONS immediately - MUST be a middleware, not a route
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Payment, Payment-Signature, x-payment');
+      res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      return res.status(204).end();
+    }
+    next();
   });
 
   app.use(cors({
