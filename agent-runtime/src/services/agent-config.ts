@@ -44,7 +44,7 @@ let cachedIdl: anchor.Idl | null = null;
 
 function loadFactoryIdl(): anchor.Idl {
   if (cachedIdl) return cachedIdl;
-  const idlPath = process.env.FACTORY_IDL_PATH || `${process.cwd()}/../target/idl/agent_factory.json`;
+  const idlPath = process.env.FACTORY_IDL_PATH || `${process.cwd()}/target/idl/agent_factory.json`;
   cachedIdl = JSON.parse(fs.readFileSync(idlPath, 'utf-8'));
   return cachedIdl!;
 }

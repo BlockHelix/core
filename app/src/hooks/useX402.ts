@@ -5,7 +5,6 @@ import { useWallets } from '@privy-io/react-auth/solana';
 import {
   Connection,
   PublicKey,
-  Transaction,
   TransactionMessage,
   VersionedTransaction,
   ComputeBudgetProgram,
@@ -15,7 +14,6 @@ import {
   createTransferCheckedInstruction,
   getMint,
   getAccount,
-  createAssociatedTokenAccountInstruction,
 } from '@solana/spl-token';
 import { RPC_URL } from '@/lib/anchor';
 
@@ -101,36 +99,11 @@ export function useX402() {
     const sourceAta = await getAssociatedTokenAddress(mint, payerPubkey);
     const destAta = await getAssociatedTokenAddress(mint, payToPubkey);
 
-    // Check if destination ATA exists
-    let createDestAta = false;
-    try {
-      await getAccount(connection, destAta);
-    } catch {
-      createDestAta = true;
-    }
-
-    // Build instructions matching x402 SVM exact scheme:
-    // 1. ComputeLimit
-    // 2. ComputePrice
-    // 3. TransferChecked
-    // 4. Memo (for uniqueness)
+    // x402 exact SVM scheme requires exactly 4 instructions:
+    // 1. ComputeLimit, 2. ComputePrice, 3. TransferChecked, 4. Memo
     const instructions = [
       ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 }),
       ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
-    ];
-
-    if (createDestAta) {
-      instructions.push(
-        createAssociatedTokenAccountInstruction(
-          feePayerPubkey,
-          destAta,
-          payToPubkey,
-          mint
-        )
-      );
-    }
-
-    instructions.push(
       createTransferCheckedInstruction(
         sourceAta,
         mint,
@@ -138,8 +111,8 @@ export function useX402() {
         payerPubkey,
         amount,
         mintInfo.decimals
-      )
-    );
+      ),
+    ];
 
     // Add memo for uniqueness
     const nonce = crypto.getRandomValues(new Uint8Array(16));

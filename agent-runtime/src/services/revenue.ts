@@ -72,7 +72,7 @@ export async function routeRevenueToVault(
     }
 
     const vaultIdl = loadIdl(
-      process.env.VAULT_IDL_PATH || `${process.cwd()}/../target/idl/agent_vault.json`
+      process.env.VAULT_IDL_PATH || `${process.cwd()}/target/idl/agent_vault.json`
     );
     const vaultProgram = new anchor.Program(vaultIdl as anchor.Idl, provider);
 
@@ -133,7 +133,7 @@ export async function recordJobOnChain(
     }
 
     const registryIdl = loadIdl(
-      process.env.REGISTRY_IDL_PATH || `${process.cwd()}/../target/idl/receipt_registry.json`
+      process.env.REGISTRY_IDL_PATH || `${process.cwd()}/target/idl/receipt_registry.json`
     );
     const registryProgram = new anchor.Program(registryIdl as anchor.Idl, provider);
 

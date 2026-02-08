@@ -3,13 +3,15 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 # Copy package files for both services
 COPY agent-runtime/package*.json ./agent-runtime/
 COPY agent/package*.json ./agent/
 
-# Install dependencies
+# Install dependencies (with native addon compilation)
 RUN cd agent-runtime && npm ci --only=production=false
 RUN cd agent && npm ci --only=production=false
 

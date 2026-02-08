@@ -29,7 +29,7 @@ variable "container_port" {
 variable "cpu" {
   description = "Fargate task CPU units (256, 512, 1024, 2048, 4096)"
   type        = number
-  default     = 512
+  default     = 1024
 }
 
 variable "memory" {

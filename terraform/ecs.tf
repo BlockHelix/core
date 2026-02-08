@@ -165,7 +165,7 @@ resource "aws_ecs_task_definition" "agent" {
         { name = "FACTORY_PROGRAM_ID", value = "7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j" },
         { name = "USDC_MINT", value = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU" },
         { name = "X402_FACILITATOR_URL", value = "https://x402.org/facilitator" },
-        { name = "USE_EMBEDDED_FACILITATOR", value = "false" },
+        { name = "USE_EMBEDDED_FACILITATOR", value = "true" },
         { name = "BYPASS_PAYMENT", value = "false" },
         { name = "ECS_CLUSTER_NAME", value = aws_ecs_cluster.main.name },
         { name = "OPENCLAW_TASK_DEFINITION", value = aws_ecs_task_definition.openclaw.arn },
