@@ -25,7 +25,7 @@ import { EmbeddedFacilitatorClient } from './services/embedded-facilitator';
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 const FACILITATOR_URL = process.env.X402_FACILITATOR_URL;
-const USE_EMBEDDED_FACILITATOR = process.env.USE_EMBEDDED_FACILITATOR !== 'false';
+const USE_EMBEDDED_FACILITATOR = process.env.USE_EMBEDDED_FACILITATOR === 'true';
 const NETWORK = process.env.SOLANA_NETWORK === 'mainnet' ? SOLANA_MAINNET_CAIP2 : SOLANA_DEVNET_CAIP2;
 
 let lastReplay: ReplayStats | null = null;
@@ -34,7 +34,8 @@ export function createApp(): express.Application {
   const app = express();
   app.set('trust proxy', true);
   app.use(cors({
-    origin: '*',
+    origin: true,
+    credentials: true,
     exposedHeaders: ['payment-required', 'x-payment-response'],
   }));
 
@@ -118,6 +119,13 @@ export function createApp(): express.Application {
   };
 
   console.log('[x402] Configured payment route: POST /v1/agent/*/run, payTo:', AGENT_WALLET);
+
+  // Handle preflight OPTIONS requests
+  app.options('*', cors({
+    origin: true,
+    credentials: true,
+    exposedHeaders: ['payment-required', 'x-payment-response'],
+  }));
 
   // Sanitize payment headers before x402 middleware - invalid values crash it
   app.use((req, _res, next) => {
