@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { x402ResourceServer, paymentMiddleware } from '@x402/express';
 import { HTTPFacilitatorClient } from '@x402/core/server';
-import { ExactSvmScheme } from '@x402/svm/exact/server';
 import type { RoutesConfig } from '@x402/core/server';
+import { ExactSvmScheme } from '@x402/svm/exact/server';
 import { handleRun } from './routes/run';
 import {
   handleRegisterAgent,
@@ -20,10 +20,12 @@ import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './service
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
 import { agentStorage } from './services/storage';
 import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
+import { EmbeddedFacilitatorClient } from './services/embedded-facilitator';
 
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
-const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || 'https://x402.org/facilitator';
+const FACILITATOR_URL = process.env.X402_FACILITATOR_URL;
+const USE_EMBEDDED_FACILITATOR = process.env.USE_EMBEDDED_FACILITATOR !== 'false';
 const NETWORK = process.env.SOLANA_NETWORK === 'mainnet' ? SOLANA_MAINNET_CAIP2 : SOLANA_DEVNET_CAIP2;
 
 let lastReplay: ReplayStats | null = null;
@@ -97,8 +99,11 @@ export function createApp(): express.Application {
     })
     .catch((err) => { console.error('[startup] Failed:', err); });
 
-  const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
-  const resourceServer = new x402ResourceServer(facilitatorClient)
+  const facilitatorClient = USE_EMBEDDED_FACILITATOR
+    ? new EmbeddedFacilitatorClient()
+    : new HTTPFacilitatorClient({ url: FACILITATOR_URL || 'https://x402.org/facilitator' });
+  console.log(`[x402] Using ${USE_EMBEDDED_FACILITATOR ? 'embedded' : 'HTTP'} facilitator`);
+  const resourceServer = new x402ResourceServer(facilitatorClient as any)
     .register(NETWORK, new ExactSvmScheme());
 
   const AGENT_WALLET = process.env.AGENT_WALLET || '97hcopf5v277jJhDD91DzXMwCJs5UR6659Lzdny14oYm';
@@ -156,8 +161,9 @@ export function createApp(): express.Application {
     res.json({
       status: 'ok',
       service: 'BlockHelix Agent Runtime',
-      version: '0.2.2',
+      version: '0.3.0',
       network: NETWORK,
+      facilitator: USE_EMBEDDED_FACILITATOR ? 'embedded' : 'http',
       kms: kmsEnabled ? { enabled: true, publicKey: kmsPubkey?.toBase58() } : { enabled: false },
       replay: lastReplay ? {
         agentsSynced: lastReplay.agentsSynced,
