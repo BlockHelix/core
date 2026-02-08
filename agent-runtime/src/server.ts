@@ -33,9 +33,20 @@ let lastReplay: ReplayStats | null = null;
 export function createApp(): express.Application {
   const app = express();
   app.set('trust proxy', true);
+
+  // Handle preflight OPTIONS immediately before ANY other middleware
+  app.options('*', (_req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Payment, Payment-Signature');
+    res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.status(204).end();
+  });
+
   app.use(cors({
-    origin: true,
-    credentials: true,
+    origin: '*',
+    credentials: false,
     exposedHeaders: ['payment-required', 'x-payment-response'],
   }));
 
@@ -119,13 +130,6 @@ export function createApp(): express.Application {
   };
 
   console.log('[x402] Configured payment route: POST /v1/agent/*/run, payTo:', AGENT_WALLET);
-
-  // Handle preflight OPTIONS requests
-  app.options('*', cors({
-    origin: true,
-    credentials: true,
-    exposedHeaders: ['payment-required', 'x-payment-response'],
-  }));
 
   // Sanitize payment headers before x402 middleware - invalid values crash it
   app.use((req, _res, next) => {
