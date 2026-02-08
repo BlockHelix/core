@@ -4,17 +4,7 @@ import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { createHash } from 'crypto';
 import fs from 'fs';
 import { isKmsEnabled, getKmsPublicKey, signTransactionWithKms } from './kms-signer';
-
-const VAULT_PROGRAM_ID = new PublicKey(
-  process.env.VAULT_PROGRAM_ID || 'HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS'
-);
-const REGISTRY_PROGRAM_ID = new PublicKey(
-  process.env.REGISTRY_PROGRAM_ID || 'jks1tXZFTTnoBdVuFzvF5XA8i4S39RKcCRpL9puiuz9'
-);
-const USDC_MINT = new PublicKey(
-  process.env.USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'
-);
-const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'https://api.devnet.solana.com';
+import { REGISTRY_PROGRAM_ID, USDC_MINT, RPC_URL } from '../config';
 
 function getProvider(keypair: Keypair): anchor.AnchorProvider {
   const connection = new Connection(RPC_URL, 'confirmed');

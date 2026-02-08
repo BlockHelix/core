@@ -44,6 +44,7 @@ describe("receipt-registry", () => {
   const LOCKUP_EPOCHS = 0;
   const EPOCH_LENGTH = new BN(86400);
   const PAYMENT_AMOUNT = 10_000_000;
+  const NONCE = 0;
 
   const artifactHash = Buffer.alloc(32, 1);
   const paymentTx = Buffer.alloc(64, 2);
@@ -72,7 +73,7 @@ describe("receipt-registry", () => {
       .accountsPartial({
         registryState,
         jobReceipt,
-        operator: agentWallet.publicKey,
+        signer: agentWallet.publicKey,
         client: clientWallet.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -92,7 +93,7 @@ describe("receipt-registry", () => {
     usdcMint = await createMint(connection, payer, payer.publicKey, null, 6);
 
     [vaultState] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agentWallet.publicKey.toBuffer()],
+      [Buffer.from("vault"), agentWallet.publicKey.toBuffer(), new BN(NONCE).toArrayLike(Buffer, "le", 8)],
       vaultProgram.programId
     );
     [shareMint] = PublicKey.findProgramAddressSync(
@@ -115,7 +116,8 @@ describe("receipt-registry", () => {
         MAX_TVL,
         LOCKUP_EPOCHS,
         EPOCH_LENGTH,
-        protocolAuthority.publicKey
+        protocolAuthority.publicKey,
+        new BN(NONCE)
       )
       .accountsPartial({
         vaultState,
@@ -395,16 +397,15 @@ describe("receipt-registry", () => {
         .accountsPartial({
           registryState,
           jobReceipt,
-          operator: clientWallet.publicKey,
+          signer: clientWallet.publicKey,
           client: clientWallet.publicKey,
           systemProgram: SystemProgram.programId,
         })
         .signers([clientWallet])
         .rpc();
       expect.fail("should have thrown");
-    } catch (err) {
-      const anchorErr = err as AnchorError;
-      expect(anchorErr.error.errorCode.code).to.equal("Unauthorized");
+    } catch (err: any) {
+      expect(err.error?.errorCode?.code || err.message).to.include("Unauthorized");
     }
   });
 

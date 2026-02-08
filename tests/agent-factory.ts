@@ -99,7 +99,7 @@ describe("agent-factory", () => {
     );
 
     const [vaultState] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agentWallet.publicKey.toBuffer()],
+      [Buffer.from("vault"), agentWallet.publicKey.toBuffer(), new BN(agentId).toArrayLike(Buffer, "le", 8)],
       vaultProgram.programId
     );
 
@@ -130,7 +130,8 @@ describe("agent-factory", () => {
         MAX_TVL,
         LOCKUP_EPOCHS,
         EPOCH_LENGTH,
-        arbitratorKey.publicKey
+        arbitratorKey.publicKey,
+        null
       )
       .accountsPartial({
         factoryState,
@@ -215,7 +216,7 @@ describe("agent-factory", () => {
     );
 
     const [vaultState] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agent2.publicKey.toBuffer()],
+      [Buffer.from("vault"), agent2.publicKey.toBuffer(), new BN(agentId).toArrayLike(Buffer, "le", 8)],
       vaultProgram.programId
     );
     const [shareMint] = PublicKey.findProgramAddressSync(
@@ -243,7 +244,8 @@ describe("agent-factory", () => {
         new BN(500_000_000_000),
         0,
         new BN(86400),
-        arbitratorKey.publicKey
+        arbitratorKey.publicKey,
+        null
       )
       .accountsPartial({
         factoryState,
@@ -294,7 +296,7 @@ describe("agent-factory", () => {
       factoryProgram.programId
     );
     const [vaultState] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), badAgent.publicKey.toBuffer()],
+      [Buffer.from("vault"), badAgent.publicKey.toBuffer(), new BN(agentId).toArrayLike(Buffer, "le", 8)],
       vaultProgram.programId
     );
     const [shareMint] = PublicKey.findProgramAddressSync(
@@ -323,7 +325,8 @@ describe("agent-factory", () => {
           MAX_TVL,
           0,
           new BN(86400),
-          arbitratorKey.publicKey
+          arbitratorKey.publicKey,
+          null
         )
         .accountsPartial({
           factoryState,
@@ -367,7 +370,7 @@ describe("agent-factory", () => {
       factoryProgram.programId
     );
     const [vaultState] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), badAgent.publicKey.toBuffer()],
+      [Buffer.from("vault"), badAgent.publicKey.toBuffer(), new BN(agentId).toArrayLike(Buffer, "le", 8)],
       vaultProgram.programId
     );
     const [shareMint] = PublicKey.findProgramAddressSync(
@@ -396,7 +399,8 @@ describe("agent-factory", () => {
           MAX_TVL,
           0,
           new BN(86400),
-          arbitratorKey.publicKey
+          arbitratorKey.publicKey,
+          null
         )
         .accountsPartial({
           factoryState,

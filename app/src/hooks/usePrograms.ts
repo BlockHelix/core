@@ -38,20 +38,11 @@ export function usePrograms() {
     const anchorWallet = {
       publicKey: new PublicKey(wallet.address),
       signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T): Promise<T> => {
-        console.log('[anchorWallet] signTransaction called');
-        try {
-          const serialized = tx.serialize({ requireAllSignatures: false });
-          const result = await wallet.signTransaction({ transaction: serialized });
-          const signedTx = Transaction.from(result.signedTransaction);
-          console.log('[anchorWallet] signTransaction complete');
-          return signedTx as T;
-        } catch (err) {
-          console.error('[anchorWallet] signTransaction error:', err);
-          throw err;
-        }
+        const serialized = tx.serialize({ requireAllSignatures: false });
+        const result = await wallet.signTransaction({ transaction: serialized });
+        return Transaction.from(result.signedTransaction) as T;
       },
       signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => {
-        console.log('[anchorWallet] signAllTransactions called');
         const results = await Promise.all(txs.map(async (tx) => {
           const serialized = tx.serialize({ requireAllSignatures: false });
           const result = await wallet.signTransaction({ transaction: serialized });

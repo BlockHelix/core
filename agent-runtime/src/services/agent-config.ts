@@ -3,11 +3,7 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import fs from 'fs';
 import type { AgentConfig, OnChainAgentMetadata } from '../types';
 import { agentStorage } from './storage';
-
-const FACTORY_PROGRAM_ID = new PublicKey(
-  process.env.FACTORY_PROGRAM_ID || '7Hp1sUZfUVfhvXJjtKZbyUuEVQpk92siyFLrgmwmAq7j'
-);
-const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'https://api.devnet.solana.com';
+import { FACTORY_PROGRAM_ID, RPC_URL } from '../config';
 
 const DEFAULT_PROMPT = process.env.DEFAULT_AGENT_PROMPT || 'You are a helpful AI assistant.';
 const DEFAULT_PRICE = parseInt(process.env.DEFAULT_AGENT_PRICE || '50000', 10);

@@ -138,7 +138,7 @@ describe("e2e-integration: full BlockHelix flow", () => {
     );
 
     [vaultState] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agent.publicKey.toBuffer()],
+      [Buffer.from("vault"), agent.publicKey.toBuffer(), new BN(agentId).toArrayLike(Buffer, "le", 8)],
       vaultProgram.programId
     );
 
@@ -176,7 +176,8 @@ describe("e2e-integration: full BlockHelix flow", () => {
         MAX_TVL,
         LOCKUP_EPOCHS,
         EPOCH_LENGTH,
-        arbitrator.publicKey
+        arbitrator.publicKey,
+        null
       )
       .accountsPartial({
         factoryState,
@@ -383,7 +384,7 @@ describe("e2e-integration: full BlockHelix flow", () => {
       .accountsPartial({
         registryState,
         jobReceipt,
-        operator: agent.publicKey,
+        signer: agent.publicKey,
         client: client.publicKey,
         systemProgram: SystemProgram.programId,
       })

@@ -26,6 +26,7 @@ describe("agent-vault", () => {
   const agentWallet = Keypair.generate();
   const depositor = Keypair.generate();
   const protocolTreasury = Keypair.generate();
+  const ecosystemFund = Keypair.generate();
   const claimant = Keypair.generate();
   const arbitrator = Keypair.generate();
 
@@ -40,6 +41,9 @@ describe("agent-vault", () => {
   let protocolUsdcAccount: PublicKey;
   let depositRecord: PublicKey;
   let claimantUsdcAccount: PublicKey;
+  let ecosystemFundAccount: PublicKey;
+  let validatorUsdcAccount: PublicKey;
+  const validator = Keypair.generate();
 
   const AGENT_FEE_BPS = 7000;
   const PROTOCOL_FEE_BPS = 500;
@@ -52,33 +56,22 @@ describe("agent-vault", () => {
 
   const VIRTUAL_SHARES = 1_000_000;
   const VIRTUAL_ASSETS = 1_000_000;
+  const NONCE = 0;
 
   before(async () => {
-    const sig1 = await connection.requestAirdrop(
-      agentWallet.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    const sig2 = await connection.requestAirdrop(
-      depositor.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    const sig3 = await connection.requestAirdrop(
-      claimant.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    const sig4 = await connection.requestAirdrop(
-      arbitrator.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await connection.confirmTransaction(sig1);
-    await connection.confirmTransaction(sig2);
-    await connection.confirmTransaction(sig3);
-    await connection.confirmTransaction(sig4);
+    const sigs = await Promise.all([
+      connection.requestAirdrop(agentWallet.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
+      connection.requestAirdrop(depositor.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
+      connection.requestAirdrop(claimant.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
+      connection.requestAirdrop(arbitrator.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
+      connection.requestAirdrop(validator.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
+    ]);
+    for (const sig of sigs) await connection.confirmTransaction(sig);
 
     usdcMint = await createMint(connection, payer, payer.publicKey, null, 6);
 
     [vaultState] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agentWallet.publicKey.toBuffer()],
+      [Buffer.from("vault"), agentWallet.publicKey.toBuffer(), new BN(NONCE).toArrayLike(Buffer, "le", 8)],
       program.programId
     );
     [shareMint] = PublicKey.findProgramAddressSync(
@@ -120,6 +113,18 @@ describe("agent-vault", () => {
       usdcMint,
       claimant.publicKey
     );
+    ecosystemFundAccount = await createAccount(
+      connection,
+      payer,
+      usdcMint,
+      ecosystemFund.publicKey
+    );
+    validatorUsdcAccount = await createAccount(
+      connection,
+      payer,
+      usdcMint,
+      validator.publicKey
+    );
 
     await mintTo(
       connection,
@@ -146,7 +151,7 @@ describe("agent-vault", () => {
 
   it("Initializes vault", async () => {
     await program.methods
-      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, LOCKUP_EPOCHS, EPOCH_LENGTH, arbitrator.publicKey)
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, LOCKUP_EPOCHS, EPOCH_LENGTH, arbitrator.publicKey, new BN(NONCE))
       .accountsPartial({
         vaultState,
         shareMint,
@@ -217,8 +222,9 @@ describe("agent-vault", () => {
     const sig = await connection.requestAirdrop(agent2.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
     await connection.confirmTransaction(sig);
 
+    const nonce2 = 0;
     const [vs2] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agent2.publicKey.toBuffer()],
+      [Buffer.from("vault"), agent2.publicKey.toBuffer(), new BN(nonce2).toArrayLike(Buffer, "le", 8)],
       program.programId
     );
     const [sm2] = PublicKey.findProgramAddressSync(
@@ -227,7 +233,7 @@ describe("agent-vault", () => {
     );
     const vua2 = getAssociatedTokenAddressSync(usdcMint, vs2, true);
     await program.methods
-      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, 0, new BN(86400), arbitrator.publicKey)
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, 0, new BN(86400), arbitrator.publicKey, new BN(nonce2))
       .accountsPartial({
         vaultState: vs2,
         shareMint: sm2,
@@ -415,8 +421,9 @@ describe("agent-vault", () => {
     );
     await connection.confirmTransaction(sig);
 
+    const nonce2 = 0;
     const [vaultState2] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agent2.publicKey.toBuffer()],
+      [Buffer.from("vault"), agent2.publicKey.toBuffer(), new BN(nonce2).toArrayLike(Buffer, "le", 8)],
       program.programId
     );
     const [shareMint2] = PublicKey.findProgramAddressSync(
@@ -432,7 +439,7 @@ describe("agent-vault", () => {
     const tinyTvlCap = new BN(150_000_000); // 150 USDC cap
 
     await program.methods
-      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, tinyTvlCap, 0, new BN(86400), arbitrator.publicKey)
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, tinyTvlCap, 0, new BN(86400), arbitrator.publicKey, new BN(nonce2))
       .accountsPartial({
         vaultState: vaultState2,
         shareMint: shareMint2,
@@ -564,21 +571,34 @@ describe("agent-vault", () => {
         vaultUsdcAccount,
         shareMint,
         operatorShareAccount,
-        claimantUsdcAccount,
+        clientUsdcAccount: claimantUsdcAccount,
+        ecosystemFundAccount,
+        validatorUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([arbitrator])
       .rpc();
 
     const stateAfter = await program.account.vaultState.fetch(vaultState);
-    expect(stateAfter.totalSlashed.toNumber()).to.equal(slashAmount);
+    expect(stateAfter.totalSlashed.toNumber()).to.equal(slashAmount * 2); // 2x penalty
     expect(stateAfter.slashEvents).to.equal(1);
 
+    // Client receives 1x refund
     const claimantAfter = await getAccount(connection, claimantUsdcAccount);
     expect(Number(claimantAfter.amount)).to.equal(claimantBalanceBefore + slashAmount);
 
+    // Ecosystem fund receives 0.75x
+    const ecosystemAfter = await getAccount(connection, ecosystemFundAccount);
+    const expectedEcosystem = slashAmount - Math.floor(slashAmount / 4);
+    expect(Number(ecosystemAfter.amount)).to.equal(expectedEcosystem);
+
+    // Validator receives 0.25x bounty
+    const validatorAfter = await getAccount(connection, validatorUsdcAccount);
+    expect(Number(validatorAfter.amount)).to.equal(Math.floor(slashAmount / 4));
+
+    // Vault loses 2x total (1x + 0.75x + 0.25x)
     const vaultAfter = await getAccount(connection, vaultUsdcAccount);
-    expect(Number(vaultAfter.amount)).to.equal(vaultBalanceBefore - slashAmount);
+    expect(Number(vaultAfter.amount)).to.equal(vaultBalanceBefore - slashAmount * 2);
 
     const operatorSharesAfter = await getAccount(connection, operatorShareAccount);
     expect(Number(operatorSharesAfter.amount)).to.be.lessThan(operatorShareBalanceBefore);
@@ -660,8 +680,9 @@ describe("agent-vault", () => {
     );
     await connection.confirmTransaction(sig);
 
+    const nonce3 = 0;
     const [vs3] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), agent3.publicKey.toBuffer()],
+      [Buffer.from("vault"), agent3.publicKey.toBuffer(), new BN(nonce3).toArrayLike(Buffer, "le", 8)],
       program.programId
     );
     const [sm3] = PublicKey.findProgramAddressSync(
@@ -671,7 +692,7 @@ describe("agent-vault", () => {
     const vua3 = getAssociatedTokenAddressSync(usdcMint, vs3, true);
 
     await program.methods
-      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, 0, new BN(86400), arbitrator.publicKey)
+      .initialize(AGENT_FEE_BPS, PROTOCOL_FEE_BPS, MAX_TVL, 0, new BN(86400), arbitrator.publicKey, new BN(nonce3))
       .accountsPartial({
         vaultState: vs3,
         shareMint: sm3,

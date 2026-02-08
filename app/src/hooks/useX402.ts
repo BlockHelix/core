@@ -60,11 +60,10 @@ export function useX402() {
         const ata = await getAssociatedTokenAddress(USDC_DEVNET, payerPubkey);
         const account = await getAccount(connection, ata);
         if (account.amount >= BigInt(usdcOption.amount)) {
-          console.log('[x402] Using USDC payment');
           return usdcOption;
         }
       } catch {
-        console.log('[x402] No USDC balance, payment will fail');
+        // No USDC balance
       }
     }
     return usdcOption || options[0] || null;
@@ -101,8 +100,6 @@ export function useX402() {
     const mintInfo = await getMint(connection, mint);
     const sourceAta = await getAssociatedTokenAddress(mint, payerPubkey);
     const destAta = await getAssociatedTokenAddress(mint, payToPubkey);
-
-    console.log(`[x402] Creating USDC transfer: ${Number(amount) / Math.pow(10, mintInfo.decimals)} USDC`);
 
     // Check if destination ATA exists
     let createDestAta = false;
@@ -169,8 +166,6 @@ export function useX402() {
     const signResult = await wallet.signTransaction({ transaction: serialized });
     const signedTx = VersionedTransaction.deserialize(signResult.signedTransaction);
 
-    console.log('[x402] Transaction signed, building payment payload...');
-
     // Build x402 payment payload
     const payload = {
       x402Version: requirements.x402Version,
@@ -181,7 +176,6 @@ export function useX402() {
       },
     };
 
-    console.log('[x402] Payment payload:', JSON.stringify(payload, null, 2));
     return btoa(JSON.stringify(payload));
   }, [wallet, selectPaymentOption]);
 
@@ -192,11 +186,6 @@ export function useX402() {
       return response;
     }
 
-    console.log('[x402] 402 received, available headers:');
-    response.headers.forEach((value, key) => {
-      console.log(`  ${key}: ${value.substring(0, 50)}...`);
-    });
-
     const paymentRequiredHeader = response.headers.get('payment-required') || response.headers.get('Payment-Required');
     if (!paymentRequiredHeader) {
       console.error('[x402] payment-required header not found in response');
@@ -204,10 +193,7 @@ export function useX402() {
     }
 
     const requirements: PaymentRequirements = JSON.parse(atob(paymentRequiredHeader));
-    console.log('[x402] Payment required:', requirements);
-
     const paymentSignature = await createPayment(requirements);
-    console.log('[x402] Payment created, retrying request...');
 
     const retryResponse = await fetch(url, {
       ...options,

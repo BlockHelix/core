@@ -35,6 +35,10 @@ const CONFIG = {
 
 export const networkConfig = CONFIG[NETWORK];
 
+if (NETWORK === 'mainnet' && !networkConfig.programIds.vault) {
+  throw new Error('Mainnet program IDs not configured. Deploy programs first or use devnet.');
+}
+
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || networkConfig.rpcUrl;
 export const USDC_MINT = new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || networkConfig.usdcMint);
 export const PROTOCOL_TREASURY = new PublicKey(
