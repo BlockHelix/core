@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use anchor_spl::associated_token::AssociatedToken;
 use agent_vault::cpi::accounts::Initialize as VaultInitialize;
 use agent_vault::program::AgentVault;
@@ -253,6 +253,15 @@ pub struct CreateAgent<'info> {
 
     /// CHECK: Protocol treasury
     pub protocol_treasury: AccountInfo<'info>,
+
+    /// Operator's USDC account for receiving x402 payments
+    #[account(
+        init_if_needed,
+        payer = operator,
+        associated_token::mint = usdc_mint,
+        associated_token::authority = operator,
+    )]
+    pub operator_usdc_account: Account<'info, TokenAccount>,
 
     // -- Registry CPI accounts --
     /// CHECK: Created by ReceiptRegistry CPI

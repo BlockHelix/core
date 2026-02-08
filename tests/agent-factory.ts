@@ -119,6 +119,11 @@ describe("agent-factory", () => {
       registryProgram.programId
     );
 
+    const operatorUsdcAccount = getAssociatedTokenAddressSync(
+      usdcMint,
+      agentWallet.publicKey
+    );
+
     await factoryProgram.methods
       .createAgent(
         "DefiData Patch Agent",
@@ -142,6 +147,7 @@ describe("agent-factory", () => {
         usdcMint,
         vaultUsdcAccount,
         protocolTreasury: protocolTreasury.publicKey,
+        operatorUsdcAccount,
         registryState,
         vaultProgram: vaultProgram.programId,
         registryProgram: registryProgram.programId,
@@ -233,6 +239,11 @@ describe("agent-factory", () => {
       registryProgram.programId
     );
 
+    const operatorUsdcAccount = getAssociatedTokenAddressSync(
+      usdcMint,
+      agent2.publicKey
+    );
+
     await factoryProgram.methods
       .createAgent(
         "Agent Two",
@@ -256,6 +267,7 @@ describe("agent-factory", () => {
         usdcMint,
         vaultUsdcAccount,
         protocolTreasury: protocolTreasury.publicKey,
+        operatorUsdcAccount,
         registryState,
         vaultProgram: vaultProgram.programId,
         registryProgram: registryProgram.programId,
@@ -313,6 +325,11 @@ describe("agent-factory", () => {
       registryProgram.programId
     );
 
+    const operatorUsdcAccount = getAssociatedTokenAddressSync(
+      usdcMint,
+      badAgent.publicKey
+    );
+
     try {
       await factoryProgram.methods
         .createAgent(
@@ -337,6 +354,7 @@ describe("agent-factory", () => {
           usdcMint,
           vaultUsdcAccount,
           protocolTreasury: protocolTreasury.publicKey,
+          operatorUsdcAccount,
           registryState,
           vaultProgram: vaultProgram.programId,
           registryProgram: registryProgram.programId,
@@ -387,6 +405,11 @@ describe("agent-factory", () => {
       registryProgram.programId
     );
 
+    const operatorUsdcAccount = getAssociatedTokenAddressSync(
+      usdcMint,
+      badAgent.publicKey
+    );
+
     try {
       await factoryProgram.methods
         .createAgent(
@@ -411,6 +434,7 @@ describe("agent-factory", () => {
           usdcMint,
           vaultUsdcAccount,
           protocolTreasury: protocolTreasury.publicKey,
+          operatorUsdcAccount,
           registryState,
           vaultProgram: vaultProgram.programId,
           registryProgram: registryProgram.programId,
