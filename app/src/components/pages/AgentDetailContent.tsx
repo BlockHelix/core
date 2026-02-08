@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { formatUSDC, formatShares } from '@/lib/format';
 import { CopyButton } from '@/components/CopyButton';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/cn';
 import { HireAgentForm } from '@/components/agent/HireAgentForm';
 import { useAgentDetails, useJobReceipts } from '@/hooks/useAgentData';
 import { findRegistryState } from '@/lib/pda';
+import { getAgentDetail } from '@/lib/runtime';
 
 export default function AgentDetailContent() {
   const params = useParams();
@@ -27,8 +29,16 @@ export default function AgentDetailContent() {
   }
 
   const { agentMetadata, vaultState, totalAssets, totalShares, isLoading, error } = useAgentDetails(agentWallet);
+  const [agentPrice, setAgentPrice] = useState<number>(0.05);
 
   const vaultPubkey = agentMetadata?.vault ?? null;
+
+  useEffect(() => {
+    if (!vaultPubkey) return;
+    getAgentDetail(vaultPubkey.toString())
+      .then(detail => setAgentPrice(detail.priceUsdcMicro / 1_000_000))
+      .catch(() => setAgentPrice(0.05));
+  }, [vaultPubkey]);
   const registryPubkey = vaultPubkey ? findRegistryState(vaultPubkey)[0] : null;
 
   const { receipts } = useJobReceipts(registryPubkey);
@@ -207,7 +217,7 @@ export default function AgentDetailContent() {
         <div className="mb-12">
           <TryAgentWidget
             agentId={agentMetadata.vault.toString()}
-            price={0.10}
+            price={agentPrice}
             endpointUrl={agentMetadata.endpointUrl}
             agentName={agentMetadata.name}
           />

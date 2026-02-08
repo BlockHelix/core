@@ -50,18 +50,19 @@ export interface ReceiptResult {
 export async function routeRevenueToVault(
   agentKeypair: Keypair,
   vaultAddress: PublicKey,
-  operatorPubkey: PublicKey,
+  _operatorPubkey: PublicKey,
   amount: number,
   jobId: number
 ): Promise<RevenueResult | null> {
   try {
     const provider = getProvider(agentKeypair);
     anchor.setProvider(provider);
-    const operator = operatorPubkey;
+    // Use agent keypair as payer - this is where x402 payments land
+    const payer = agentKeypair.publicKey;
 
     const vaultState = vaultAddress;
     const vaultUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, vaultState, true);
-    const payerUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, operator);
+    const payerUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, payer);
 
     const connection = new Connection(RPC_URL, 'confirmed');
     const vaultInfo = await connection.getAccountInfo(vaultState);
@@ -83,12 +84,13 @@ export async function routeRevenueToVault(
       .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
       .accounts({
         vaultState,
-        payer: operator,
+        payer,
         vaultUsdcAccount,
         payerUsdcAccount,
         protocolUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
+      .signers([agentKeypair])
       .rpc();
 
     console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${tx}`);
