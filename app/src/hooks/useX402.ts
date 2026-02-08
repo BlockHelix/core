@@ -186,9 +186,11 @@ export function useX402() {
       return response;
     }
 
-    const paymentRequiredHeader = response.headers.get('payment-required') || response.headers.get('Payment-Required');
+    const paymentRequiredHeader = response.headers.get('PAYMENT-REQUIRED') || response.headers.get('payment-required') || response.headers.get('Payment-Required');
     if (!paymentRequiredHeader) {
-      console.error('[x402] payment-required header not found in response');
+      const allHeaders: string[] = [];
+      response.headers.forEach((_v, k) => allHeaders.push(k));
+      console.error('[x402] payment-required header not found. Visible headers:', allHeaders);
       throw new Error('402 response missing payment-required header');
     }
 
@@ -199,7 +201,7 @@ export function useX402() {
       ...options,
       headers: {
         ...options.headers,
-        'Payment-Signature': paymentSignature,
+        'PAYMENT-SIGNATURE': paymentSignature,
       },
     });
 

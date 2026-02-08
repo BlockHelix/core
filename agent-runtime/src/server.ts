@@ -37,8 +37,8 @@ export function createApp(): express.Application {
   app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment', 'Payment-Signature', 'x-payment'],
-    exposedHeaders: ['payment-required', 'x-payment-response'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment', 'x-payment', 'Payment-Signature', 'PAYMENT-SIGNATURE'],
+    exposedHeaders: ['payment-required', 'PAYMENT-REQUIRED', 'x-payment-response', 'PAYMENT-RESPONSE'],
     maxAge: 86400,
     preflightContinue: false,
     optionsSuccessStatus: 204,
