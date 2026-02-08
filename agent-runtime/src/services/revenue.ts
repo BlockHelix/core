@@ -22,12 +22,8 @@ function getProvider(keypair: Keypair): anchor.AnchorProvider {
   return new anchor.AnchorProvider(connection, wallet, { commitment: 'confirmed' });
 }
 
-function getVaultPda(operator: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault'), operator.toBuffer()],
-    VAULT_PROGRAM_ID
-  );
-}
+// Note: Vault PDA derivation requires nonce which we don't store.
+// Use the vault address from AgentConfig instead of deriving.
 
 function getRegistryPda(vault: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
@@ -63,6 +59,7 @@ export interface ReceiptResult {
 
 export async function routeRevenueToVault(
   agentKeypair: Keypair,
+  vaultAddress: PublicKey,
   operatorPubkey: PublicKey,
   amount: number,
   jobId: number
@@ -72,7 +69,7 @@ export async function routeRevenueToVault(
     anchor.setProvider(provider);
     const operator = operatorPubkey;
 
-    const [vaultState] = getVaultPda(operator);
+    const vaultState = vaultAddress;
     const vaultUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, vaultState, true);
     const payerUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, operator);
 
@@ -114,7 +111,7 @@ export async function routeRevenueToVault(
 
 export async function recordJobOnChain(
   agentKeypair: Keypair | null,
-  operatorPubkey: PublicKey,
+  vaultAddress: PublicKey,
   artifactHash: Buffer,
   paymentAmount: number,
   paymentTx: string,
@@ -134,7 +131,7 @@ export async function recordJobOnChain(
     const provider = getProvider(dummyKeypair);
     anchor.setProvider(provider);
 
-    const [vaultState] = getVaultPda(operatorPubkey);
+    const vaultState = vaultAddress;
     const [registryState] = getRegistryPda(vaultState);
 
     const registryInfo = await connection.getAccountInfo(registryState);

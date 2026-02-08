@@ -94,18 +94,19 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     let receiptResult = null;
 
     const canSign = useKms || agentKeypair;
-    if (canSign && operatorPubkey) {
+    const vaultPubkey = agent.vault ? new PublicKey(agent.vault) : null;
+    if (canSign && operatorPubkey && vaultPubkey) {
       const [revResult, recResult] = await Promise.allSettled([
         usdcAmount > 0 && agentKeypair
-          ? routeRevenueToVault(agentKeypair, operatorPubkey, usdcAmount, jobTimestamp)
+          ? routeRevenueToVault(agentKeypair, vaultPubkey, operatorPubkey, usdcAmount, jobTimestamp)
           : Promise.resolve(null),
-        recordJobOnChain(agentKeypair, operatorPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
+        recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
       ]);
       revenueResult = revResult.status === 'fulfilled' ? revResult.value : null;
       receiptResult = recResult.status === 'fulfilled' ? recResult.value : null;
       if (useKms) console.log('[run] Signed receipt with KMS');
     } else {
-      console.log('[run] No signing capability or operator, skipping on-chain recording');
+      console.log('[run] No signing capability, operator, or vault - skipping on-chain recording');
     }
 
     const elapsed = Date.now() - startTime;

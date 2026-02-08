@@ -39,71 +39,23 @@ export function useCreateAgent() {
     setError(null);
 
     try {
-      console.log('[createAgent] Starting...');
       const agentWallet = new PublicKey(wallet.address);
-      console.log('[createAgent] Agent wallet:', agentWallet.toBase58());
-
-      const factoryStateResult = findFactoryState();
-      console.log('[createAgent] Factory state result:', factoryStateResult);
-      const [factoryState] = factoryStateResult;
-      console.log('[createAgent] Factory state:', factoryState.toBase58());
-
+      const [factoryState] = findFactoryState();
       const factoryData = await factoryProgram.account.factoryState.fetch(factoryState);
-      console.log('[createAgent] Factory data:', factoryData);
       const agentCount = factoryData.agentCount;
-      console.log('[createAgent] Agent count:', agentCount?.toString());
 
-      console.log('[createAgent] Finding PDAs...');
-      const agentMetadataResult = findAgentMetadata(factoryState, agentCount.toNumber());
-      const [agentMetadata] = agentMetadataResult;
-      console.log('[createAgent] Agent metadata:', agentMetadata.toBase58());
-
+      const [agentMetadata] = findAgentMetadata(factoryState, agentCount.toNumber());
       const nonce = agentCount.toNumber();
-      const vaultStateResult = findVaultState(agentWallet, nonce);
-      const [vaultState] = vaultStateResult;
-      console.log('[createAgent] Vault state:', vaultState.toBase58(), 'nonce:', nonce);
-
-      const shareMintResult = findShareMint(vaultState);
-      const [shareMint] = shareMintResult;
-      console.log('[createAgent] Share mint:', shareMint.toBase58());
-
-      const registryStateResult = findRegistryState(vaultState);
-      const [registryState] = registryStateResult;
-      console.log('[createAgent] Registry state:', registryState.toBase58());
+      const [vaultState] = findVaultState(agentWallet, nonce);
+      const [shareMint] = findShareMint(vaultState);
+      const [registryState] = findRegistryState(vaultState);
 
       const vaultUsdcAccount = await getAssociatedTokenAddress(
         USDC_MINT,
         vaultState,
         true
       );
-      console.log('[createAgent] Vault USDC account:', vaultUsdcAccount.toBase58());
 
-      console.log('[createAgent] Building transaction...');
-      console.log('[createAgent] factoryProgram:', factoryProgram);
-      console.log('[createAgent] factoryProgram.methods:', factoryProgram?.methods);
-      console.log('[createAgent] factoryProgram.idl:', factoryProgram?.idl);
-
-      const dump = (x: any) => ({
-        t: typeof x,
-        isArray: Array.isArray(x),
-        ctor: x?.constructor?.name,
-        val: String(x).slice(0, 50),
-      });
-
-      console.log('[createAgent] args dump', {
-        name: dump(params.name),
-        githubHandle: dump(params.githubHandle),
-        endpointUrl: dump(params.endpointUrl),
-        agentFeeBps: dump(params.agentFeeBps),
-        protocolFeeBps: dump(params.protocolFeeBps),
-        challengeWindow: dump(params.challengeWindow),
-        maxTvl: dump(params.maxTvl),
-        lockupEpochs: dump(params.lockupEpochs),
-        epochLength: dump(params.epochLength),
-        arbitrator: dump(params.arbitrator),
-      });
-
-      console.log('[createAgent] Calling createAgent method...');
       const jobSignerArg = params.jobSigner ? new PublicKey(params.jobSigner) : null;
       const method = factoryProgram.methods.createAgent(
         params.name,
@@ -118,65 +70,41 @@ export function useCreateAgent() {
         new PublicKey(params.arbitrator),
         jobSignerArg
       );
-      console.log('[createAgent] Method created:', method);
 
-      console.log('[createAgent] Setting accounts...');
-      const accountsObj = {
-        factoryState: factoryState,
-        agentMetadata: agentMetadata,
+      const methodBuilder = method.accountsStrict({
+        factoryState,
+        agentMetadata,
         operator: agentWallet,
-        vaultState: vaultState,
-        shareMint: shareMint,
+        vaultState,
+        shareMint,
         usdcMint: USDC_MINT,
-        vaultUsdcAccount: vaultUsdcAccount,
+        vaultUsdcAccount,
         protocolTreasury: PROTOCOL_TREASURY,
-        registryState: registryState,
+        registryState,
         vaultProgram: PROGRAM_IDS.VAULT,
         registryProgram: PROGRAM_IDS.REGISTRY,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-      };
-      console.log('[createAgent] Accounts object keys:', Object.keys(accountsObj));
-      const methodBuilder = method.accountsStrict(accountsObj);
-      console.log('[createAgent] Method builder created');
+      });
 
-      console.log('[createAgent] Trying instruction() first...');
-      try {
-        const ix = await methodBuilder.instruction();
-        console.log('[createAgent] instruction() succeeded:', ix);
-      } catch (ixErr: any) {
-        console.error('[createAgent] instruction() failed:', ixErr?.message);
-      }
-
-      console.log('[createAgent] Getting transaction...');
       const transaction = await methodBuilder.transaction();
-      console.log('[createAgent] Transaction built:', transaction);
-
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = agentWallet;
 
-      console.log('[createAgent] Signing transaction...');
       const serializedTx = transaction.serialize({ requireAllSignatures: false });
       const signResult = await wallet.signTransaction({ transaction: serializedTx });
-      console.log('[createAgent] Transaction signed');
-
-      console.log('[createAgent] Sending transaction...');
       const txSig = await connection.sendRawTransaction(signResult.signedTransaction);
-      console.log('[createAgent] Transaction sent:', txSig);
 
       await connection.confirmTransaction({
         signature: txSig,
         blockhash,
         lastValidBlockHeight,
       }, 'confirmed');
-      console.log('[createAgent] Transaction confirmed');
-
-      const tx = txSig;
 
       return {
-        signature: tx,
+        signature: txSig,
         agentWallet,
         vaultState,
       };
