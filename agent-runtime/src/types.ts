@@ -12,6 +12,7 @@ export interface AgentConfig {
   agentWallet?: string;
   walletSecretKey?: string;
   isContainerized?: boolean;
+  containerIp?: string;
 }
 
 export interface RunRequest {

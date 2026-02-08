@@ -117,13 +117,14 @@ class ContainerManager {
     throw new Error(`Timed out waiting for private IP (task: ${taskArn})`);
   }
 
-  async proxyRequest(agentId: string, body: { input: string; context?: Record<string, unknown> }): Promise<{ output: string }> {
+  async proxyRequest(agentId: string, body: { input: string; context?: Record<string, unknown> }, fallbackIp?: string): Promise<{ output: string }> {
     const container = this.containers.get(agentId);
-    if (!container) {
+    const ip = container?.privateIp || fallbackIp;
+    if (!ip) {
       throw new Error(`No running container for agent ${agentId}`);
     }
 
-    const resp = await fetch(`http://${container.privateIp}:3001/v1/run`, {
+    const resp = await fetch(`http://${ip}:3001/v1/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

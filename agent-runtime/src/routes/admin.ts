@@ -285,6 +285,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       isActive: true,
       apiKey,
       isContainerized: true,
+      containerIp: container.privateIp,
       agentWallet,
       walletSecretKey,
     };
