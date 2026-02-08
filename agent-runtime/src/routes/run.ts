@@ -107,6 +107,9 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
 
     const canSign = useKms || agentKeypair;
     const vaultPubkey = agent.vault ? new PublicKey(agent.vault) : null;
+
+    console.log(`[run] Routing check: canSign=${!!canSign}, hasKeypair=${!!agentKeypair}, operator=${operatorPubkey?.toBase58()}, vault=${vaultPubkey?.toBase58()}, usdcAmount=${usdcAmount}`);
+
     if (canSign && operatorPubkey && vaultPubkey) {
       const [revResult, recResult] = await Promise.allSettled([
         usdcAmount > 0 && agentKeypair
@@ -114,8 +117,18 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
           : Promise.resolve(null),
         recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
       ]);
+
+      if (revResult.status === 'rejected') {
+        console.error('[run] Revenue routing failed:', revResult.reason);
+      }
+      if (recResult.status === 'rejected') {
+        console.error('[run] Job recording failed:', recResult.reason);
+      }
+
       revenueResult = revResult.status === 'fulfilled' ? revResult.value : null;
       receiptResult = recResult.status === 'fulfilled' ? recResult.value : null;
+
+      console.log(`[run] Results: revenue=${revenueResult?.txSignature ?? 'none'}, receipt=${receiptResult?.txSignature ?? 'none'}`);
       if (useKms) console.log('[run] Signed receipt with KMS');
     } else {
       console.log('[run] No signing capability, operator, or vault - skipping on-chain recording');
