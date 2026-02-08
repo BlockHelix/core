@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { getAgentConfig } from '../services/agent-config';
 import { runAgent } from '../services/llm';
 import { routeRevenueToVault, recordJobOnChain, hashArtifact } from '../services/revenue';
@@ -10,6 +10,17 @@ import { isKmsEnabled } from '../services/kms-signer';
 import type { RunRequest, RunResponse } from '../types';
 
 const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
+
+function getGlobalAgentKeypair(): Keypair | null {
+  const pk = process.env.AGENT_WALLET_PRIVATE_KEY;
+  if (!pk) return null;
+  try {
+    const secretKey = Uint8Array.from(JSON.parse(pk));
+    return Keypair.fromSecretKey(secretKey);
+  } catch {
+    return null;
+  }
+}
 
 export async function handleRun(req: Request, res: Response): Promise<void> {
   const { agentId } = req.params;
@@ -71,7 +82,8 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     }
 
     const useKms = isKmsEnabled();
-    const agentKeypair = useKms ? null : agentStorage.getKeypair(agentId);
+    // Try per-agent keypair first, fall back to global AGENT_WALLET_PRIVATE_KEY
+    const agentKeypair = useKms ? null : (agentStorage.getKeypair(agentId) || getGlobalAgentKeypair());
     const operatorPubkey = agent.operator ? new PublicKey(agent.operator) : null;
 
     // If paid in SOL, swap to USDC for vault routing (only if we have a keypair)
