@@ -76,7 +76,7 @@ export function useCreateAgent() {
         jobSignerArg
       );
 
-      const methodBuilder = method.accountsStrict({
+      const methodBuilder = method.accountsPartial({
         factoryState,
         agentMetadata,
         operator: agentWallet,
