@@ -21,25 +21,10 @@ import { replayFromChain, subscribeToFactory, type ReplayStats } from './service
 import { agentStorage } from './services/storage';
 import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
 
-import { Keypair } from '@solana/web3.js';
-
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || 'https://x402.org/facilitator';
 const NETWORK = process.env.SOLANA_NETWORK === 'mainnet' ? SOLANA_MAINNET_CAIP2 : SOLANA_DEVNET_CAIP2;
-
-function getAgentWalletAddress(): string {
-  const pk = process.env.AGENT_WALLET_PRIVATE_KEY;
-  if (pk) {
-    try {
-      const keypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(pk)));
-      return keypair.publicKey.toBase58();
-    } catch (e) {
-      console.error('[server] Failed to derive wallet from AGENT_WALLET_PRIVATE_KEY:', e);
-    }
-  }
-  return process.env.AGENT_WALLET || '97hcopf5v277jJhDD91DzXMwCJs5UR6659Lzdny14oYm';
-}
 
 let lastReplay: ReplayStats | null = null;
 
@@ -104,7 +89,7 @@ export function createApp(): express.Application {
   const resourceServer = new x402ResourceServer(facilitatorClient)
     .register(NETWORK, new ExactSvmScheme());
 
-  const AGENT_WALLET = getAgentWalletAddress();
+  const AGENT_WALLET = process.env.AGENT_WALLET || '97hcopf5v277jJhDD91DzXMwCJs5UR6659Lzdny14oYm';
   const USDC_DEVNET = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
   const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
   const staticRoutes: RoutesConfig = {
