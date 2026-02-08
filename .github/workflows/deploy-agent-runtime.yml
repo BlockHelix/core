@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - 'agent-runtime/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'agent-runtime/**'
 
 env:
   AWS_REGION: us-east-1
@@ -13,8 +17,35 @@ env:
   ECS_SERVICE: blockhelix-dev-agent
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: agent-runtime/package-lock.json
+
+      - name: Install dependencies
+        working-directory: agent-runtime
+        run: npm ci
+
+      - name: Type check
+        working-directory: agent-runtime
+        run: npm run build
+
+      - name: Run tests
+        working-directory: agent-runtime
+        run: npm test --if-present
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - uses: actions/checkout@v4
@@ -30,19 +61,6 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: agent-runtime/package-lock.json
-
-      - name: Install and build
-        working-directory: agent-runtime
-        run: |
-          npm ci
-          npm run build
-
       - name: Build and push Docker image
         working-directory: agent-runtime
         run: |
@@ -53,4 +71,26 @@ jobs:
 
       - name: Deploy to ECS
         run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --force-new-deployment
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+          echo "Deployment complete and healthy"
+
+      - name: Verify health
+        run: |
+          sleep 30
+          HEALTH_URL="https://agents.blockhelix.tech/health"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Health check failed: HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Health check passed"
