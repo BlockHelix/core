@@ -32,7 +32,19 @@ export function createApp(): express.Application {
   const app = express();
   app.set('trust proxy', true);
   app.use(cors({
-    origin: ['https://www.blockhelix.tech', 'https://blockhelix.tech', 'http://localhost:3000'],
+    origin: (origin, callback) => {
+      const allowed = [
+        'https://www.blockhelix.tech',
+        'https://blockhelix.tech',
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ];
+      if (!origin || allowed.includes(origin) || origin.endsWith('.amplifyapp.com')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all for hackathon - tighten later
+      }
+    },
     credentials: true,
     exposedHeaders: ['payment-required', 'x-payment-response'],
   }));
