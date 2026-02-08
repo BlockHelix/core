@@ -18,9 +18,9 @@ resource "aws_lb_target_group" "agent" {
   health_check {
     enabled             = true
     healthy_threshold   = 2
-    unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
+    unhealthy_threshold = 5
+    timeout             = 10
+    interval            = 60
     path                = "/health"
     matcher             = "200"
   }
