@@ -2,10 +2,10 @@
 resource "aws_ecr_repository" "agent" {
   name                 = "${local.name_prefix}-agent"
   image_tag_mutability = "MUTABLE"
-  force_delete         = true # Allow deletion even with images (hackathon convenience)
+  force_delete         = false
 
   image_scanning_configuration {
-    scan_on_push = false # Skip for hackathon speed
+    scan_on_push = true
   }
 }
 

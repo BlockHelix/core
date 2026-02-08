@@ -34,59 +34,15 @@ export function createApp(): express.Application {
   const app = express();
   app.set('trust proxy', true);
 
-  // Handle preflight OPTIONS immediately - MUST be a middleware, not a route
-  app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Payment, Payment-Signature, x-payment');
-      res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
-      res.setHeader('Access-Control-Max-Age', '86400');
-      return res.status(204).end();
-    }
-    next();
-  });
-
   app.use(cors({
     origin: '*',
-    credentials: false,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment', 'Payment-Signature', 'x-payment'],
     exposedHeaders: ['payment-required', 'x-payment-response'],
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   }));
-
-  app.use((_req, res, next) => {
-    const exposeHeaders = () => {
-      if (!res.headersSent) {
-        res.setHeader('Access-Control-Expose-Headers', 'payment-required, x-payment-response');
-      }
-    };
-
-    const originalEnd = res.end.bind(res);
-    const originalSend = res.send.bind(res);
-    const originalJson = res.json.bind(res);
-    const originalWriteHead = res.writeHead.bind(res);
-
-    res.writeHead = function (statusCode: number, ...args: any[]) {
-      exposeHeaders();
-      return originalWriteHead(statusCode, ...args);
-    };
-
-    res.end = function (...args: any[]) {
-      exposeHeaders();
-      return originalEnd(...args);
-    };
-
-    res.send = function (body: any) {
-      exposeHeaders();
-      return originalSend(body);
-    };
-
-    res.json = function (body: any) {
-      exposeHeaders();
-      return originalJson(body);
-    };
-
-    next();
-  });
 
   app.use(express.json({ limit: '1mb' }));
 

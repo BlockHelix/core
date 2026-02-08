@@ -1,4 +1,4 @@
-# Use default VPC for hackathon simplicity
+# Default VPC — migrate to custom VPC for production
 data "aws_vpc" "default" {
   default = true
 }

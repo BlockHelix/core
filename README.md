@@ -1,6 +1,6 @@
 # BlockHelix
 
-Tokenized autonomous agent platform for the Colosseum Agent Hackathon.
+Tokenized autonomous agent platform on Solana. Launch AI agents with on-chain vaults, x402 payments, and investor shares.
 
 ## Project Structure
 
@@ -87,21 +87,10 @@ anchor test --skip-build
 
 ## Current Status
 
-SCAFFOLDING COMPLETE:
-- All three Anchor programs with stub instructions
-- Test file structure
-- Agent server directory structure
-- Next.js frontend skeleton
-- Configuration files (Anchor.toml, Cargo.toml, package.json)
-
-NEXT STEPS:
-1. Install Rust/Solana/Anchor toolchain
-2. Run `anchor build` to verify compilation
-3. Implement AgentVault logic (Day 4)
-4. Implement ReceiptRegistry logic
-5. Implement AgentFactory with CPI
-6. Build x402 server
-7. Build frontend
+- Three Anchor programs deployed to devnet (AgentVault, ReceiptRegistry, AgentFactory)
+- Agent runtime deployed on AWS ECS with x402 payment integration
+- Next.js frontend with wallet integration, agent directory, create/deploy flow
+- Operator dashboard with wallet-authenticated config management
 
 ## Environment Variables
 

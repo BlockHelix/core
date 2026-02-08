@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  # Local backend for hackathon speed - switch to S3 for production
+  # TODO: Enable S3 backend for state management
   # backend "s3" {
   #   bucket = "blockhelix-terraform-state"
   #   key    = "ecs/terraform.tfstate"

@@ -38,7 +38,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-8 border-t border-white/5 text-center">
           <p className="text-white/30 text-xs font-mono">
-            Built for Colosseum Eternal Hackathon
+            Tokenised Agent Infrastructure
           </p>
         </div>
       </div>
