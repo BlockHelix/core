@@ -5,8 +5,11 @@ WORKSPACE="/app/data/openclaw/workspace"
 CONFIG_DIR="/app/data/openclaw/config"
 LOG_DIR="/app/data/openclaw/logs"
 CONFIG_FILE="$CONFIG_DIR/openclaw.json"
+STATE_DIR="/app/data/openclaw"
 
 mkdir -p "$WORKSPACE/memory" "$CONFIG_DIR" "$LOG_DIR"
+export OPENCLAW_STATE_DIR="$STATE_DIR"
+export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
 
 if [ -n "$SYSTEM_PROMPT" ]; then
   echo "$SYSTEM_PROMPT" > "$WORKSPACE/SYSTEM.md"
@@ -37,6 +40,7 @@ elif [ "$PROVIDER" = "openai" ]; then
 fi
 GATEWAY_PORT=18789
 GATEWAY_AUTH="${GATEWAY_AUTH_TOKEN:-default-local-token}"
+export OPENCLAW_GATEWAY_TOKEN="$GATEWAY_AUTH"
 
 json_escape() {
   node -e 'process.stdout.write(JSON.stringify(process.argv[1] ?? ""))' "$1"
@@ -95,6 +99,7 @@ cat > "$CONFIG_FILE" <<EOF
     ${CHANNELS_CONTENT}
   },
   "gateway": {
+    "mode": "local",
     "port": $GATEWAY_PORT,
     "bind": "loopback",
     "auth": {"mode":"token","token": $GATEWAY_AUTH_JSON}
@@ -106,7 +111,7 @@ echo "[entrypoint] Config written to $CONFIG_FILE"
 echo "[entrypoint] Telegram: $TELEGRAM_ENABLED"
 echo "[entrypoint] Starting OpenClaw gateway on :$GATEWAY_PORT (model: $MODEL_ID)"
 
-openclaw gateway --config "$CONFIG_FILE" 2>&1 | tee "$LOG_DIR/gateway.log" &
+openclaw gateway run --allow-unconfigured --port "$GATEWAY_PORT" --bind "loopback" --auth "token" 2>&1 | tee "$LOG_DIR/gateway.log" &
 GATEWAY_PID=$!
 
 echo "[entrypoint] Waiting for gateway (pid $GATEWAY_PID) to be healthy..."
