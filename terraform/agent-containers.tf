@@ -126,21 +126,13 @@ resource "aws_ecs_task_definition" "openclaw" {
       image = "${aws_ecr_repository.agent.repository_url}:openclaw-latest"
       user  = "1000:1000"
 
-      readonlyRootFilesystem = true
+      readonlyRootFilesystem = false
 
       linuxParameters = {
         capabilities = {
           drop = ["ALL"]
         }
       }
-
-      mountPoints = [
-        {
-          sourceVolume  = "tmp"
-          containerPath = "/tmp"
-          readOnly      = false
-        }
-      ]
 
       portMappings = [
         {
@@ -153,9 +145,6 @@ resource "aws_ecs_task_definition" "openclaw" {
       environment = [
         { name = "PORT", value = "3001" },
         { name = "NODE_ENV", value = "production" },
-        { name = "HOME", value = "/tmp" },
-        { name = "XDG_CACHE_HOME", value = "/tmp/.cache" },
-        { name = "npm_config_cache", value = "/tmp/.npm" },
       ]
 
       logConfiguration = {
@@ -177,7 +166,4 @@ resource "aws_ecs_task_definition" "openclaw" {
     }
   ])
 
-  volume {
-    name = "tmp"
-  }
 }

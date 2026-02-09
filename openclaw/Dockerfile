@@ -9,15 +9,16 @@ RUN npm install -g openclaw@latest
 COPY adapter.js entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
-RUN mkdir -p /tmp/.openclaw /tmp/.config /tmp/.cache /tmp/.npm && chown -R node:node /tmp
+RUN mkdir -p /app/data/openclaw /app/data/openclaw/cache /app/data/openclaw/config /app/data/openclaw/workspace /app/data/openclaw/npm \
+  && chown -R node:node /app/data
 USER node
 
 ENV PORT=3001
 ENV NODE_ENV=production
-ENV HOME=/tmp
-ENV XDG_CACHE_HOME=/tmp/.cache
-ENV XDG_CONFIG_HOME=/tmp/.config
-ENV npm_config_cache=/tmp/.npm
+ENV HOME=/app/data/openclaw
+ENV XDG_CACHE_HOME=/app/data/openclaw/cache
+ENV XDG_CONFIG_HOME=/app/data/openclaw/config
+ENV npm_config_cache=/app/data/openclaw/npm
 
 EXPOSE 3001
 
