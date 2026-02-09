@@ -18,7 +18,7 @@ import {
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
-import { startVaultRefresh, getVaultStats, getAllVaultStats } from './services/vault-cache';
+import { eventIndexer } from './services/event-indexer';
 import { agentStorage } from './services/storage';
 import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
 import { EmbeddedFacilitatorClient } from './services/embedded-facilitator';
@@ -47,15 +47,16 @@ export function createApp(): express.Application {
 
   app.use(express.json({ limit: '1mb' }));
 
-  initDefaultAgents();
-
   agentStorage.init()
-    .then(() => initKmsSigner())
+    .then(() => {
+      initDefaultAgents();
+      return initKmsSigner();
+    })
     .then(() => replayFromChain())
     .then((stats) => {
       lastReplay = stats;
       subscribeToFactory();
-      startVaultRefresh();
+      return eventIndexer.init();
     })
     .catch((err) => { console.error('[startup] Failed:', err); });
 
@@ -109,7 +110,7 @@ export function createApp(): express.Application {
         agentsSkipped: lastReplay.agentsSkipped,
         errors: lastReplay.errors.length,
       } : 'pending',
-      vaults: Object.fromEntries(getAllVaultStats()),
+      indexer: eventIndexer.getStatus(),
       hostedAgents: agents.map(a => ({
         agentId: a.agentId,
         name: a.name,
@@ -123,7 +124,7 @@ export function createApp(): express.Application {
     const agents = getAllHostedAgents();
     res.json({
       agents: agents.map(a => {
-        const vault = getVaultStats(a.agentId);
+        const s = a.vault ? eventIndexer.getStats(a.vault) : eventIndexer.getStatsByAgentId(a.agentId);
         return {
           agentId: a.agentId,
           name: a.name,
@@ -133,7 +134,11 @@ export function createApp(): express.Application {
           priceUsdcMicro: a.priceUsdcMicro,
           model: a.model,
           isActive: a.isActive,
-          vaultStats: vault ? { tvl: vault.tvl, revenue: vault.revenue, jobs: vault.jobs, calls: vault.calls } : null,
+          stats: s ? {
+            tvl: s.tvl, totalRevenue: s.totalRevenue, totalJobs: s.totalJobs,
+            apiCalls: s.apiCalls, paused: s.paused, slashEvents: s.slashEvents,
+            totalSlashed: s.totalSlashed, operatorBond: s.operatorBond, jobsRecorded: s.jobsRecorded,
+          } : null,
         };
       }),
     });
@@ -146,16 +151,23 @@ export function createApp(): express.Application {
       res.status(404).json({ error: `Agent not found: ${agentId}` });
       return;
     }
-    const vaultStats = getVaultStats(agentId);
+    const s = agent.vault ? eventIndexer.getStats(agent.vault) : eventIndexer.getStatsByAgentId(agentId);
     res.json({
       agentId: agent.agentId,
       name: agent.name,
+      operator: agent.operator || null,
       priceUsdcMicro: agent.priceUsdcMicro,
       model: agent.model,
       isActive: agent.isActive,
       vault: agent.vault || null,
       registry: agent.registry || null,
-      vaultStats: vaultStats ? { tvl: vaultStats.tvl, revenue: vaultStats.revenue, jobs: vaultStats.jobs, calls: vaultStats.calls } : null,
+      stats: s ? {
+        tvl: s.tvl, totalRevenue: s.totalRevenue, totalJobs: s.totalJobs,
+        apiCalls: s.apiCalls, paused: s.paused, slashEvents: s.slashEvents,
+        totalSlashed: s.totalSlashed, operatorBond: s.operatorBond, jobsRecorded: s.jobsRecorded,
+      } : null,
+      revenueHistory: s?.revenueByDay || [],
+      recentJobs: s?.recentJobs || [],
     });
   });
 

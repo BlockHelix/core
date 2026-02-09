@@ -3,10 +3,10 @@
 import { ExternalLink } from 'lucide-react';
 import { formatUSDC, truncateAddress, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/cn';
-import { JobReceipt } from '@/hooks/useAgentData';
+import type { APIJobReceipt } from '@/hooks/useAgentAPI';
 
 interface ReceiptTableProps {
-  receipts: JobReceipt[];
+  receipts: APIJobReceipt[];
   className?: string;
 }
 
@@ -36,12 +36,18 @@ export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
           <tbody>
             {receipts.map((receipt, index) => {
               const timestamp = new Date(receipt.createdAt * 1000);
-              const statusText = typeof receipt.status === 'object'
-                ? (receipt.status.finalized !== undefined ? 'completed' : 'active')
-                : 'active';
-              const txHash = receipt.paymentTx && receipt.paymentTx.length > 0
-                ? Buffer.from(receipt.paymentTx).toString('hex').slice(0, 64)
-                : receipt.registry.toString();
+              const statusColors: Record<string, string> = {
+                finalized: 'text-emerald-400',
+                active: 'text-amber-400',
+                challenged: 'text-red-400',
+                resolved: 'text-blue-400',
+              };
+              const dotColors: Record<string, string> = {
+                finalized: 'bg-emerald-400',
+                active: 'bg-amber-400',
+                challenged: 'bg-red-400',
+                resolved: 'bg-blue-400',
+              };
 
               return (
                 <tr
@@ -61,28 +67,28 @@ export function ReceiptTable({ receipts, className }: ReceiptTableProps) {
                     <span
                       className={cn(
                         'inline-flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-widest font-medium font-mono',
-                        statusText === 'completed' && 'text-emerald-400',
-                        statusText === 'active' && 'text-amber-400'
+                        statusColors[receipt.status] || 'text-white/40'
                       )}
                     >
                       <div className={cn(
                         'w-1 h-1 rounded-full',
-                        statusText === 'completed' && 'bg-emerald-400',
-                        statusText === 'active' && 'bg-amber-400'
+                        dotColors[receipt.status] || 'bg-white/40'
                       )} />
-                      {statusText}
+                      {receipt.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <a
-                      href={`https://explorer.solana.com/tx/${txHash}?cluster=devnet`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 font-mono text-xs text-emerald-400 hover:text-emerald-300 transition-colors duration-300"
-                    >
-                      {truncateAddress(txHash, 4)}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {receipt.txSignature && (
+                      <a
+                        href={`https://explorer.solana.com/tx/${receipt.txSignature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 font-mono text-xs text-emerald-400 hover:text-emerald-300 transition-colors duration-300"
+                      >
+                        {truncateAddress(receipt.txSignature, 4)}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </td>
                 </tr>
               );

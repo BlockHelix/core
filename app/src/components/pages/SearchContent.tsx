@@ -49,9 +49,9 @@ export default function SearchContent() {
     let results = active
       .filter(agent => matchesQuery(agent, q))
       .map(agent => {
-        const tvl = agent.vaultStats?.tvl ?? 0;
-        const revenue = agent.vaultStats?.revenue ?? 0;
-        const jobs = agent.vaultStats?.jobs ?? 0;
+        const tvl = agent.stats?.tvl ?? 0;
+        const revenue = agent.stats?.totalRevenue ?? 0;
+        const jobs = agent.stats?.totalJobs ?? 0;
         const score = Math.min((tvl + revenue) / 10_000 + jobs / 100, 1);
         return { agent, score, tier: getTier(score) };
       });
@@ -59,10 +59,10 @@ export default function SearchContent() {
     switch (sortMode) {
       case 'relevance':
       case 'tvl':
-        results.sort((a, b) => (b.agent.vaultStats?.tvl ?? 0) - (a.agent.vaultStats?.tvl ?? 0));
+        results.sort((a, b) => (b.agent.stats?.tvl ?? 0) - (a.agent.stats?.tvl ?? 0));
         break;
       case 'revenue':
-        results.sort((a, b) => (b.agent.vaultStats?.revenue ?? 0) - (a.agent.vaultStats?.revenue ?? 0));
+        results.sort((a, b) => (b.agent.stats?.totalRevenue ?? 0) - (a.agent.stats?.totalRevenue ?? 0));
         break;
       case 'newest':
         results.reverse();
@@ -152,7 +152,7 @@ export default function SearchContent() {
           ) : (
             <div className="space-y-0 border border-white/10 divide-y divide-white/[0.06]">
               {ranked.map(({ agent, score, tier }) => {
-                const tvl = agent.vaultStats?.tvl ?? 0;
+                const tvl = agent.stats?.tvl ?? 0;
                 const linkId = agent.operator || agent.agentId;
                 return (
                   <Link
@@ -188,11 +188,11 @@ export default function SearchContent() {
                       </div>
                       <div className="text-right w-24">
                         <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">REVENUE</div>
-                        <div className="text-xs font-mono text-emerald-400 tabular-nums">${formatUSDC(agent.vaultStats?.revenue ?? 0)}</div>
+                        <div className="text-xs font-mono text-emerald-400 tabular-nums">${formatUSDC(agent.stats?.totalRevenue ?? 0)}</div>
                       </div>
                       <div className="text-right w-16">
                         <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">CALLS</div>
-                        <div className="text-xs font-mono text-cyan-400 tabular-nums">{((agent.vaultStats?.calls ?? 0) + (agent.vaultStats?.jobs ?? 0)).toLocaleString()}</div>
+                        <div className="text-xs font-mono text-cyan-400 tabular-nums">{((agent.stats?.apiCalls ?? 0) + (agent.stats?.totalJobs ?? 0)).toLocaleString()}</div>
                       </div>
                     </div>
 

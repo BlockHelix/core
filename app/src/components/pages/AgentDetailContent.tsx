@@ -2,9 +2,9 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { PublicKey } from '@solana/web3.js';
-import { formatUSDC, formatShares } from '@/lib/format';
+import { formatUSDC } from '@/lib/format';
 import { CopyButton } from '@/components/CopyButton';
 import { RevenueChart } from '@/components/RevenueChart';
 import { ReceiptTable } from '@/components/ReceiptTable';
@@ -12,51 +12,18 @@ import { InvestWithdrawForm } from '@/components/InvestWithdrawForm';
 import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
 import { HireAgentForm } from '@/components/agent/HireAgentForm';
-import { useAgentDetails, useJobReceipts } from '@/hooks/useAgentData';
-import { findRegistryState } from '@/lib/pda';
-import { getAgentDetail } from '@/lib/runtime';
+import { useAgentDetailAPI } from '@/hooks/useAgentAPI';
 
 export default function AgentDetailContent() {
   const params = useParams();
-  const agentWalletStr = params.id as string;
+  const agentIdStr = params.id as string;
 
-  let agentWallet: PublicKey | null = null;
-  let isValidAddress = true;
-  try {
-    agentWallet = new PublicKey(agentWalletStr);
-  } catch {
-    isValidAddress = false;
-  }
+  const { agent, isLoading, error } = useAgentDetailAPI(agentIdStr);
 
-  const { agentMetadata, vaultState, totalAssets, totalShares, isLoading, error } = useAgentDetails(agentWallet);
-  const [agentPrice, setAgentPrice] = useState<number>(0.05);
-
-  const vaultPubkey = agentMetadata?.vault ?? null;
-
-  useEffect(() => {
-    if (!vaultPubkey) return;
-    getAgentDetail(vaultPubkey.toString())
-      .then(detail => setAgentPrice(detail.priceUsdcMicro / 1_000_000))
-      .catch(() => setAgentPrice(0.05));
-  }, [vaultPubkey]);
-  const registryPubkey = vaultPubkey ? findRegistryState(vaultPubkey)[0] : null;
-
-  const { receipts } = useJobReceipts(registryPubkey);
-
-  if (!isValidAddress) {
-    return (
-      <main className="min-h-screen py-20 lg:py-32">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="border border-red-500/30 bg-red-500/5 p-12 text-center">
-            <p className="text-red-400 mb-4">Invalid agent address</p>
-            <Link href="/search" className="text-emerald-400 hover:text-emerald-300 transition-colors">
-              Back to Agents
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  const vaultPubkey = useMemo(() => {
+    if (!agent?.vault) return null;
+    try { return new PublicKey(agent.vault); } catch { return null; }
+  }, [agent?.vault]);
 
   if (error) {
     return (
@@ -91,7 +58,7 @@ export default function AgentDetailContent() {
     );
   }
 
-  if (!agentMetadata || !vaultState) {
+  if (!agent) {
     return (
       <main className="min-h-screen py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -106,13 +73,15 @@ export default function AgentDetailContent() {
     );
   }
 
-  const sharePrice = totalShares > 0 ? totalAssets / totalShares : 1;
-  const revenueHistory: { date: string; revenue: number }[] = [];
+  const s = agent.stats;
+  const tvl = s?.tvl ?? 0;
+  const totalRevenue = s?.totalRevenue ?? 0;
+  const operatorBond = s?.operatorBond ?? 0;
+  const totalJobs = s?.totalJobs ?? 0;
+  const paused = s?.paused ?? false;
+  const agentPrice = agent.priceUsdcMicro / 1_000_000;
 
-  const isHosted = agentMetadata.endpointUrl.includes('blockhelix') || agentMetadata.endpointUrl.includes('localhost:3001');
-  const displayEndpoint = isHosted
-    ? `${agentMetadata.endpointUrl.replace(/\/+$/, '')}/v1/agent/${agentMetadata.vault.toString()}/run`
-    : agentMetadata.endpointUrl;
+  const vaultId = agent.vault || agent.agentId;
 
   return (
     <main className="min-h-screen py-20 lg:py-24">
@@ -127,13 +96,13 @@ export default function AgentDetailContent() {
               <div className="flex items-center gap-2">
                 <div className={cn(
                   "w-1 h-1 rounded-full",
-                  !vaultState.paused ? 'bg-emerald-400' : 'bg-amber-400'
+                  !paused ? 'bg-emerald-400' : 'bg-amber-400'
                 )} />
                 <span className={cn(
                   "text-[10px] uppercase tracking-widest font-bold font-mono",
-                  !vaultState.paused ? 'text-emerald-400' : 'text-amber-400'
+                  !paused ? 'text-emerald-400' : 'text-amber-400'
                 )}>
-                  {vaultState.paused ? 'PAUSED' : 'LIVE'}
+                  {paused ? 'PAUSED' : 'LIVE'}
                 </span>
               </div>
               <div className="text-white/20">|</div>
@@ -142,27 +111,16 @@ export default function AgentDetailContent() {
           </div>
 
           <div className="mb-4">
-            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">{agentMetadata.name}</h1>
-            <CopyButton value={agentMetadata.operator.toString()} />
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">{agent.name}</h1>
+            {agent.operator && <CopyButton value={agent.operator} />}
           </div>
           <div className="space-y-2 text-sm text-white/60">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] uppercase tracking-widest text-white/40 w-20 font-mono">GitHub</span>
-              <a
-                href={`https://github.com/${agentMetadata.githubHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-400 hover:text-emerald-300 transition-colors text-xs font-mono"
-              >
-                @{agentMetadata.githubHandle}
-              </a>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] uppercase tracking-widest text-white/40 w-20 font-mono">Endpoint</span>
-              <span className="text-emerald-400 font-mono text-xs break-all">
-                {displayEndpoint}
-              </span>
-            </div>
+            {agent.vault && (
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] uppercase tracking-widest text-white/40 w-20 font-mono">Vault</span>
+                <span className="text-emerald-400 font-mono text-xs break-all">{agent.vault}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -172,72 +130,73 @@ export default function AgentDetailContent() {
               <div className="w-1 h-1 rounded-full bg-emerald-400" />
               <span className="text-[10px] uppercase tracking-widest text-white/30 font-bold font-mono">VAULT METRICS</span>
             </div>
-            <span className="text-[9px] text-white/20 font-mono">SHARES = PROPORTIONAL CLAIM ON NET VAULT ASSETS</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-y md:divide-y-0 divide-white/10">
             <div className="px-4 py-4">
               <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">TVL</div>
-              <div className="text-lg font-bold text-violet-400 font-mono tabular-nums">${formatUSDC(totalAssets)}</div>
-            </div>
-            <div className="px-4 py-4">
-              <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">SHARES</div>
-              <div className="text-lg font-bold text-violet-400 font-mono tabular-nums">{formatShares(totalShares)}</div>
-            </div>
-            <div className="px-4 py-4">
-              <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">PRICE</div>
-              <div className="text-lg font-bold text-emerald-400 font-mono tabular-nums">${formatUSDC(sharePrice)}</div>
+              <div className="text-lg font-bold text-violet-400 font-mono tabular-nums">${formatUSDC(tvl)}</div>
             </div>
             <div className="px-4 py-4">
               <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">REVENUE</div>
-              <div className="text-lg font-bold text-emerald-400 font-mono tabular-nums">${formatUSDC(vaultState.totalRevenue / 1_000_000)}</div>
+              <div className="text-lg font-bold text-emerald-400 font-mono tabular-nums">${formatUSDC(totalRevenue)}</div>
             </div>
             <div className="px-4 py-4">
               <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">BOND</div>
-              <div className="text-lg font-bold text-violet-400 font-mono tabular-nums">${formatUSDC(vaultState.operatorBond / 1_000_000)}</div>
+              <div className="text-lg font-bold text-violet-400 font-mono tabular-nums">${formatUSDC(operatorBond)}</div>
             </div>
             <div className="px-4 py-4">
               <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">JOBS</div>
-              <div className="text-lg font-bold text-cyan-400 font-mono tabular-nums">{vaultState.totalJobs.toLocaleString()}</div>
+              <div className="text-lg font-bold text-cyan-400 font-mono tabular-nums">{totalJobs.toLocaleString()}</div>
+            </div>
+            <div className="px-4 py-4">
+              <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">API CALLS</div>
+              <div className="text-lg font-bold text-cyan-400 font-mono tabular-nums">{(s?.apiCalls ?? 0).toLocaleString()}</div>
+            </div>
+            <div className="px-4 py-4">
+              <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">SLASHED</div>
+              <div className="text-lg font-bold text-red-400 font-mono tabular-nums">{s?.slashEvents ?? 0}</div>
             </div>
           </div>
         </div>
 
         <div className="mb-8">
           <p className="text-[10px] text-white/25 font-mono leading-relaxed">
-            PRICE reflects NAV per share: (vault USDC balance) / (shares outstanding). Revenue from x402 jobs increases the vault balance without minting new shares, so PRICE rises. Deposits mint shares at current NAV, preserving PRICE for existing holders. BOND is the operator&apos;s slashable collateral -- first-loss protection for depositors.
+            Revenue from x402 jobs increases the vault balance without minting new shares, so share PRICE rises. Deposits mint shares at current NAV, preserving PRICE for existing holders. BOND is the operator&apos;s slashable collateral -- first-loss protection for depositors.
           </p>
         </div>
 
-        {revenueHistory.length > 0 && (
+        {agent.revenueHistory.length > 0 && (
           <div className="mb-12">
-            <RevenueChart data={revenueHistory} />
+            <RevenueChart data={agent.revenueHistory} />
           </div>
         )}
 
         <div className="mb-12">
           <TryAgentWidget
-            agentId={agentMetadata.vault.toString()}
+            agentId={vaultId}
             price={agentPrice}
-            endpointUrl={agentMetadata.endpointUrl}
-            agentName={agentMetadata.name}
+            endpointUrl="https://agents.blockhelix.tech"
+            agentName={agent.name}
           />
         </div>
 
         <div className="mb-12">
-          <HireAgentForm agentId={agentMetadata.vault.toString()} endpointUrl={agentMetadata.endpointUrl} agentName={agentMetadata.name} />
+          <HireAgentForm agentId={vaultId} endpointUrl="https://agents.blockhelix.tech" agentName={agent.name} />
         </div>
 
-        <div className="mb-12">
-          <InvestWithdrawForm
-            vaultPubkey={vaultPubkey}
-            shareMint={vaultState.shareMint}
-            sharePrice={sharePrice}
-          />
-        </div>
+        {vaultPubkey && (
+          <div className="mb-12">
+            <InvestWithdrawForm
+              vaultPubkey={vaultPubkey}
+              shareMint={null}
+              sharePrice={1}
+            />
+          </div>
+        )}
 
         <div>
           <h2 className="text-[10px] uppercase tracking-widest text-white/40 mb-6 font-mono">JOB RECEIPTS</h2>
-          <ReceiptTable receipts={receipts} />
+          <ReceiptTable receipts={agent.recentJobs} />
         </div>
       </div>
     </main>

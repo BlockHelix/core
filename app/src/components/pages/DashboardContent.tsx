@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useAgentList } from '@/hooks/useAgentData';
+import { useAgentListAPI } from '@/hooks/useAgentAPI';
 import { useWallets } from '@privy-io/react-auth/solana';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -20,7 +20,7 @@ export default function DashboardContent() {
   const { positions, isLoading: positionsLoading } = useDashboardData();
   const { wallets } = useWallets();
   const wallet = wallets[0];
-  const { agents: allAgents } = useAgentList();
+  const { agents: allAgents } = useAgentListAPI();
 
   const [tab, setTab] = useState<Tab>('staked');
   const [myAgents, setMyAgents] = useState<AgentSummary[]>([]);

@@ -7,7 +7,7 @@ import { swapSolToUsdc } from '../services/jupiter';
 import { containerManager } from '../services/container-manager';
 import { agentStorage } from '../services/storage';
 import { isKmsEnabled } from '../services/kms-signer';
-import { incrementCallCount } from '../services/vault-cache';
+import { eventIndexer } from '../services/event-indexer';
 import type { RunRequest, RunResponse } from '../types';
 
 const NATIVE_SOL = 'So11111111111111111111111111111111111111112';
@@ -44,7 +44,7 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
   }
 
   console.log(`[run] Agent ${agentId} (${agent.name}), input length: ${input.length}`);
-  incrementCallCount(agentId);
+  eventIndexer.incrementApiCalls(agentId);
   const startTime = Date.now();
 
   try {

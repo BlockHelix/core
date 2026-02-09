@@ -1,5 +1,3 @@
-import type { AgentMetadata } from '@/hooks/useAgentData';
-
 export type Tier = 'S' | 'A' | 'B' | 'C' | 'D';
 
 const MAX_TVL = 1_000_000_000_000; // 1B micro-USDC = $1M
@@ -74,59 +72,3 @@ export const TIER_LABELS: Record<Tier, string> = {
   D: 'Unproven',
 };
 
-export function queryRelevance(agent: AgentMetadata, query: string): number {
-  if (!query.trim()) return 0;
-  const q = query.toLowerCase();
-  const tokens = q.split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return 0;
-
-  let score = 0;
-  const name = agent.name.toLowerCase();
-  const handle = (agent.githubHandle || '').toLowerCase();
-
-  for (const token of tokens) {
-    if (name === token) score += 3.0;
-    else if (name.includes(token)) score += 2.0;
-
-    if (handle === token) score += 2.0;
-    else if (handle.includes(token)) score += 1.5;
-  }
-
-  const maxPossible = tokens.length * 5.0;
-  return Math.min(score / maxPossible, 1.0);
-}
-
-export function agentRank(agent: AgentMetadata, query?: string): number {
-  const metrics: VaultMetrics = {
-    tvl: (agent.totalDeposited ?? 0) - (agent.totalWithdrawn ?? 0),
-    totalRevenue: agent.totalRevenue ?? 0,
-    totalJobs: agent.totalJobs ?? 0,
-    operatorBond: agent.operatorBond ?? 0,
-    totalSlashed: agent.totalSlashed ?? 0,
-    slashEvents: agent.slashEvents ?? 0,
-    createdAt: agent.createdAt ?? 0,
-  };
-
-  const rep = reputationScore(metrics);
-
-  if (!query?.trim()) return rep;
-
-  const rel = queryRelevance(agent, query);
-  if (rel === 0) return 0;
-
-  return 0.4 * rel + 0.6 * rep;
-}
-
-export function getAgentReputation(agent: AgentMetadata): { score: number; tier: Tier } {
-  const metrics: VaultMetrics = {
-    tvl: (agent.totalDeposited ?? 0) - (agent.totalWithdrawn ?? 0),
-    totalRevenue: agent.totalRevenue ?? 0,
-    totalJobs: agent.totalJobs ?? 0,
-    operatorBond: agent.operatorBond ?? 0,
-    totalSlashed: agent.totalSlashed ?? 0,
-    slashEvents: agent.slashEvents ?? 0,
-    createdAt: agent.createdAt ?? 0,
-  };
-  const score = reputationScore(metrics);
-  return { score, tier: getTier(score) };
-}

@@ -2,9 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PublicKey } from '@solana/web3.js';
 import { motion } from 'framer-motion';
-import { useAgentList } from '@/hooks/useAgentData';
+import { useAgentListAPI } from '@/hooks/useAgentAPI';
 import { useX402 } from '@/hooks/useX402';
 import { useAuth } from '@/hooks/useAuth';
 import { formatUSDC } from '@/lib/format';
@@ -39,7 +38,7 @@ export default function PostJobContent() {
   const searchParams = useSearchParams();
   const preselectedAgent = searchParams.get('agent');
 
-  const { agents, isLoading: agentsLoading } = useAgentList();
+  const { agents, isLoading: agentsLoading } = useAgentListAPI();
   const { authenticated } = useAuth();
   const { fetchWithPayment, isReady: walletReady } = useX402();
   const activeAgents = useMemo(() => agents.filter(a => a.isActive), [agents]);
@@ -56,7 +55,7 @@ export default function PostJobContent() {
 
   const selectedAgent = useMemo(() => {
     if (!selectedAgentId) return null;
-    return activeAgents.find(a => a.operator.toString() === selectedAgentId);
+    return activeAgents.find(a => (a.operator || a.agentId) === selectedAgentId);
   }, [selectedAgentId, activeAgents]);
 
   const jobConfig = JOB_TYPES[jobType];
@@ -85,7 +84,8 @@ export default function PostJobContent() {
     setPaymentTx(null);
 
     try {
-      const endpoint = selectedAgent.endpointUrl.replace(/\/(analyze|patch)$/, '');
+      const vaultId = selectedAgent.vault || selectedAgent.agentId;
+      const endpoint = `https://agents.blockhelix.tech/v1/agent/${vaultId}/run`;
 
       const inputText = jobType === 'analyze'
         ? `Analyze this GitHub repository for DeFi vulnerabilities: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`
@@ -180,7 +180,7 @@ export default function PostJobContent() {
                   >
                     <option value="" className="bg-[#0a0a0a]">-- Choose an agent --</option>
                     {activeAgents.map((agent) => (
-                      <option key={agent.operator.toString()} value={agent.operator.toString()} className="bg-[#0a0a0a]">
+                      <option key={agent.agentId} value={agent.operator || agent.agentId} className="bg-[#0a0a0a]">
                         {agent.name}
                       </option>
                     ))}
@@ -190,14 +190,10 @@ export default function PostJobContent() {
                   <div className="mt-3 p-3 border border-white/10 bg-white/[0.02] text-xs font-mono text-white/50">
                     <div className="mb-1">
                       <span className="text-white/30">Endpoint:</span>{' '}
-                      {(() => {
-                        const base = selectedAgent.endpointUrl.replace(/\/+$/, '');
-                        const hosted = base.includes('blockhelix') || base.includes('localhost:3001');
-                        return hosted ? `${base}/v1/agent/${selectedAgent.vault.toString()}/run` : base;
-                      })()}
+                      {`https://agents.blockhelix.tech/v1/agent/${selectedAgent.vault || selectedAgent.agentId}/run`}
                     </div>
                     <div>
-                      <span className="text-white/30">GitHub:</span> @{selectedAgent.githubHandle}
+                      <span className="text-white/30">Model:</span> {selectedAgent.model}
                     </div>
                   </div>
                 )}

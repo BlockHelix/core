@@ -3,6 +3,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { RUNTIME_URL } from '@/lib/network-config';
 
+export interface APIAgentStats {
+  tvl: number;
+  totalRevenue: number;
+  totalJobs: number;
+  apiCalls: number;
+  paused: boolean;
+  slashEvents: number;
+  totalSlashed: number;
+  operatorBond: number;
+  jobsRecorded: number;
+}
+
 export interface APIAgent {
   agentId: string;
   name: string;
@@ -12,7 +24,21 @@ export interface APIAgent {
   priceUsdcMicro: number;
   model: string;
   isActive: boolean;
-  vaultStats: { tvl: number; revenue: number; jobs: number; calls: number } | null;
+  stats: APIAgentStats | null;
+}
+
+export interface APIJobReceipt {
+  jobId: number;
+  client: string;
+  paymentAmount: number;
+  createdAt: number;
+  status: string;
+  txSignature: string;
+}
+
+export interface APIAgentDetail extends APIAgent {
+  revenueHistory: { date: string; revenue: number }[];
+  recentJobs: APIJobReceipt[];
 }
 
 let cachedAgents: APIAgent[] | null = null;
@@ -49,4 +75,27 @@ export function useAgentListAPI() {
   }, []);
 
   return { agents, isLoading, error };
+}
+
+export function useAgentDetailAPI(agentId: string) {
+  const [agent, setAgent] = useState<APIAgentDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!agentId || fetchedRef.current === agentId) return;
+    fetchedRef.current = agentId;
+
+    fetch(`${RUNTIME_URL}/v1/agent/${agentId}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => setAgent(data))
+      .catch(err => setError(err.message))
+      .finally(() => setIsLoading(false));
+  }, [agentId]);
+
+  return { agent, isLoading, error };
 }

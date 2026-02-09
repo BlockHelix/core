@@ -14,7 +14,7 @@ const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 
 interface InvestWithdrawFormProps {
   vaultPubkey: PublicKey | null;
-  shareMint: PublicKey;
+  shareMint: PublicKey | null;
   sharePrice: number;
 }
 
@@ -61,7 +61,7 @@ export function InvestWithdrawForm({
   const estimatedUsdc = withdrawAmount ? parseFloat(withdrawAmount) * sharePrice : 0;
 
   const handleDeposit = async () => {
-    if (!vaultPubkey) {
+    if (!vaultPubkey || !shareMint) {
       toast('Vault not available', 'error');
       return;
     }
@@ -87,7 +87,7 @@ export function InvestWithdrawForm({
   };
 
   const handleWithdraw = async () => {
-    if (!vaultPubkey) {
+    if (!vaultPubkey || !shareMint) {
       toast('Vault not available', 'error');
       return;
     }
