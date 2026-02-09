@@ -1,3 +1,14 @@
+type WalletSignFn = (params: { message: Uint8Array }) => Promise<{ signature: Uint8Array }>;
+
+async function signAdminAuth(walletSign: WalletSignFn): Promise<{ signature: string; signedAt: number }> {
+  const signedAt = Date.now();
+  const message = `BlockHelix-admin:${signedAt}`;
+  const encoded = new TextEncoder().encode(message);
+  const result = await walletSign({ message: encoded });
+  const bs58 = (await import('bs58')).default;
+  return { signature: bs58.encode(result.signature), signedAt };
+}
+
 export interface RegisterAgentParams {
   agentId: string;
   name: string;
@@ -11,6 +22,7 @@ export interface RegisterAgentParams {
   apiKey: string;
   ownerWallet?: string;
   operator?: string;
+  signMessage: WalletSignFn;
 }
 
 export interface RegisterAgentResponse {
@@ -36,6 +48,8 @@ export async function registerAgentWithRuntime(
     throw new Error('Runtime URL not configured');
   }
 
+  const auth = await signAdminAuth(params.signMessage);
+
   const response = await fetch(`${RUNTIME_URL}/admin/agents`, {
     method: 'POST',
     headers: {
@@ -54,6 +68,9 @@ export async function registerAgentWithRuntime(
       apiKey: params.apiKey,
       ownerWallet: params.ownerWallet,
       operator: params.operator || params.agentWallet,
+      wallet: params.ownerWallet,
+      signature: auth.signature,
+      signedAt: auth.signedAt,
     }),
   });
 
@@ -168,6 +185,7 @@ export interface DeployOpenClawParams {
   ownerWallet?: string;
   telegramBotToken?: string;
   jobSignerPubkey?: string;
+  signMessage: WalletSignFn;
 }
 
 export async function requestJobSignerKeypair(): Promise<string> {
@@ -197,10 +215,13 @@ export async function deployOpenClaw(params: DeployOpenClawParams): Promise<Regi
     throw new Error('Runtime URL not configured');
   }
 
+  const auth = await signAdminAuth(params.signMessage);
+  const { signMessage: _sm, ...rest } = params;
+
   const response = await fetch(`${RUNTIME_URL}/admin/openclaw/deploy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    body: JSON.stringify({ ...rest, wallet: params.ownerWallet, signature: auth.signature, signedAt: auth.signedAt }),
   });
 
   if (!response.ok) {
@@ -219,6 +240,7 @@ export interface RegisterCustomAgentParams {
   agentWallet: string;
   vault: string;
   ownerWallet?: string;
+  signMessage: WalletSignFn;
 }
 
 export async function registerCustomAgent(
@@ -227,6 +249,8 @@ export async function registerCustomAgent(
   if (!RUNTIME_URL) {
     throw new Error('Runtime URL not configured');
   }
+
+  const auth = await signAdminAuth(params.signMessage);
 
   const response = await fetch(`${RUNTIME_URL}/admin/agents`, {
     method: 'POST',
@@ -242,6 +266,9 @@ export async function registerCustomAgent(
       isActive: true,
       ownerWallet: params.ownerWallet,
       isCustom: true,
+      wallet: params.ownerWallet,
+      signature: auth.signature,
+      signedAt: auth.signedAt,
     }),
   });
 

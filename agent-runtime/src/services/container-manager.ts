@@ -29,6 +29,7 @@ const ECS_CLUSTER = process.env.ECS_CLUSTER_NAME || '';
 const TASK_DEFINITION = process.env.OPENCLAW_TASK_DEFINITION || '';
 const SECURITY_GROUP = process.env.OPENCLAW_SECURITY_GROUP || '';
 const SUBNETS = (process.env.OPENCLAW_SUBNETS || '').split(',').filter(Boolean);
+const MAX_CONTAINERS = parseInt(process.env.MAX_OPENCLAW_CONTAINERS || '10', 10);
 
 class ContainerManager {
   private containers = new Map<string, OpenClawContainer>();
@@ -38,6 +39,10 @@ class ContainerManager {
   async deployAgent(params: DeployParams): Promise<OpenClawContainer> {
     if (this.containers.has(params.agentId)) {
       throw new Error(`Agent ${params.agentId} already has a running container`);
+    }
+
+    if (this.containers.size >= MAX_CONTAINERS) {
+      throw new Error(`Container limit reached (${MAX_CONTAINERS}). Stop an existing agent before deploying a new one.`);
     }
 
     const result = await this.ecs.send(new RunTaskCommand({
@@ -137,7 +142,7 @@ class ContainerManager {
     throw new Error(`Timed out waiting for OpenClaw health at ${url}`);
   }
 
-  async proxyRequest(agentId: string, body: { input: string; context?: Record<string, unknown> }, fallbackIp?: string): Promise<{ output: string }> {
+  async proxyRequest(agentId: string, body: { input: string; context?: Record<string, unknown>; systemPrompt?: string }, fallbackIp?: string): Promise<{ output: string }> {
     const container = this.containers.get(agentId);
     const ip = container?.privateIp || fallbackIp;
     if (!ip) {

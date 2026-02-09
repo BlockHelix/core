@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { Keypair } from '@solana/web3.js';
 import { registerHostedAgent, getAllHostedAgents, getHostedAgent } from '../services/agent-config';
 import { agentStorage } from '../services/storage';
@@ -7,6 +7,30 @@ import { containerManager } from '../services/container-manager';
 import { eventIndexer } from '../services/event-indexer';
 import { encrypt } from '../services/crypto';
 import type { AgentConfig } from '../types';
+
+export function requireWalletAuth(req: Request, res: Response, next: NextFunction): void {
+  const { wallet, signature, signedAt } = req.body;
+
+  if (!wallet || !signature || !signedAt) {
+    res.status(401).json({ error: 'Missing auth fields: wallet, signature, signedAt' });
+    return;
+  }
+
+  const timestamp = typeof signedAt === 'number' ? signedAt : parseInt(signedAt, 10);
+  if (!isMessageRecent(timestamp, 120_000)) {
+    res.status(401).json({ error: 'Signature expired' });
+    return;
+  }
+
+  const message = `BlockHelix-admin:${timestamp}`;
+  const isValid = verifyWalletSignature({ message, signature, publicKey: wallet });
+  if (!isValid) {
+    res.status(401).json({ error: 'Invalid wallet signature' });
+    return;
+  }
+
+  next();
+}
 
 const pendingKeypairs = new Map<string, { keypair: Keypair; createdAt: number }>();
 

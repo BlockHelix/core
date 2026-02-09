@@ -51,7 +51,7 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     let llmResponse: { output: string; inputTokens?: number; outputTokens?: number };
 
     if (agent.isContainerized) {
-      const containerResult = await containerManager.proxyRequest(agentId, { input, context }, agent.containerIp);
+      const containerResult = await containerManager.proxyRequest(agentId, { input, context, systemPrompt: agent.systemPrompt }, agent.containerIp);
       llmResponse = { output: containerResult.output, inputTokens: 0, outputTokens: 0 };
     } else {
       llmResponse = await runAgent({ agent, input, context });

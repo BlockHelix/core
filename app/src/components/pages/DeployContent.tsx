@@ -144,6 +144,7 @@ export default function DeployContent() {
             registry: '',
             apiKey,
             ownerWallet: wallet?.address,
+            signMessage: wallet.signMessage.bind(wallet),
           });
           toast('Agent registered with runtime!', 'success');
         } catch (runtimeError: any) {
@@ -162,6 +163,7 @@ export default function DeployContent() {
           registry: '',
           apiKey,
           ownerWallet: wallet?.address,
+          signMessage: wallet.signMessage.bind(wallet),
         });
         toast('OpenClaw agent deployed in isolated container!', 'success');
       } else {
@@ -174,6 +176,7 @@ export default function DeployContent() {
           agentWallet: agentWalletAddress,
           vault: vaultStr,
           ownerWallet: wallet?.address,
+          signMessage: wallet.signMessage.bind(wallet),
         });
         toast('Custom agent registered!', 'success');
       }

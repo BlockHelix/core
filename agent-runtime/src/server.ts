@@ -14,6 +14,7 @@ import {
   handleDeployOpenClaw,
   handleStopOpenClaw,
   handleGenerateKeypair,
+  requireWalletAuth,
 } from './routes/admin';
 import { handleTest } from './routes/test';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
@@ -30,6 +31,34 @@ const USE_EMBEDDED_FACILITATOR = process.env.USE_EMBEDDED_FACILITATOR === 'true'
 const NETWORK = process.env.SOLANA_NETWORK === 'mainnet' ? SOLANA_MAINNET_CAIP2 : SOLANA_DEVNET_CAIP2;
 
 let lastReplay: ReplayStats | null = null;
+
+function adminRateLimit(maxRequests: number, windowMs: number) {
+  const hits = new Map<string, number[]>();
+
+  setInterval(() => {
+    const cutoff = Date.now() - windowMs;
+    for (const [ip, timestamps] of hits) {
+      const filtered = timestamps.filter(t => t > cutoff);
+      if (filtered.length === 0) hits.delete(ip);
+      else hits.set(ip, filtered);
+    }
+  }, windowMs);
+
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.method === 'GET' || req.method === 'OPTIONS') return next();
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const cutoff = now - windowMs;
+    const timestamps = (hits.get(ip) || []).filter(t => t > cutoff);
+    if (timestamps.length >= maxRequests) {
+      res.status(429).json({ error: 'Too many requests. Try again later.' });
+      return;
+    }
+    timestamps.push(now);
+    hits.set(ip, timestamps);
+    next();
+  };
+}
 
 export function createApp(): express.Application {
   const app = express();
@@ -198,13 +227,15 @@ export function createApp(): express.Application {
 
   app.post('/v1/test', handleTest);
 
-  app.post('/admin/keypair', handleGenerateKeypair);
-  app.post('/admin/agents', handleRegisterAgent);
+  const adminLimit = adminRateLimit(5, 60_000);
+
+  app.post('/admin/keypair', adminLimit, handleGenerateKeypair);
+  app.post('/admin/agents', adminLimit, requireWalletAuth, handleRegisterAgent);
   app.get('/admin/agents', handleListAgentsAdmin);
   app.get('/admin/agents/by-owner', handleGetAgentsByOwner);
   app.get('/admin/agents/:agentId', handleGetAgentConfig);
   app.put('/admin/agents/:agentId', handleUpdateAgentConfig);
-  app.post('/admin/replay', async (_req, res) => {
+  app.post('/admin/replay', adminLimit, async (_req, res) => {
     try {
       const stats = await replayFromChain();
       lastReplay = stats;
@@ -214,8 +245,8 @@ export function createApp(): express.Application {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Replay failed' });
     }
   });
-  app.post('/admin/openclaw/deploy', handleDeployOpenClaw);
-  app.delete('/admin/openclaw/:agentId', handleStopOpenClaw);
+  app.post('/admin/openclaw/deploy', adminLimit, requireWalletAuth, handleDeployOpenClaw);
+  app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
 
   // x402 payment middleware - only affects routes defined AFTER this
   app.use((req, _res, next) => {

@@ -113,6 +113,7 @@ export default function OpenClawContent() {
         ownerWallet: wallet?.address,
         telegramBotToken: telegramBotToken || undefined,
         jobSignerPubkey,
+        signMessage: wallet.signMessage.bind(wallet),
       });
       toast('OpenClaw agent deployed in isolated container!', 'success');
 

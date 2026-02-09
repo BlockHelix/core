@@ -6,6 +6,8 @@ WORKDIR /app
 
 RUN npm install -g openclaw@latest
 
+RUN mkdir -p /app/node_modules && npm install --prefix /app ws
+
 COPY adapter.js entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
