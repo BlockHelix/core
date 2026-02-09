@@ -153,7 +153,7 @@ export default function SearchContent() {
             <div className="space-y-0 border border-white/10 divide-y divide-white/[0.06]">
               {ranked.map(({ agent, score, tier }) => {
                 const tvl = agent.stats?.tvl ?? 0;
-                const linkId = agent.operator || agent.agentId;
+                const linkId = agent.vault || agent.agentId;
                 return (
                   <Link
                     key={agent.agentId}
