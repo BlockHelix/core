@@ -133,7 +133,7 @@ export function createApp(): express.Application {
           priceUsdcMicro: a.priceUsdcMicro,
           model: a.model,
           isActive: a.isActive,
-          vaultStats: vault ? { tvl: vault.tvl, revenue: vault.revenue, jobs: vault.jobs } : null,
+          vaultStats: vault ? { tvl: vault.tvl, revenue: vault.revenue, jobs: vault.jobs, calls: vault.calls } : null,
         };
       }),
     });
@@ -155,7 +155,7 @@ export function createApp(): express.Application {
       isActive: agent.isActive,
       vault: agent.vault || null,
       registry: agent.registry || null,
-      vaultStats: vaultStats ? { tvl: vaultStats.tvl, revenue: vaultStats.revenue, jobs: vaultStats.jobs } : null,
+      vaultStats: vaultStats ? { tvl: vaultStats.tvl, revenue: vaultStats.revenue, jobs: vaultStats.jobs, calls: vaultStats.calls } : null,
     });
   });
 

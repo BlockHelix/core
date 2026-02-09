@@ -2,16 +2,18 @@ import * as anchor from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import fs from 'fs';
 import { agentStorage } from './storage';
-import { RPC_URL } from '../config';
+import { RPC_URL, REGISTRY_PROGRAM_ID } from '../config';
 
 export interface VaultStats {
   tvl: number;
   revenue: number;
   jobs: number;
+  calls: number;
   updatedAt: number;
 }
 
 const cache = new Map<string, VaultStats>();
+const callCounts = new Map<string, number>();
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 function loadIdl(path: string): anchor.Idl {
@@ -20,8 +22,21 @@ function loadIdl(path: string): anchor.Idl {
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+export function incrementCallCount(agentId: string): void {
+  callCounts.set(agentId, (callCounts.get(agentId) || 0) + 1);
+}
+
+function getRegistryPda(vault: PublicKey): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from('registry'), vault.toBuffer()],
+    REGISTRY_PROGRAM_ID
+  );
+  return pda;
+}
+
 export async function refreshVaultStats(): Promise<void> {
   let vaultIdl: anchor.Idl;
+  let registryIdl: anchor.Idl;
   try {
     vaultIdl = loadIdl(
       process.env.VAULT_IDL_PATH || `${process.cwd()}/target/idl/agent_vault.json`
@@ -29,6 +44,13 @@ export async function refreshVaultStats(): Promise<void> {
   } catch {
     console.warn('[vault-cache] Could not load vault IDL, skipping refresh');
     return;
+  }
+  try {
+    registryIdl = loadIdl(
+      process.env.REGISTRY_IDL_PATH || `${process.cwd()}/target/idl/receipt_registry.json`
+    );
+  } catch {
+    registryIdl = null as any;
   }
 
   const connection = new Connection(RPC_URL, 'confirmed');
@@ -38,6 +60,7 @@ export async function refreshVaultStats(): Promise<void> {
     { commitment: 'confirmed' }
   );
   const vaultProgram = new anchor.Program(vaultIdl, provider);
+  const registryProgram = registryIdl ? new anchor.Program(registryIdl, provider) : null;
 
   const agents = agentStorage.getAll();
   console.log(`[vault-cache] Refreshing vault stats for ${agents.length} agents`);
@@ -56,9 +79,19 @@ export async function refreshVaultStats(): Promise<void> {
       } catch { /* token account may not exist */ }
 
       const revenue = (v.totalRevenue as anchor.BN).toNumber() / 1_000_000;
-      const jobs = (v.totalJobs as anchor.BN).toNumber();
+      let jobs = (v.totalJobs as anchor.BN).toNumber();
 
-      cache.set(agent.agentId, { tvl, revenue, jobs, updatedAt: Date.now() });
+      if (registryProgram) {
+        try {
+          const registryPda = getRegistryPda(vaultPubkey);
+          const registryData = await (registryProgram.account as any).registryState.fetch(registryPda);
+          const registryJobs = (registryData.jobCounter as anchor.BN).toNumber();
+          jobs = Math.max(jobs, registryJobs);
+        } catch { /* registry may not exist */ }
+      }
+
+      const calls = callCounts.get(agent.agentId) || 0;
+      cache.set(agent.agentId, { tvl, revenue, jobs, calls, updatedAt: Date.now() });
     } catch { /* vault may not be initialized */ }
 
     await sleep(200);

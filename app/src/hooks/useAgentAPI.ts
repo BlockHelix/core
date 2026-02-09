@@ -12,7 +12,7 @@ export interface APIAgent {
   priceUsdcMicro: number;
   model: string;
   isActive: boolean;
-  vaultStats: { tvl: number; revenue: number; jobs: number } | null;
+  vaultStats: { tvl: number; revenue: number; jobs: number; calls: number } | null;
 }
 
 let cachedAgents: APIAgent[] | null = null;

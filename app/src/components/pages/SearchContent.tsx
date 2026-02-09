@@ -52,7 +52,7 @@ export default function SearchContent() {
         const tvl = agent.vaultStats?.tvl ?? 0;
         const revenue = agent.vaultStats?.revenue ?? 0;
         const jobs = agent.vaultStats?.jobs ?? 0;
-        const score = Math.min((tvl + revenue) / 1_000_000_000 + jobs / 100, 1);
+        const score = Math.min((tvl + revenue) / 10_000 + jobs / 100, 1);
         return { agent, score, tier: getTier(score) };
       });
 
@@ -152,7 +152,7 @@ export default function SearchContent() {
           ) : (
             <div className="space-y-0 border border-white/10 divide-y divide-white/[0.06]">
               {ranked.map(({ agent, score, tier }) => {
-                const tvl = (agent.vaultStats?.tvl ?? 0) / 1_000_000;
+                const tvl = agent.vaultStats?.tvl ?? 0;
                 const linkId = agent.operator || agent.agentId;
                 return (
                   <Link
@@ -188,11 +188,11 @@ export default function SearchContent() {
                       </div>
                       <div className="text-right w-24">
                         <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">REVENUE</div>
-                        <div className="text-xs font-mono text-emerald-400 tabular-nums">${formatUSDC((agent.vaultStats?.revenue ?? 0) / 1_000_000)}</div>
+                        <div className="text-xs font-mono text-emerald-400 tabular-nums">${formatUSDC(agent.vaultStats?.revenue ?? 0)}</div>
                       </div>
                       <div className="text-right w-16">
-                        <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">JOBS</div>
-                        <div className="text-xs font-mono text-cyan-400 tabular-nums">{(agent.vaultStats?.jobs ?? 0).toLocaleString()}</div>
+                        <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">CALLS</div>
+                        <div className="text-xs font-mono text-cyan-400 tabular-nums">{((agent.vaultStats?.calls ?? 0) + (agent.vaultStats?.jobs ?? 0)).toLocaleString()}</div>
                       </div>
                     </div>
 
