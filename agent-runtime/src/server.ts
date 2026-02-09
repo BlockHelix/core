@@ -127,10 +127,13 @@ export function createApp(): express.Application {
         return {
           agentId: a.agentId,
           name: a.name,
+          operator: a.operator || null,
+          vault: a.vault || null,
+          registry: a.registry || null,
           priceUsdcMicro: a.priceUsdcMicro,
           model: a.model,
           isActive: a.isActive,
-          vault: vault ? { tvl: vault.tvl, revenue: vault.revenue, jobs: vault.jobs } : null,
+          vaultStats: vault ? { tvl: vault.tvl, revenue: vault.revenue, jobs: vault.jobs } : null,
         };
       }),
     });

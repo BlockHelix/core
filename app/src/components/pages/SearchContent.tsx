@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, ChevronDown } from 'lucide-react';
-import { useAgentList } from '@/hooks/useAgentData';
+import { useAgentListAPI, type APIAgent } from '@/hooks/useAgentAPI';
 import { formatUSDC } from '@/lib/format';
-import { agentRank, getAgentReputation, TIER_COLORS, TIER_LABELS, type Tier } from '@/lib/reputation';
+import { getTier, TIER_COLORS, TIER_LABELS, type Tier } from '@/lib/reputation';
 
 type SortMode = 'relevance' | 'tvl' | 'revenue' | 'newest';
 
@@ -26,8 +26,16 @@ function TierBadge({ tier }: { tier: Tier }) {
   );
 }
 
+function matchesQuery(agent: APIAgent, q: string): boolean {
+  if (!q) return true;
+  const lower = q.toLowerCase();
+  return agent.name.toLowerCase().includes(lower) ||
+    (agent.agentId || '').toLowerCase().includes(lower) ||
+    (agent.operator || '').toLowerCase().includes(lower);
+}
+
 export default function SearchContent() {
-  const { agents, isLoading } = useAgentList();
+  const { agents, isLoading, error } = useAgentListAPI();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
@@ -38,28 +46,26 @@ export default function SearchContent() {
     const active = agents.filter(a => a.isActive);
     const q = query.trim();
 
-    const results = active.map(agent => ({
-      agent,
-      rank: agentRank(agent, q || undefined),
-      ...getAgentReputation(agent),
-    }));
-    // Always show all agents - ranking puts matches at top
+    let results = active
+      .filter(agent => matchesQuery(agent, q))
+      .map(agent => {
+        const tvl = agent.vaultStats?.tvl ?? 0;
+        const revenue = agent.vaultStats?.revenue ?? 0;
+        const jobs = agent.vaultStats?.jobs ?? 0;
+        const score = Math.min((tvl + revenue) / 1_000_000_000 + jobs / 100, 1);
+        return { agent, score, tier: getTier(score) };
+      });
 
     switch (sortMode) {
       case 'relevance':
-        results.sort((a, b) => b.rank - a.rank);
-        break;
       case 'tvl':
-        results.sort((a, b) =>
-          ((b.agent.totalDeposited ?? 0) - (b.agent.totalWithdrawn ?? 0)) -
-          ((a.agent.totalDeposited ?? 0) - (a.agent.totalWithdrawn ?? 0))
-        );
+        results.sort((a, b) => (b.agent.vaultStats?.tvl ?? 0) - (a.agent.vaultStats?.tvl ?? 0));
         break;
       case 'revenue':
-        results.sort((a, b) => (b.agent.totalRevenue ?? 0) - (a.agent.totalRevenue ?? 0));
+        results.sort((a, b) => (b.agent.vaultStats?.revenue ?? 0) - (a.agent.vaultStats?.revenue ?? 0));
         break;
       case 'newest':
-        results.sort((a, b) => (b.agent.createdAt ?? 0) - (a.agent.createdAt ?? 0));
+        results.reverse();
         break;
     }
 
@@ -81,7 +87,7 @@ export default function SearchContent() {
             Search Agents
           </h1>
           <p className="text-sm text-white/50 leading-relaxed mb-10">
-            Browse registered agents ranked by on-chain reputation. Each agent has a vault, operator bond, and on-chain receipts.
+            Browse registered agents. Each agent has a vault, operator bond, and on-chain receipts.
           </p>
 
           <div className="flex gap-3 mb-10">
@@ -91,7 +97,7 @@ export default function SearchContent() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name or github handle..."
+                placeholder="Search by name..."
                 className="w-full bg-black/30 border border-white/20 pl-12 pr-4 py-3 text-white font-mono text-sm focus:border-emerald-400 focus:outline-none transition-colors duration-300"
               />
             </div>
@@ -122,7 +128,11 @@ export default function SearchContent() {
             </div>
           </div>
 
-          {isLoading ? (
+          {error ? (
+            <div className="border border-red-400/20 p-16 text-center">
+              <p className="text-red-400/80 mb-2 font-mono text-sm">{error}</p>
+            </div>
+          ) : isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-16 skeleton" />
@@ -131,20 +141,23 @@ export default function SearchContent() {
           ) : ranked.length === 0 ? (
             <div className="border border-white/10 p-16 text-center">
               <p className="text-white/60 mb-2 font-mono">
-                No agents registered yet
+                {query.trim() ? `No agents matching "${query}"` : 'No agents registered yet'}
               </p>
-              <p className="text-white/30 text-sm">
-                Be the first to deploy
-              </p>
+              {!query.trim() && (
+                <p className="text-white/30 text-sm">
+                  Be the first to deploy
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-0 border border-white/10 divide-y divide-white/[0.06]">
               {ranked.map(({ agent, score, tier }) => {
-                const tvl = ((agent.totalDeposited ?? 0) - (agent.totalWithdrawn ?? 0)) / 1_000_000;
+                const tvl = (agent.vaultStats?.tvl ?? 0) / 1_000_000;
+                const linkId = agent.operator || agent.agentId;
                 return (
                   <Link
-                    key={agent.operator.toString()}
-                    href={`/agent/${agent.operator.toString()}`}
+                    key={agent.agentId}
+                    href={`/agent/${linkId}`}
                     className="group flex items-center gap-4 px-5 py-4 bg-white/[0.01] hover:bg-white/[0.03] transition-all duration-200"
                   >
                     <TierBadge tier={tier} />
@@ -154,14 +167,13 @@ export default function SearchContent() {
                         <h3 className="text-sm font-bold text-white font-mono group-hover:text-emerald-400 transition-colors truncate">
                           {agent.name}
                         </h3>
-                        <span className="text-xs text-white/30 font-mono flex-shrink-0">
-                          @{agent.githubHandle || 'blockhelix'}
-                        </span>
                       </div>
                       <div className="flex items-center gap-1 mt-1">
-                        <span className="text-[10px] text-white/20 font-mono">
-                          {agent.operator.toString().slice(0, 4)}...{agent.operator.toString().slice(-4)}
-                        </span>
+                        {agent.operator && (
+                          <span className="text-[10px] text-white/20 font-mono">
+                            {agent.operator.slice(0, 4)}...{agent.operator.slice(-4)}
+                          </span>
+                        )}
                         <span className="text-white/10 mx-1">·</span>
                         <span className="text-[10px] text-white/25 font-mono" title={TIER_LABELS[tier]}>
                           {TIER_LABELS[tier]} ({(score * 100).toFixed(0)}%)
@@ -176,11 +188,11 @@ export default function SearchContent() {
                       </div>
                       <div className="text-right w-24">
                         <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">REVENUE</div>
-                        <div className="text-xs font-mono text-emerald-400 tabular-nums">${formatUSDC((agent.totalRevenue ?? 0) / 1_000_000)}</div>
+                        <div className="text-xs font-mono text-emerald-400 tabular-nums">${formatUSDC((agent.vaultStats?.revenue ?? 0) / 1_000_000)}</div>
                       </div>
                       <div className="text-right w-16">
                         <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">JOBS</div>
-                        <div className="text-xs font-mono text-cyan-400 tabular-nums">{(agent.totalJobs ?? 0).toLocaleString()}</div>
+                        <div className="text-xs font-mono text-cyan-400 tabular-nums">{(agent.vaultStats?.jobs ?? 0).toLocaleString()}</div>
                       </div>
                     </div>
 
