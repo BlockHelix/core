@@ -166,6 +166,30 @@ export interface DeployOpenClawParams {
   registry?: string;
   apiKey: string;
   ownerWallet?: string;
+  telegramBotToken?: string;
+  jobSignerPubkey?: string;
+}
+
+export async function requestJobSignerKeypair(): Promise<string> {
+  if (!RUNTIME_URL) {
+    throw new Error('Runtime URL not configured');
+  }
+
+  const response = await fetch(`${RUNTIME_URL}/admin/keypair`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to request job signer: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data?.publicKey) {
+    throw new Error('Runtime did not return a job signer public key');
+  }
+  return data.publicKey as string;
 }
 
 export async function deployOpenClaw(params: DeployOpenClawParams): Promise<RegisterAgentResponse> {

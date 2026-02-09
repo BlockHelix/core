@@ -139,6 +139,13 @@ export async function recordJobOnChain(
 
     const registryAccount = await (registryProgram.account as any).registryState.fetch(registryState);
     const currentJobCounter = registryAccount.jobCounter as anchor.BN;
+    const operator = registryAccount.operator as PublicKey;
+    const jobSigner = registryAccount.jobSigner as PublicKey;
+
+    if (!signerPubkey.equals(operator) && !signerPubkey.equals(jobSigner)) {
+      console.log('[receipt] Signer is not operator or job_signer, skipping job recording');
+      return null;
+    }
 
     const [jobReceipt] = getJobReceiptPda(registryState, currentJobCounter);
 

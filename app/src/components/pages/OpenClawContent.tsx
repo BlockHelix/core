@@ -4,18 +4,22 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateAgent } from '@/hooks/useCreateAgent';
+import { useSetJobSigner } from '@/hooks/useSetJobSigner';
 import { useWallets } from '@privy-io/react-auth/solana';
 import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
-import { deployOpenClaw } from '@/lib/runtime';
+import { deployOpenClaw, requestJobSignerKeypair } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
 import PriceInput from '@/components/create/PriceInput';
+import { RUNTIME_URL } from '@/lib/network-config';
+import { PublicKey } from '@solana/web3.js';
 
 const EXPECTED_NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
 
 export default function OpenClawContent() {
   const { authenticated: connected } = useAuth();
   const { createAgent, isLoading: isCreating } = useCreateAgent();
+  const { setJobSigner } = useSetJobSigner();
   const { wallets } = useWallets();
   const wallet = wallets[0];
   const router = useRouter();
@@ -25,6 +29,7 @@ export default function OpenClawContent() {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [pricePerCall, setPricePerCall] = useState(0.10);
   const [apiKey, setApiKey] = useState('');
+  const [telegramBotToken, setTelegramBotToken] = useState('');
   const [deploySuccess, setDeploySuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -59,7 +64,6 @@ export default function OpenClawContent() {
     try {
       toast('Creating agent on-chain...', 'info');
 
-      const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
       const agentWalletAddress = wallet?.address;
 
       if (!agentWalletAddress) {
@@ -69,7 +73,7 @@ export default function OpenClawContent() {
       const result = await createAgent({
         name,
         githubHandle: githubHandle || 'blockhelix',
-        endpointUrl: runtimeBaseUrl,
+        endpointUrl: RUNTIME_URL,
         agentFeeBps: 200,
         protocolFeeBps: 50,
         challengeWindow: 86400,
@@ -84,6 +88,18 @@ export default function OpenClawContent() {
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
       const vaultStr = result.vaultState.toString();
 
+      toast('Preparing job signer...', 'info');
+      const jobSignerPubkey = await requestJobSignerKeypair();
+      const jobSigner = new PublicKey(jobSignerPubkey);
+      const vaultPubkey = result.vaultState;
+
+      toast('Authorizing job signer on-chain...', 'info');
+      const signerTx = await setJobSigner(vaultPubkey, jobSigner);
+      if (!signerTx) {
+        throw new Error('Failed to set job signer on-chain');
+      }
+      toastTx('Job signer set', signerTx);
+
       toast('Starting container...', 'info');
       await deployOpenClaw({
         agentId: vaultStr,
@@ -95,6 +111,8 @@ export default function OpenClawContent() {
         registry: '',
         apiKey,
         ownerWallet: wallet?.address,
+        telegramBotToken: telegramBotToken || undefined,
+        jobSignerPubkey,
       });
       toast('OpenClaw agent deployed in isolated container!', 'success');
 
@@ -225,6 +243,22 @@ export default function OpenClawContent() {
               {errors.apiKey && <p className="text-xs text-red-400 mt-1 font-mono">{errors.apiKey}</p>}
               <p className="text-xs text-white/30 mt-2 font-mono">
                 Your key is encrypted at rest. You pay Claude directly for usage.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                Telegram Bot Token
+              </label>
+              <input
+                type="password"
+                value={telegramBotToken}
+                onChange={(e) => setTelegramBotToken(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
+                placeholder="123456:ABC-DEF..."
+              />
+              <p className="text-xs text-white/30 mt-2 font-mono">
+                Optional. Create a bot via @BotFather on Telegram for private operator access.
               </p>
             </div>
 

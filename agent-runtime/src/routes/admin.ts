@@ -4,6 +4,7 @@ import { registerHostedAgent, getAllHostedAgents, getHostedAgent } from '../serv
 import { agentStorage } from '../services/storage';
 import { verifyWalletSignature, parseSignMessage, isMessageRecent } from '../services/wallet-verify';
 import { containerManager } from '../services/container-manager';
+import { eventIndexer } from '../services/event-indexer';
 import { encrypt } from '../services/crypto';
 import type { AgentConfig } from '../types';
 
@@ -77,6 +78,7 @@ export async function handleRegisterAgent(req: Request, res: Response): Promise<
   };
 
   await registerHostedAgent(fullConfig, config.ownerWallet || config.operator);
+  eventIndexer.refreshMappings();
 
   res.status(201).json({
     message: 'Agent registered',
@@ -237,7 +239,7 @@ export async function handleUpdateAgentConfig(req: Request, res: Response): Prom
 }
 
 export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
-  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey } = req.body;
+  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken } = req.body;
 
   if (!agentId || !name || !systemPrompt || !apiKey) {
     res.status(400).json({
@@ -271,6 +273,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       systemPrompt,
       anthropicApiKey: apiKey,
       model,
+      telegramBotToken,
     });
 
     const fullConfig: AgentConfig = {
@@ -291,6 +294,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
     };
 
     await agentStorage.create(fullConfig, ownerWallet || operator || '');
+    eventIndexer.refreshMappings();
 
     res.status(201).json({
       message: 'OpenClaw agent deployed',

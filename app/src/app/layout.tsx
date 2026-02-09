@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
-import { Providers } from '@/components/Providers';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import ClientShell from '@/components/ClientShell';
 import './globals.css';
 
 const geistSans = Geist({
@@ -43,23 +41,9 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="font-sans antialiased bg-[#0a0a0a] text-white">
-        <Providers>
-          <Header />
-          {/* Create Agent Banner */}
-          <div className="fixed top-14 left-0 right-0 z-40 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500">
-            <a href="/openclaw" className="block py-2.5 px-4 text-center text-sm font-medium text-white hover:bg-orange-600/20 transition-colors">
-              <span className="inline-flex items-center gap-2">
-                <span className="font-bold">NEW:</span> Launch OpenClaw agents instantly
-                <span className="hidden sm:inline">— no infrastructure needed</span>
-                <span className="ml-1">→</span>
-              </span>
-            </a>
-          </div>
-          <div className="pt-24 min-h-screen">
-            {children}
-          </div>
-          <Footer />
-        </Providers>
+        <ClientShell>
+          {children}
+        </ClientShell>
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { execSync } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -67,13 +67,30 @@ const DEFI_PATCH_SYSTEM = `You are a DeFi developer specializing in secure smart
 
 Output patches in unified diff format that can be directly applied.`;
 
-function cloneRepo(repoUrl: string): string {
+async function runGitClone(repoUrl: string, dest: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn('git', ['clone', '--depth', '1', repoUrl, dest], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const timeout = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error('git clone timed out'));
+    }, 30000);
+    let stderr = '';
+    child.stderr.on('data', (d) => { stderr += d.toString(); });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      clearTimeout(timeout);
+      if (code === 0) resolve();
+      else reject(new Error(`git clone failed (code ${code}): ${stderr.trim()}`));
+    });
+  });
+}
+
+async function cloneRepo(repoUrl: string): Promise<string> {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'blockhelix-'));
   try {
-    execSync(`git clone --depth 1 ${repoUrl} ${tmpDir}/repo`, {
-      timeout: 30000,
-      stdio: 'pipe',
-    });
+    await runGitClone(repoUrl, `${tmpDir}/repo`);
   } catch {
     fs.rmSync(tmpDir, { recursive: true, force: true });
     throw new Error(`Failed to clone repo: ${repoUrl}`);
@@ -168,7 +185,7 @@ function cleanupRepo(repoPath: string): void {
 }
 
 export async function analyzeCodeWithClaude(params: AnalysisRequest): Promise<AnalysisResult> {
-  const repoPath = cloneRepo(params.repoUrl);
+  const repoPath = await cloneRepo(params.repoUrl);
 
   try {
     const { files, fileList } = readRepoFiles(repoPath, params.filePath);
@@ -246,7 +263,7 @@ Respond in this exact JSON format (no markdown, no code blocks, just raw JSON):
 }
 
 export async function generatePatchWithClaude(params: PatchRequest): Promise<PatchResult> {
-  const repoPath = cloneRepo(params.repoUrl);
+  const repoPath = await cloneRepo(params.repoUrl);
 
   try {
     const { files, fileList } = readRepoFiles(repoPath, params.filePath);

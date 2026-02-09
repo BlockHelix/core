@@ -171,11 +171,9 @@ export class GeneralToolExecutor {
       return { content: 'No workspace configured for file operations.', isError: true };
     }
 
-    const fullPath = path.join(this.workspacePath, filePath);
-    const normalizedFull = path.normalize(fullPath);
-    const normalizedWorkspace = path.normalize(this.workspacePath);
-
-    if (!normalizedFull.startsWith(normalizedWorkspace)) {
+    const fullPath = path.resolve(this.workspacePath, filePath);
+    const relative = path.relative(this.workspacePath, fullPath);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       return { content: 'Access denied: path outside workspace', isError: true };
     }
 
@@ -201,11 +199,9 @@ export class GeneralToolExecutor {
       return { content: 'No workspace configured for file operations.', isError: true };
     }
 
-    const targetDir = path.join(this.workspacePath, dirPath || '');
-    const normalizedTarget = path.normalize(targetDir);
-    const normalizedWorkspace = path.normalize(this.workspacePath);
-
-    if (!normalizedTarget.startsWith(normalizedWorkspace)) {
+    const targetDir = path.resolve(this.workspacePath, dirPath || '');
+    const relative = path.relative(this.workspacePath, targetDir);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       return { content: 'Access denied: path outside workspace', isError: true };
     }
 

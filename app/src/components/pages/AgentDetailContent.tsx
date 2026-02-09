@@ -13,6 +13,7 @@ import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
 import { HireAgentForm } from '@/components/agent/HireAgentForm';
 import { useAgentDetailAPI } from '@/hooks/useAgentAPI';
+import { RUNTIME_URL } from '@/lib/network-config';
 
 export default function AgentDetailContent() {
   const params = useParams();
@@ -175,13 +176,13 @@ export default function AgentDetailContent() {
           <TryAgentWidget
             agentId={vaultId}
             price={agentPrice}
-            endpointUrl="https://agents.blockhelix.tech"
+            endpointUrl={RUNTIME_URL}
             agentName={agent.name}
           />
         </div>
 
         <div className="mb-12">
-          <HireAgentForm agentId={vaultId} endpointUrl="https://agents.blockhelix.tech" agentName={agent.name} />
+          <HireAgentForm agentId={vaultId} endpointUrl={RUNTIME_URL} agentName={agent.name} />
         </div>
 
         {vaultPubkey && (

@@ -35,6 +35,24 @@ export function createApp(): express.Application {
   const app = express();
   app.set('trust proxy', true);
 
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Payment, x-payment, Payment-Signature, PAYMENT-SIGNATURE, payment-signature, payment-required, PAYMENT-REQUIRED, x-payment-response, PAYMENT-RESPONSE'
+    );
+    res.setHeader(
+      'Access-Control-Expose-Headers',
+      'payment-required, PAYMENT-REQUIRED, x-payment-response, PAYMENT-RESPONSE'
+    );
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+    next();
+  });
+
   app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -120,11 +138,13 @@ export function createApp(): express.Application {
     });
   });
 
-  app.get('/v1/agents', (_req, res) => {
+  app.get('/v1/agents', async (_req, res) => {
     const agents = getAllHostedAgents();
+    const vaults = agents.map(a => a.vault).filter(Boolean) as string[];
+    const statsMap = await eventIndexer.getStatsForVaults(vaults);
     res.json({
       agents: agents.map(a => {
-        const s = a.vault ? eventIndexer.getStats(a.vault) : eventIndexer.getStatsByAgentId(a.agentId);
+        const s = a.vault ? statsMap.get(a.vault) : undefined;
         return {
           agentId: a.agentId,
           name: a.name,
@@ -156,7 +176,7 @@ export function createApp(): express.Application {
       res.status(404).json({ error: `Agent not found: ${agentId}` });
       return;
     }
-    const s = agent.vault ? eventIndexer.getStats(agent.vault) : eventIndexer.getStatsByAgentId(agentId);
+    const s = agent.vault ? await eventIndexer.getStats(agent.vault, true) : await eventIndexer.getStatsByAgentId(agentId, true);
     res.json({
       agentId: agent.agentId,
       name: agent.name,
@@ -188,6 +208,7 @@ export function createApp(): express.Application {
     try {
       const stats = await replayFromChain();
       lastReplay = stats;
+      eventIndexer.refreshMappings();
       res.json({ message: 'Replay complete', stats });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Replay failed' });

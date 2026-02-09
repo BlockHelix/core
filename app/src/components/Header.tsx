@@ -7,7 +7,7 @@ import { Search, X } from 'lucide-react';
 import WalletButton from './WalletButton';
 import { clsx } from 'clsx';
 
-export default function Header() {
+export default function Header({ showWallet = true }: { showWallet?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -108,7 +108,7 @@ export default function Header() {
                 <kbd className="hidden md:inline text-[10px] font-mono text-white/20 border border-white/10 px-1.5 py-0.5">/</kbd>
               </button>
             )}
-            <WalletButton />
+            {showWallet && <WalletButton />}
           </div>
         </div>
       </div>

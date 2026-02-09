@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import {
   ECSClient,
   RunTaskCommand,
@@ -21,6 +22,7 @@ interface DeployParams {
   systemPrompt: string;
   anthropicApiKey: string;
   model?: string;
+  telegramBotToken?: string;
 }
 
 const ECS_CLUSTER = process.env.ECS_CLUSTER_NAME || '';
@@ -58,6 +60,8 @@ class ContainerManager {
             { name: 'SYSTEM_PROMPT', value: params.systemPrompt },
             { name: 'ANTHROPIC_API_KEY', value: params.anthropicApiKey },
             { name: 'MODEL', value: params.model || 'claude-sonnet-4-20250514' },
+            { name: 'GATEWAY_AUTH_TOKEN', value: crypto.randomBytes(32).toString('hex') },
+            ...(params.telegramBotToken ? [{ name: 'TELEGRAM_BOT_TOKEN', value: params.telegramBotToken }] : []),
           ],
         }],
       },
@@ -71,6 +75,7 @@ class ContainerManager {
     console.log(`[container] Started task ${taskArn} for agent ${params.agentId}`);
 
     const privateIp = await this.waitForPrivateIp(taskArn);
+    await this.waitForHealth(privateIp);
 
     const container: OpenClawContainer = {
       taskArn,
@@ -115,6 +120,21 @@ class ContainerManager {
     }
 
     throw new Error(`Timed out waiting for private IP (task: ${taskArn})`);
+  }
+
+  private async waitForHealth(privateIp: string, maxWait = 120_000): Promise<void> {
+    const start = Date.now();
+    const url = `http://${privateIp}:3001/health`;
+    while (Date.now() - start < maxWait) {
+      try {
+        const resp = await fetch(url, { method: 'GET' });
+        if (resp.ok) return;
+      } catch {
+        // ignore until ready
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    throw new Error(`Timed out waiting for OpenClaw health at ${url}`);
   }
 
   async proxyRequest(agentId: string, body: { input: string; context?: Record<string, unknown> }, fallbackIp?: string): Promise<{ output: string }> {

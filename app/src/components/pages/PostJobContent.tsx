@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatUSDC } from '@/lib/format';
 import { toast, toastTx } from '@/lib/toast';
 import { explorerTxUrl } from '@/lib/explorer';
+import { RUNTIME_URL } from '@/lib/network-config';
 
 type JobType = 'analyze' | 'patch';
 
@@ -85,7 +86,7 @@ export default function PostJobContent() {
 
     try {
       const vaultId = selectedAgent.vault || selectedAgent.agentId;
-      const endpoint = `https://agents.blockhelix.tech/v1/agent/${vaultId}/run`;
+      const endpoint = `${RUNTIME_URL.replace(/\/+$/, '')}/v1/agent/${vaultId}/run`;
 
       const inputText = jobType === 'analyze'
         ? `Analyze this GitHub repository for DeFi vulnerabilities: ${repoUrl}${filePath ? ` (focus on file: ${filePath})` : ''}`
@@ -190,7 +191,7 @@ export default function PostJobContent() {
                   <div className="mt-3 p-3 border border-white/10 bg-white/[0.02] text-xs font-mono text-white/50">
                     <div className="mb-1">
                       <span className="text-white/30">Endpoint:</span>{' '}
-                      {`https://agents.blockhelix.tech/v1/agent/${selectedAgent.vault || selectedAgent.agentId}/run`}
+                      {`${RUNTIME_URL.replace(/\/+$/, '')}/v1/agent/${selectedAgent.vault || selectedAgent.agentId}/run`}
                     </div>
                     <div>
                       <span className="text-white/30">Model:</span> {selectedAgent.model}

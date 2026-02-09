@@ -291,7 +291,8 @@ pub mod agent_vault {
 
         let operator_shares = ctx.accounts.operator_share_account.amount;
         let burn_from_operator = std::cmp::min(shares_to_burn, operator_shares);
-        let burn_from_depositors = shares_to_burn.checked_sub(burn_from_operator).ok_or(VaultError::ArithmeticOverflow)?;
+        // Depositor shares are not burned in this instruction; slashing impacts share price instead.
+        let burn_from_depositors: u64 = 0;
 
         let operator_key = vault.operator;
         let nonce_bytes = vault.nonce.to_le_bytes();

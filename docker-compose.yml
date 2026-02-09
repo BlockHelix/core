@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: blockhelix
+      POSTGRES_PASSWORD: blockhelix
+      POSTGRES_DB: blockhelix
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  agent-runtime:
+    build:
+      context: ./agent-runtime
+    environment:
+      DATABASE_URL: postgres://blockhelix:blockhelix@postgres:5432/blockhelix
+      ANCHOR_PROVIDER_URL: ${ANCHOR_PROVIDER_URL:-https://api.devnet.solana.com}
+      SOLANA_NETWORK: ${SOLANA_NETWORK:-devnet}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-only-change-me}
+      VAULT_IDL_PATH: /app/idl/agent_vault.json
+      REGISTRY_IDL_PATH: /app/idl/receipt_registry.json
+      FACTORY_IDL_PATH: /app/idl/agent_factory.json
+      USE_S3_STORAGE: "false"
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
