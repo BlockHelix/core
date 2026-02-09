@@ -146,7 +146,12 @@ export function createApp(): express.Application {
 
   app.get('/v1/agent/:agentId', async (req, res) => {
     const { agentId } = req.params;
-    const agent = await getAgentConfig(agentId);
+    let agent = await getAgentConfig(agentId);
+    if (!agent) {
+      const all = getAllHostedAgents();
+      const match = all.find(a => a.vault === agentId || a.operator === agentId);
+      if (match) agent = match;
+    }
     if (!agent) {
       res.status(404).json({ error: `Agent not found: ${agentId}` });
       return;
