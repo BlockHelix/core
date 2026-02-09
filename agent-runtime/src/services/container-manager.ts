@@ -122,12 +122,12 @@ class ContainerManager {
     throw new Error(`Timed out waiting for private IP (task: ${taskArn})`);
   }
 
-  private async waitForHealth(privateIp: string, maxWait = 120_000): Promise<void> {
+  private async waitForHealth(privateIp: string, maxWait = 300_000): Promise<void> {
     const start = Date.now();
     const url = `http://${privateIp}:3001/health`;
     while (Date.now() - start < maxWait) {
       try {
-        const resp = await fetch(url, { method: 'GET' });
+        const resp = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
         if (resp.ok) return;
       } catch {
         // ignore until ready

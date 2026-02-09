@@ -102,7 +102,12 @@ cat > "$CONFIG_FILE" <<EOF
     "mode": "local",
     "port": $GATEWAY_PORT,
     "bind": "loopback",
-    "auth": {"mode":"token","token": $GATEWAY_AUTH_JSON}
+    "auth": {"mode":"token","token": $GATEWAY_AUTH_JSON},
+    "http": {
+      "endpoints": {
+        "chatCompletions": {"enabled": true}
+      }
+    }
   }
 }
 EOF
