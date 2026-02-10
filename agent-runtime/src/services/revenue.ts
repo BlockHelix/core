@@ -1,6 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { createHash } from 'crypto';
 import fs from 'fs';
 import { isKmsEnabled, getKmsPublicKey, signTransactionWithKms } from './kms-signer';
