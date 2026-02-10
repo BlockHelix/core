@@ -11,7 +11,7 @@ export function toast(message: string, type: 'success' | 'error' | 'info' = 'inf
     setTimeout(() => {
       toastEl.classList.add('toast-exit');
       setTimeout(() => toastEl.remove(), 300);
-    }, 5000);
+    }, type === 'error' ? 10000 : 8000);
   }
 }
 

@@ -49,6 +49,8 @@ export default function DeployContent() {
   const [endpointUrl, setEndpointUrl] = useState('');
   const [deploySuccess, setDeploySuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deploySteps, setDeploySteps] = useState<{ label: string; status: 'pending' | 'active' | 'done' | 'error'; detail?: string }[]>([]);
+  const isDeploying = deploySteps.length > 0 && !deploySuccess;
 
   const tab = TABS.find(t => t.type === agentType)!;
 
@@ -88,6 +90,10 @@ export default function DeployContent() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const updateStep = (index: number, status: 'active' | 'done' | 'error', detail?: string) => {
+    setDeploySteps(prev => prev.map((s, i) => i === index ? { ...s, status, detail: detail ?? s.detail } : s));
+  };
+
   const handleDeploy = async () => {
     if (!validateForm()) return;
 
@@ -96,19 +102,27 @@ export default function DeployContent() {
       return;
     }
 
+    const agentWalletAddress = wallet?.address;
+    if (!agentWalletAddress) {
+      toast('Wallet address not available', 'error');
+      return;
+    }
+
+    const isOC = agentType === 'openclaw';
+    const steps = [
+      { label: 'Creating vault & registry on-chain', status: 'pending' as const },
+      { label: isOC ? 'Deploying container' : 'Registering endpoint', status: 'pending' as const },
+      { label: 'Delegating job signer', status: 'pending' as const },
+    ];
+    setDeploySteps(steps);
+
+    let vaultStr = '';
+
     try {
+      // Step 1: On-chain
+      updateStep(0, 'active');
       const runtimeBaseUrl = process.env.NEXT_PUBLIC_RUNTIME_URL || 'http://localhost:3001';
-      const agentWalletAddress = wallet?.address;
-
-      if (!agentWalletAddress) {
-        throw new Error('Wallet address not available');
-      }
-
-      toast('Creating agent on-chain...', 'info');
-
-      const onChainEndpoint = agentType === 'custom'
-        ? endpointUrl
-        : runtimeBaseUrl;
+      const onChainEndpoint = agentType === 'custom' ? endpointUrl : runtimeBaseUrl;
 
       const result = await createAgent({
         name,
@@ -123,13 +137,14 @@ export default function DeployContent() {
         arbitrator: PROTOCOL_TREASURY.toString(),
       });
 
-      toastTx('Agent created on-chain!', result.signature);
+      vaultStr = result.vaultState.toString();
+      updateStep(0, 'done', result.signature.slice(0, 8) + '...');
 
+      // Step 2: Deploy container or register endpoint
+      updateStep(1, 'active');
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
-      const vaultStr = result.vaultState.toString();
 
-      if (agentType === 'openclaw') {
-        toast('Starting container...', 'info');
+      if (isOC) {
         await deployOpenClaw({
           agentId: vaultStr,
           name,
@@ -142,9 +157,7 @@ export default function DeployContent() {
           ownerWallet: wallet?.address,
           signMessage: wallet.signMessage.bind(wallet),
         });
-        toast('OpenClaw agent deployed in isolated container!', 'success');
       } else {
-        toast('Registering endpoint...', 'info');
         await registerCustomAgent({
           agentId: vaultStr,
           name,
@@ -155,31 +168,35 @@ export default function DeployContent() {
           ownerWallet: wallet?.address,
           signMessage: wallet.signMessage.bind(wallet),
         });
-        toast('Custom agent registered!', 'success');
       }
+      updateStep(1, 'done');
 
+      // Step 3: Job signer
+      updateStep(2, 'active');
       try {
         const runtimeUrl = process.env.NEXT_PUBLIC_RUNTIME_URL ||
           (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
             ? 'https://agents.blockhelix.tech' : 'http://localhost:3001');
         const health = await fetch(`${runtimeUrl}/health`).then(r => r.json());
         if (health.kms?.publicKey) {
-          toast('Delegating job signer...', 'info');
           await setJobSigner(new PublicKey(vaultStr), new PublicKey(health.kms.publicKey));
-          toast('Job signer delegated!', 'success');
+          updateStep(2, 'done');
+        } else {
+          updateStep(2, 'done', 'skipped');
         }
-      } catch (signerErr: any) {
-        console.error('Job signer delegation failed:', signerErr);
-        toast('Warning: Agent created but job signer delegation failed. Set it in Edit Agent.', 'info');
+      } catch {
+        updateStep(2, 'error', 'failed — set in Edit Agent');
       }
 
       setDeploySuccess(true);
       setTimeout(() => {
         router.push(`/agent/${vaultStr}`);
-      }, 1500);
+      }, 3000);
 
     } catch (error: any) {
       console.error('Deploy error:', error);
+      const failedIdx = deploySteps.findIndex(s => s.status === 'active');
+      if (failedIdx >= 0) updateStep(failedIdx, 'error', error.message?.slice(0, 80));
       toast(error.message || 'Failed to create agent', 'error');
     }
   };
@@ -264,7 +281,47 @@ export default function DeployContent() {
           {TYPE_INFO[agentType]}
         </div>
 
-        <div className="space-y-8">
+        {isDeploying && (
+          <div className="mb-8 border border-white/10 bg-white/[0.02]">
+            <div className="px-5 py-3 border-b border-white/10 flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-[10px] uppercase tracking-widest text-white/50 font-mono font-bold">DEPLOYING</span>
+            </div>
+            <div className="p-5 space-y-4">
+              {deploySteps.map((step, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {step.status === 'pending' && <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
+                    {step.status === 'active' && <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />}
+                    {step.status === 'done' && <span className="text-emerald-400 text-sm">&#10003;</span>}
+                    {step.status === 'error' && <span className="text-red-400 text-sm">&#10007;</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-sm font-mono ${
+                      step.status === 'active' ? 'text-cyan-400' :
+                      step.status === 'done' ? 'text-white/60' :
+                      step.status === 'error' ? 'text-red-400' :
+                      'text-white/30'
+                    }`}>
+                      {step.label}
+                      {step.status === 'active' && <span className="animate-pulse">...</span>}
+                    </span>
+                    {step.detail && (
+                      <span className="ml-2 text-xs text-white/30 font-mono">{step.detail}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {deploySuccess && (
+              <div className="px-5 py-3 border-t border-emerald-400/20 bg-emerald-400/5">
+                <span className="text-sm text-emerald-400 font-mono">Redirecting to agent page...</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={`space-y-8 ${isDeploying ? 'opacity-30 pointer-events-none' : ''}`}>
           <div className="space-y-6 pb-12 border-b border-white/10">
             {/* Name */}
             <div>
@@ -375,10 +432,10 @@ export default function DeployContent() {
           <div className="flex items-center gap-4">
             <button
               onClick={handleDeploy}
-              disabled={isCreating}
+              disabled={isCreating || isDeploying}
               className={`px-8 py-4 ${tab.accentBg} text-black text-[10px] uppercase tracking-widest font-mono font-bold hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
             >
-              {isCreating ? 'Creating...' : (
+              {isCreating || isDeploying ? 'Deploying...' : (
                 <>
                   {agentType === 'custom' ? 'Register' : 'Create'} Agent <span>&rarr;</span>
                 </>
