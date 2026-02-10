@@ -1,6 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { createHash } from 'crypto';
 import fs from 'fs';
 import { isKmsEnabled, getKmsPublicKey, signTransactionWithKms } from './kms-signer';
@@ -55,17 +55,14 @@ export async function routeRevenueToVault(
   jobId: number
 ): Promise<RevenueResult | null> {
   try {
-    const connection = new Connection(RPC_URL, 'confirmed');
-    const useKms = isKmsEnabled();
-    const payer = useKms ? getKmsPublicKey()! : agentKeypair!.publicKey;
-
-    if (!payer) {
-      console.log('[revenue] No signer available');
+    if (!agentKeypair) {
+      console.log('[revenue] No keypair available for revenue routing (KMS cannot hold USDC)');
       return null;
     }
 
-    const dummyKeypair = agentKeypair || Keypair.generate();
-    const provider = getProvider(dummyKeypair);
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const payer = agentKeypair.publicKey;
+    const provider = getProvider(agentKeypair);
     anchor.setProvider(provider);
 
     const vaultState = vaultAddress;
@@ -87,48 +84,21 @@ export async function routeRevenueToVault(
     const protocolTreasury = vaultAccount.protocolTreasury as PublicKey;
     const protocolUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, protocolTreasury);
 
-    if (useKms) {
-      const instruction = await (vaultProgram.methods as any)
-        .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
-        .accounts({
-          vaultState,
-          payer,
-          vaultUsdcAccount,
-          payerUsdcAccount,
-          protocolUsdcAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .instruction();
+    const tx: string = await (vaultProgram.methods as any)
+      .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
+      .accounts({
+        vaultState,
+        payer,
+        vaultUsdcAccount,
+        payerUsdcAccount,
+        protocolUsdcAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([agentKeypair])
+      .rpc();
 
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-      const transaction = new Transaction({
-        recentBlockhash: blockhash,
-        feePayer: payer,
-      }).add(instruction);
-
-      const signedTx = await signTransactionWithKms(transaction);
-      const txSig = await connection.sendRawTransaction(signedTx.serialize());
-      await connection.confirmTransaction({ signature: txSig, blockhash, lastValidBlockHeight }, 'confirmed');
-
-      console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${txSig} (KMS)`);
-      return { txSignature: txSig, vaultState: vaultState.toBase58() };
-    } else {
-      const tx: string = await (vaultProgram.methods as any)
-        .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
-        .accounts({
-          vaultState,
-          payer,
-          vaultUsdcAccount,
-          payerUsdcAccount,
-          protocolUsdcAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .signers([agentKeypair!])
-        .rpc();
-
-      console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${tx}`);
-      return { txSignature: tx, vaultState: vaultState.toBase58() };
-    }
+    console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${tx}`);
+    return { txSignature: tx, vaultState: vaultState.toBase58() };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const logs = (err as any)?.logs?.join?.('\n');

@@ -7,12 +7,27 @@ LOG_DIR="/app/data/openclaw/logs"
 CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 STATE_DIR="/app/data/openclaw"
 
-mkdir -p "$WORKSPACE/memory" "$CONFIG_DIR" "$LOG_DIR"
+mkdir -p "$WORKSPACE/memory" "$WORKSPACE/skills" "$CONFIG_DIR" "$LOG_DIR"
 export OPENCLAW_STATE_DIR="$STATE_DIR"
 export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
 
 if [ -n "$SYSTEM_PROMPT" ]; then
   echo "$SYSTEM_PROMPT" > "$WORKSPACE/SYSTEM.md"
+fi
+
+if [ ! -f "$WORKSPACE/MEMORY.md" ]; then
+  AGENT_NAME="${AGENT_NAME:-BlockHelix Agent}"
+  cat > "$WORKSPACE/MEMORY.md" <<MEMEOF
+# Agent Identity
+- Name: $AGENT_NAME
+- Platform: BlockHelix
+- Agent ID: ${AGENT_ID:-unknown}
+
+# Knowledge
+- Record important facts, user preferences, and decisions here
+- This file persists across sessions
+MEMEOF
+  echo "[entrypoint] Seeded MEMORY.md"
 fi
 
 DEFAULT_MODEL="claude-sonnet-4-20250514"
@@ -75,10 +90,17 @@ HBEOF
 fi
 
 if [ -n "$BH_SDK_KEY" ] && [ -n "$BH_RUNTIME_URL" ]; then
-  cat > "$WORKSPACE/SKILL.md" <<SKILLEOF
+  mkdir -p "$WORKSPACE/skills/blockhelix-api"
+  cat > "$WORKSPACE/skills/blockhelix-api/SKILL.md" <<SKILLEOF
+---
+name: blockhelix-api
+description: Query your BlockHelix vault, revenue, jobs, and other agents on the platform
+metadata: {"openclaw":{"always":true,"emoji":"B"}}
+---
+
 # BlockHelix Platform API
 
-You are a BlockHelix agent. Use these endpoints to query your own data and the platform.
+Use these endpoints to query your own data and the platform.
 
 ## Auth
 All requests require: \`Authorization: Bearer $BH_SDK_KEY\`
@@ -113,7 +135,8 @@ curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/search?q=
 \`\`\`
 Searches agent names/vaults and your own job history.
 SKILLEOF
-  echo "[entrypoint] Wrote SKILL.md with SDK config"
+  rm -f "$WORKSPACE/SKILL.md"
+  echo "[entrypoint] Wrote blockhelix-api skill"
 fi
 
 TELEGRAM_ENABLED=false
@@ -138,10 +161,9 @@ if [ "$TELEGRAM_ENABLED" = "true" ]; then
   CHANNELS_CONTENT="$TELEGRAM_SECTION"
 fi
 
-HEARTBEAT_SECTION=""
+HEARTBEAT_DEFAULTS=""
 if [ "$HEARTBEAT_ENABLED" = "true" ]; then
-  HEARTBEAT_SECTION=$(cat <<HBCFG
-    "defaults": {
+  HEARTBEAT_DEFAULTS=$(cat <<HBCFG
       "heartbeat": {
         "every": "$HEARTBEAT_INTERVAL",
         "target": "none",
@@ -151,9 +173,44 @@ if [ "$HEARTBEAT_ENABLED" = "true" ]; then
           "end": "$HEARTBEAT_ACTIVE_END",
           "timezone": "$HEARTBEAT_TIMEZONE"
         }
-      }
-    },
+      },
 HBCFG
+)
+fi
+
+WEB_SEARCH_SECTION=""
+if [ -n "$BRAVE_API_KEY" ]; then
+  BRAVE_API_KEY_JSON=$(json_escape "$BRAVE_API_KEY")
+  WEB_SEARCH_SECTION=$(cat <<WSEOF
+  "tools": {
+    "web": {
+      "search": {
+        "provider": "brave",
+        "apiKey": $BRAVE_API_KEY_JSON,
+        "maxResults": 5,
+        "timeoutSeconds": 30
+      }
+    }
+  },
+  "browser": {
+    "enabled": true,
+    "headless": true,
+    "profiles": {
+      "openclaw": {"cdpPort": 18800}
+    }
+  },
+WSEOF
+)
+else
+  WEB_SEARCH_SECTION=$(cat <<WSEOF
+  "browser": {
+    "enabled": true,
+    "headless": true,
+    "profiles": {
+      "openclaw": {"cdpPort": 18800}
+    }
+  },
+WSEOF
 )
 fi
 
@@ -163,8 +220,19 @@ cat > "$CONFIG_FILE" <<EOF
     "ANTHROPIC_API_KEY": $ANTHROPIC_API_KEY_JSON,
     "OPENAI_API_KEY": $OPENAI_API_KEY_JSON
   },
+  ${WEB_SEARCH_SECTION}
   "agents": {
-    ${HEARTBEAT_SECTION}
+    "defaults": {
+      ${HEARTBEAT_DEFAULTS}
+      "memorySearch": {
+        "enabled": true
+      },
+      "compaction": {
+        "memoryFlush": {
+          "enabled": true
+        }
+      }
+    },
     "list": [
       {
         "id": "operator",
@@ -201,6 +269,9 @@ EOF
 echo "[entrypoint] Config written to $CONFIG_FILE"
 echo "[entrypoint] Telegram: $TELEGRAM_ENABLED"
 echo "[entrypoint] Heartbeat: $HEARTBEAT_ENABLED (every $HEARTBEAT_INTERVAL, model: $HEARTBEAT_MODEL)"
+echo "[entrypoint] Web search: $([ -n "$BRAVE_API_KEY" ] && echo "enabled (brave)" || echo "disabled (no BRAVE_API_KEY)")"
+echo "[entrypoint] Browser: enabled (headless)"
+echo "[entrypoint] Memory search: enabled"
 echo "[entrypoint] Starting OpenClaw gateway on :$GATEWAY_PORT (model: $MODEL_ID)"
 
 openclaw gateway run --allow-unconfigured --port "$GATEWAY_PORT" --bind "loopback" --auth "token" 2>&1 | tee "$LOG_DIR/gateway.log" &

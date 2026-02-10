@@ -559,7 +559,7 @@ pub struct ReceiveRevenue<'info> {
     #[account(mut, constraint = payer_usdc_account.owner == payer.key())]
     pub payer_usdc_account: Account<'info, TokenAccount>,
 
-    #[account(mut, constraint = protocol_usdc_account.key() == vault_state.protocol_treasury)]
+    #[account(mut, constraint = protocol_usdc_account.owner == vault_state.protocol_treasury)]
     pub protocol_usdc_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,

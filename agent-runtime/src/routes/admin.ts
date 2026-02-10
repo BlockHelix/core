@@ -325,12 +325,14 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
 
     containerManager.deployAgent({
       agentId: agentId || vault,
+      agentName: name,
       systemPrompt,
       anthropicApiKey: apiKey,
       model,
       telegramBotToken,
       sdkKey: stored.sdkKey,
       runtimeUrl,
+      braveApiKey: process.env.BRAVE_API_KEY,
       heartbeat: heartbeat?.enabled ? {
         enabled: true,
         interval: heartbeat.interval,

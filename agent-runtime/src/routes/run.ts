@@ -69,7 +69,9 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     }
 
     const useKms = isKmsEnabled();
-    const agentKeypair = useKms ? null : (agentStorage.getKeypair(agentId) || getGlobalAgentKeypair());
+    const globalKeypair = getGlobalAgentKeypair();
+    const agentKeypair = agentStorage.getKeypair(agentId) || globalKeypair;
+    const receiptKeypair = useKms ? null : agentKeypair;
     const operatorPubkey = agent.operator ? new PublicKey(agent.operator) : null;
 
     let usdcAmount = agent.priceUsdcMicro;
@@ -94,10 +96,10 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
       if (canSign && operatorPubkey && vaultPubkey) {
         console.log(`[run] Firing background tx: vault=${vaultPubkey.toBase58()}, usdcAmount=${usdcAmount}`);
         Promise.allSettled([
-          usdcAmount > 0
+          usdcAmount > 0 && agentKeypair
             ? routeRevenueToVault(agentKeypair, vaultPubkey, operatorPubkey, usdcAmount, jobTimestamp)
             : Promise.resolve(null),
-          recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
+          recordJobOnChain(receiptKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
         ]).then(([revResult, recResult]) => {
           if (revResult.status === 'rejected') console.error('[run] Revenue routing failed:', revResult.reason);
           if (recResult.status === 'rejected') console.error('[run] Job recording failed:', recResult.reason);

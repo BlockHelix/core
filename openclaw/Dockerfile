@@ -8,11 +8,15 @@ RUN npm install -g openclaw@latest
 
 RUN mkdir -p /app/node_modules && npm install --prefix /app ws
 
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/browsers
+RUN npx playwright install --with-deps chromium \
+  && rm -rf /tmp/* /var/lib/apt/lists/*
+
 COPY adapter.js entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
 RUN mkdir -p /app/data/openclaw /app/data/openclaw/cache /app/data/openclaw/config /app/data/openclaw/workspace /app/data/openclaw/npm \
-  && chown -R node:node /app/data
+  && chown -R node:node /app/data /app/browsers
 USER node
 
 ENV PORT=3001

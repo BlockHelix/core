@@ -39,6 +39,7 @@ type DeployPhase = 'efs' | 'task_def' | 'launching' | 'networking' | 'health' | 
 
 interface DeployParams {
   agentId: string;
+  agentName?: string;
   systemPrompt: string;
   anthropicApiKey: string;
   model?: string;
@@ -46,6 +47,7 @@ interface DeployParams {
   heartbeat?: HeartbeatConfig;
   sdkKey?: string;
   runtimeUrl?: string;
+  braveApiKey?: string;
   onProgress?: (phase: DeployPhase) => void;
 }
 
@@ -179,12 +181,14 @@ class ContainerManager {
           name: 'openclaw',
           environment: [
             { name: 'AGENT_ID', value: params.agentId },
+            { name: 'AGENT_NAME', value: params.agentName || 'BlockHelix Agent' },
             { name: 'SYSTEM_PROMPT', value: params.systemPrompt },
             { name: 'ANTHROPIC_API_KEY', value: params.anthropicApiKey },
             { name: 'MODEL', value: params.model || 'claude-sonnet-4-20250514' },
             { name: 'GATEWAY_AUTH_TOKEN', value: crypto.randomBytes(32).toString('hex') },
             ...(params.sdkKey ? [{ name: 'BH_SDK_KEY', value: params.sdkKey }] : []),
             ...(params.runtimeUrl ? [{ name: 'BH_RUNTIME_URL', value: params.runtimeUrl }] : []),
+            ...(params.braveApiKey ? [{ name: 'BRAVE_API_KEY', value: params.braveApiKey }] : []),
             ...(params.telegramBotToken ? [{ name: 'TELEGRAM_BOT_TOKEN', value: params.telegramBotToken }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },
