@@ -72,8 +72,10 @@ function connectGateway() {
           return;
         }
         if (msg.ok) {
-          const summary = msg.payload?.summary || p.chunks.join('') || msg.payload?.text || '';
-          p.resolve(summary);
+          const result = msg.payload?.result;
+          const text = typeof result === 'string' ? result : result?.text || result?.output || JSON.stringify(result || '');
+          const output = p.chunks.join('') || text || msg.payload?.text || '';
+          p.resolve(output);
           pending.delete(msg.id);
         } else {
           p.reject(new Error(msg.error?.message || JSON.stringify(msg.error) || 'Agent error'));
