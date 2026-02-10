@@ -34,6 +34,8 @@ export default function OpenClawContent() {
   const [heartbeatInterval, setHeartbeatInterval] = useState('30m');
   const [deploySuccess, setDeploySuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deployStep, setDeployStep] = useState<number>(-1);
+  const [deployError, setDeployError] = useState<string | null>(null);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -55,6 +57,13 @@ export default function OpenClawContent() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const DEPLOY_STEPS = [
+    'Creating agent on-chain',
+    'Delegating job signer',
+    'Starting container',
+    'Waiting for health check',
+  ];
+
   const handleDeploy = async () => {
     if (!validateForm()) return;
 
@@ -63,14 +72,12 @@ export default function OpenClawContent() {
       return;
     }
 
+    setDeployError(null);
+    setDeployStep(0);
+
     try {
-      toast('Creating agent on-chain...', 'info');
-
       const agentWalletAddress = wallet?.address;
-
-      if (!agentWalletAddress) {
-        throw new Error('Wallet address not available');
-      }
+      if (!agentWalletAddress) throw new Error('Wallet address not available');
 
       const result = await createAgent({
         name,
@@ -90,22 +97,16 @@ export default function OpenClawContent() {
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
       const vaultStr = result.vaultState.toString();
 
-      toast('Delegating job signer...', 'info');
+      setDeployStep(1);
       const health = await fetch(`${RUNTIME_URL}/health`).then(r => r.json());
-      if (!health.kms?.publicKey) {
-        throw new Error('Runtime KMS key not available');
-      }
+      if (!health.kms?.publicKey) throw new Error('Runtime KMS key not available');
       const jobSignerPubkey = health.kms.publicKey;
       const jobSigner = new PublicKey(jobSignerPubkey);
-      const vaultPubkey = result.vaultState;
 
-      const signerTx = await setJobSigner(vaultPubkey, jobSigner);
-      if (!signerTx) {
-        throw new Error('Failed to set job signer on-chain');
-      }
-      toastTx('Job signer delegated', signerTx);
+      const signerTx = await setJobSigner(result.vaultState, jobSigner);
+      if (!signerTx) throw new Error('Failed to set job signer on-chain');
 
-      toast('Starting container...', 'info');
+      setDeployStep(2);
       await deployOpenClaw({
         agentId: vaultStr,
         name,
@@ -121,16 +122,14 @@ export default function OpenClawContent() {
         heartbeat: heartbeatEnabled ? { enabled: true, interval: heartbeatInterval } : undefined,
         signMessage: wallet.signMessage.bind(wallet),
       });
-      toast('OpenClaw agent deployed in isolated container!', 'success');
 
+      setDeployStep(3);
       setDeploySuccess(true);
-      setTimeout(() => {
-        router.push(`/agent/${vaultStr}`);
-      }, 1500);
+      setTimeout(() => router.push(`/agent/${vaultStr}`), 1500);
 
     } catch (error: any) {
       console.error('Deploy error:', error);
-      toast(error.message || 'Failed to create agent', 'error');
+      setDeployError(error.message || 'Deployment failed');
     }
   };
 
@@ -156,17 +155,58 @@ export default function OpenClawContent() {
     );
   }
 
-  if (deploySuccess) {
+  if (deployStep >= 0) {
     return (
       <main className="min-h-screen bg-[#0a0a0a]">
         <div className="max-w-3xl mx-auto px-6 py-32">
-          <div className="border border-orange-500 bg-white/5 p-12 text-center">
-            <div className="text-6xl mb-6 text-orange-500">&#10003;</div>
-            <h2 className="text-3xl font-bold text-white mb-4 font-mono">Agent Deployed</h2>
-            <p className="text-lg text-white/60">
-              Your OpenClaw agent is running in an isolated container.
-            </p>
+          <p className="text-[10px] uppercase tracking-widest text-orange-500 mb-4">OpenClaw</p>
+          <h2 className="text-3xl font-bold text-white mb-8 font-mono">
+            {deploySuccess ? 'Agent Deployed' : 'Deploying Agent'}
+          </h2>
+
+          <div className="border border-white/10 bg-white/5 p-8 space-y-4">
+            {DEPLOY_STEPS.map((label, i) => {
+              const done = deploySuccess ? true : deployStep > i;
+              const active = !deploySuccess && deployStep === i && !deployError;
+              const failed = deployStep === i && !!deployError;
+
+              return (
+                <div key={i} className="flex items-center gap-4 font-mono text-sm">
+                  <div className="w-6 text-center">
+                    {done && <span className="text-green-400">&#10003;</span>}
+                    {active && <span className="text-orange-500 animate-pulse">&#9679;</span>}
+                    {failed && <span className="text-red-400">&#10007;</span>}
+                    {!done && !active && !failed && <span className="text-white/20">&#9679;</span>}
+                  </div>
+                  <span className={
+                    done ? 'text-white/60' :
+                    active ? 'text-white' :
+                    failed ? 'text-red-400' :
+                    'text-white/20'
+                  }>
+                    {label}
+                    {active && <span className="text-white/30 ml-2">...</span>}
+                  </span>
+                </div>
+              );
+            })}
           </div>
+
+          {deployError && (
+            <div className="mt-6 p-4 border border-red-500/30 bg-red-500/5">
+              <p className="text-sm text-red-400 font-mono mb-4">{deployError}</p>
+              <button
+                onClick={() => { setDeployStep(-1); setDeployError(null); }}
+                className="px-6 py-2 border border-white/20 text-white/60 text-[10px] uppercase tracking-widest font-mono hover:border-white/40 hover:text-white transition-colors"
+              >
+                Back to form
+              </button>
+            </div>
+          )}
+
+          {deploySuccess && (
+            <p className="mt-6 text-sm text-white/40 font-mono">Redirecting to agent page...</p>
+          )}
         </div>
       </main>
     );
@@ -320,7 +360,7 @@ export default function OpenClawContent() {
           <div className="flex items-center gap-4">
             <button
               onClick={handleDeploy}
-              disabled={isCreating}
+              disabled={isCreating || deployStep >= 0}
               className="px-8 py-4 bg-orange-500 text-black text-[10px] uppercase tracking-widest font-mono font-bold hover:bg-orange-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isCreating ? 'Deploying...' : (
