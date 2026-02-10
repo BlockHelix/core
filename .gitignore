@@ -30,4 +30,5 @@ docs/
 **/*.js
 !*.config.js
 !tailwind.config.js
+*.tsbuildinfo
 
