@@ -296,7 +296,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       operator: operator || '',
       vault,
       registry: registry || '',
-      isActive: true,
+      isActive: false,
       apiKey,
       isContainerized: true,
       agentWallet,
@@ -326,7 +326,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       } : undefined,
     });
 
-    await agentStorage.update(vault, { containerIp: container.privateIp });
+    await agentStorage.update(vault, { containerIp: container.privateIp, isActive: true });
 
     res.status(201).json({
       message: 'OpenClaw agent deployed',
@@ -336,7 +336,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
         name: fullConfig.name,
         priceUsdcMicro: fullConfig.priceUsdcMicro,
         model: fullConfig.model,
-        isActive: fullConfig.isActive,
+        isActive: true,
         isContainerized: true,
         containerIp: container.privateIp,
       },
