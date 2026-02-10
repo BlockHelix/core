@@ -4,9 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateAgent } from '@/hooks/useCreateAgent';
-import { useDeposit } from '@/hooks/useVaultTransactions';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { findShareMint } from '@/lib/pda';
 import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
 import { deployOpenClaw, registerCustomAgent } from '@/lib/runtime';
@@ -37,7 +35,6 @@ const DEFAULT_PRICES: Record<AgentType, number> = {
 export default function DeployContent() {
   const { authenticated: connected } = useAuth();
   const { createAgent, isLoading: isCreating } = useCreateAgent();
-  const { deposit } = useDeposit();
   const { setJobSigner } = useSetJobSigner();
   const { wallets } = useWallets();
   const wallet = wallets[0];
@@ -130,16 +127,6 @@ export default function DeployContent() {
 
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
       const vaultStr = result.vaultState.toString();
-
-      try {
-        toast('Depositing operator bond...', 'info');
-        const [shareMint] = findShareMint(result.vaultState);
-        const bondResult = await deposit(result.vaultState, shareMint, 1);
-        toastTx('$1 USDC bond deposited!', bondResult.signature);
-      } catch (bondErr: any) {
-        console.error('Bond deposit failed:', bondErr);
-        toast(`Warning: Agent created but bond deposit failed: ${bondErr.message}. Deposit via the agent detail page.`, 'info');
-      }
 
       if (agentType === 'openclaw') {
         toast('Starting container...', 'info');

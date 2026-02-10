@@ -8,6 +8,84 @@ export default function HomeContent() {
     <main className="min-h-screen">
       <HelixHero />
 
+      {/* OpenClaw Integration */}
+      <section className="py-20 lg:py-48 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-black/40 mb-8">Deploy AI Agents</p>
+          <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-black mb-8 lg:mb-12">
+            OpenClaw<br />locked down
+          </h2>
+          <p className="text-xl lg:text-2xl text-black/60 leading-relaxed max-w-3xl mb-16 lg:mb-24">
+            Run autonomous agents in <span className="bg-black text-white px-3 py-1">sandboxed containers</span> with capital at risk.
+            Operators post bond. Misbehavior gets slashed.
+          </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
+            <div>
+              <h3 className="text-3xl lg:text-4xl font-bold text-black mb-8">Containment</h3>
+              <div className="space-y-6">
+                <div className="flex items-start gap-6">
+                  <span className="text-black text-2xl font-bold">01</span>
+                  <div>
+                    <p className="text-lg font-semibold text-black">Isolated runtime</p>
+                    <p className="text-black/50">Each agent runs in its own container. No filesystem access. No network except allowed endpoints.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-black text-2xl font-bold">02</span>
+                  <div>
+                    <p className="text-lg font-semibold text-black">Scoped permissions</p>
+                    <p className="text-black/50">Agents only access tools you explicitly grant. Everything else is denied.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-black text-2xl font-bold">03</span>
+                  <div>
+                    <p className="text-lg font-semibold text-black">Auditable execution</p>
+                    <p className="text-black/50">Every action logged on-chain. Full transparency for users and depositors.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-3xl lg:text-4xl font-bold text-black mb-8">Economic Security</h3>
+              <div className="space-y-6">
+                <div className="flex items-start gap-6">
+                  <span className="text-black text-2xl font-bold">04</span>
+                  <div>
+                    <p className="text-lg font-semibold text-black">Operator bond</p>
+                    <p className="text-black/50">Capital at risk. Bad behavior gets <span className="bg-black text-white px-2 py-0.5">2x slashed</span></p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-black text-2xl font-bold">05</span>
+                  <div>
+                    <p className="text-lg font-semibold text-black">x402 payments</p>
+                    <p className="text-black/50">Pay-per-call. No subscriptions, no API keys to manage.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-black text-2xl font-bold">06</span>
+                  <div>
+                    <p className="text-lg font-semibold text-black">TVL = Trust</p>
+                    <p className="text-black/50">More capital staked = more skin in the game. Sort agents by vault size.</p>
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href="/deploy"
+                className="group inline-flex items-center gap-2 mt-10 px-8 py-4 text-sm font-medium tracking-widest bg-black text-white hover:bg-gray-900 transition-all duration-300"
+              >
+                CREATE AGENT
+                <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Thesis */}
       <section className="py-20 lg:py-48 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -67,84 +145,6 @@ export default function HomeContent() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* OpenClaw Integration */}
-      <section className="py-20 lg:py-48 bg-[#0a0a0a]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-8">Featured Integration</p>
-          <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-white mb-8 lg:mb-12">
-            <span className="text-orange-500">OpenClaw</span><br />locked down
-          </h2>
-          <p className="text-xl lg:text-2xl text-white/60 leading-relaxed max-w-3xl mb-16 lg:mb-24">
-            Run OpenClaw agents in a <span className="bg-white text-black px-3 py-1">sandboxed container</span> with capital at risk.
-            Operators post bond. Misbehavior gets slashed.
-          </p>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
-            <div>
-              <h3 className="text-3xl lg:text-4xl font-bold text-white mb-8">Containment</h3>
-              <div className="space-y-6">
-                <div className="flex items-start gap-6">
-                  <span className="text-orange-500 text-2xl">✓</span>
-                  <div>
-                    <p className="text-lg font-semibold text-white">Isolated runtime</p>
-                    <p className="text-white/50">Each agent runs in its own container. No filesystem access. No network except allowed endpoints.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-6">
-                  <span className="text-orange-500 text-2xl">✓</span>
-                  <div>
-                    <p className="text-lg font-semibold text-white">Scoped permissions</p>
-                    <p className="text-white/50">Agents only access tools you explicitly grant. Everything else is denied.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-6">
-                  <span className="text-orange-500 text-2xl">✓</span>
-                  <div>
-                    <p className="text-lg font-semibold text-white">Auditable execution</p>
-                    <p className="text-white/50">Every action logged on-chain. Full transparency for users and depositors.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-3xl lg:text-4xl font-bold text-white mb-8">Economic <span className="text-orange-500">Security</span></h3>
-              <div className="space-y-6">
-                <div className="flex items-start gap-6">
-                  <span className="text-orange-500 text-2xl">✓</span>
-                  <div>
-                    <p className="text-lg font-semibold text-white">Operator bond</p>
-                    <p className="text-white/50">Capital at risk. Bad behavior → <span className="bg-red-500 text-white px-2 py-0.5">2x slashed</span></p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-6">
-                  <span className="text-orange-500 text-2xl">✓</span>
-                  <div>
-                    <p className="text-lg font-semibold text-white">x402 payments</p>
-                    <p className="text-white/50">Pay-per-call. No subscriptions, no API keys to manage.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-6">
-                  <span className="text-orange-500 text-2xl">✓</span>
-                  <div>
-                    <p className="text-lg font-semibold text-white">TVL = Trust</p>
-                    <p className="text-white/50">More capital staked = more skin in the game. Sort agents by vault size.</p>
-                  </div>
-                </div>
-              </div>
-
-              <a
-                href="/deploy"
-                className="group inline-flex items-center gap-2 mt-10 px-8 py-4 text-sm font-medium tracking-widest bg-orange-500 text-black hover:bg-orange-400 transition-all duration-300"
-              >
-                CREATE AGENT
-                <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
-              </a>
             </div>
           </div>
         </div>

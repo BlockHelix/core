@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS agents (
 );
 CREATE INDEX IF NOT EXISTS idx_agents_owner ON agents(owner_wallet);
 CREATE INDEX IF NOT EXISTS idx_agents_agent_id ON agents(agent_id);
-CREATE INDEX IF NOT EXISTS idx_agents_sdk_key ON agents(sdk_key);
 `;
 
 function rowToStored(row: any): StoredAgent {
@@ -78,6 +77,7 @@ class AgentStorage {
     }
     await pool.query(SCHEMA_SQL);
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS sdk_key TEXT');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_agents_sdk_key ON agents(sdk_key)');
     await this.loadCache();
     await this.backfillSdkKeys();
     this.initialized = true;

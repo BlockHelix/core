@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from '@coral-xyz/anchor';
 import { usePrograms } from './usePrograms';
 import { useWallets } from '@privy-io/react-auth/solana';
@@ -55,8 +55,13 @@ export function useDeposit() {
 
       const amountMicroUsdc = new BN(Math.floor(usdcAmount * 1_000_000));
 
+      const createOperatorAta = createAssociatedTokenAccountIdempotentInstruction(
+        depositor, operatorShareAccount, operator, shareMint
+      );
+
       const tx = await vaultProgram.methods
         .deposit(amountMicroUsdc, new BN(0))
+        .preInstructions([createOperatorAta])
         .accountsPartial({
           vaultState: vaultState,
           shareMint: shareMint,

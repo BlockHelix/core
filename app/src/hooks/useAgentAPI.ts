@@ -46,13 +46,14 @@ let cacheTime = 0;
 const CACHE_TTL = 30_000;
 
 export function useAgentListAPI(initialData?: APIAgent[] | null) {
+  const hasInitial = !!(initialData && initialData.length > 0);
   const [agents, setAgents] = useState<APIAgent[]>(initialData ?? cachedAgents ?? []);
-  const [isLoading, setIsLoading] = useState(!initialData && !cachedAgents);
+  const [isLoading, setIsLoading] = useState(!hasInitial && !cachedAgents);
   const [error, setError] = useState<string | null>(null);
-  const fetchedRef = useRef(!!initialData);
+  const fetchedRef = useRef(hasInitial);
 
   useEffect(() => {
-    if (initialData && !cachedAgents) {
+    if (initialData && initialData.length > 0 && !cachedAgents) {
       cachedAgents = initialData;
       cacheTime = Date.now();
     }

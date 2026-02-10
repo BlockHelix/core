@@ -89,6 +89,7 @@ resource "aws_iam_role_policy" "runtime_efs_management" {
           "elasticfilesystem:CreateAccessPoint",
           "elasticfilesystem:DeleteAccessPoint",
           "elasticfilesystem:DescribeAccessPoints",
+          "elasticfilesystem:TagResource",
         ]
         Resource = "*"
       },
