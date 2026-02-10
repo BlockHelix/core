@@ -42,6 +42,8 @@ interface DeployParams {
   model?: string;
   telegramBotToken?: string;
   heartbeat?: HeartbeatConfig;
+  sdkKey?: string;
+  runtimeUrl?: string;
 }
 
 const ECS_CLUSTER = process.env.ECS_CLUSTER_NAME || '';
@@ -174,6 +176,8 @@ class ContainerManager {
             { name: 'ANTHROPIC_API_KEY', value: params.anthropicApiKey },
             { name: 'MODEL', value: params.model || 'claude-sonnet-4-20250514' },
             { name: 'GATEWAY_AUTH_TOKEN', value: crypto.randomBytes(32).toString('hex') },
+            ...(params.sdkKey ? [{ name: 'BH_SDK_KEY', value: params.sdkKey }] : []),
+            ...(params.runtimeUrl ? [{ name: 'BH_RUNTIME_URL', value: params.runtimeUrl }] : []),
             ...(params.telegramBotToken ? [{ name: 'TELEGRAM_BOT_TOKEN', value: params.telegramBotToken }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },

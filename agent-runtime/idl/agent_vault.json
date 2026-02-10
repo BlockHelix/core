@@ -519,7 +519,24 @@
           "writable": true
         },
         {
-          "name": "claimant_usdc_account",
+          "name": "client_usdc_account",
+          "docs": [
+            "1x refund to the client who was wronged"
+          ],
+          "writable": true
+        },
+        {
+          "name": "ecosystem_fund_account",
+          "docs": [
+            "0.75x to ecosystem fund"
+          ],
+          "writable": true
+        },
+        {
+          "name": "validator_usdc_account",
+          "docs": [
+            "0.25x bounty to the reporting validator"
+          ],
           "writable": true
         },
         {
@@ -529,7 +546,7 @@
       ],
       "args": [
         {
-          "name": "usdc_amount",
+          "name": "job_payment",
           "type": "u64"
         },
         {
@@ -825,6 +842,11 @@
       "code": 6009,
       "name": "SlippageExceeded",
       "msg": "Output below minimum slippage tolerance"
+    },
+    {
+      "code": 6010,
+      "name": "InsufficientVaultBalance",
+      "msg": "Vault balance insufficient for 2x slash"
     }
   ],
   "types": [
@@ -918,12 +940,32 @@
             "type": "pubkey"
           },
           {
-            "name": "usdc_amount",
+            "name": "job_payment",
+            "type": "u64"
+          },
+          {
+            "name": "slash_total",
             "type": "u64"
           },
           {
             "name": "job_id",
             "type": "u64"
+          },
+          {
+            "name": "client_refund",
+            "type": "u64"
+          },
+          {
+            "name": "ecosystem_fund_amount",
+            "type": "u64"
+          },
+          {
+            "name": "validator_bounty",
+            "type": "u64"
+          },
+          {
+            "name": "validator",
+            "type": "pubkey"
           },
           {
             "name": "operator_shares_burned",

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Keypair } from '@solana/web3.js';
 import type { AgentConfig } from '../types';
 import { encrypt, decrypt, isEncrypted } from './crypto';
@@ -5,6 +6,7 @@ import { pool } from './db';
 
 export interface StoredAgent extends AgentConfig {
   ownerWallet: string;
+  sdkKey?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -26,11 +28,13 @@ CREATE TABLE IF NOT EXISTS agents (
   owner_wallet TEXT NOT NULL,
   is_containerized BOOLEAN DEFAULT false,
   container_ip TEXT,
+  sdk_key TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_agents_owner ON agents(owner_wallet);
 CREATE INDEX IF NOT EXISTS idx_agents_agent_id ON agents(agent_id);
+CREATE INDEX IF NOT EXISTS idx_agents_sdk_key ON agents(sdk_key);
 `;
 
 function rowToStored(row: any): StoredAgent {
@@ -50,13 +54,19 @@ function rowToStored(row: any): StoredAgent {
     ownerWallet: row.owner_wallet,
     isContainerized: row.is_containerized || false,
     containerIp: row.container_ip || undefined,
+    sdkKey: row.sdk_key || undefined,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   };
 }
 
+function generateSdkKey(): string {
+  return `bh_agent_${crypto.randomBytes(16).toString('hex')}`;
+}
+
 class AgentStorage {
   private cache: Map<string, StoredAgent> = new Map();
+  private sdkKeyIndex: Map<string, string> = new Map();
   private initialized = false;
 
   async init(): Promise<void> {
@@ -67,7 +77,9 @@ class AgentStorage {
       return;
     }
     await pool.query(SCHEMA_SQL);
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS sdk_key TEXT');
     await this.loadCache();
+    await this.backfillSdkKeys();
     this.initialized = true;
     console.log(`[storage] Initialized with ${this.cache.size} agents from PostgreSQL`);
   }
@@ -76,10 +88,26 @@ class AgentStorage {
     if (!pool) return;
     const { rows } = await pool.query('SELECT * FROM agents');
     this.cache.clear();
+    this.sdkKeyIndex.clear();
     for (const row of rows) {
       const agent = rowToStored(row);
       this.cache.set(agent.vault, agent);
+      if (agent.sdkKey) this.sdkKeyIndex.set(agent.sdkKey, agent.vault);
     }
+  }
+
+  private async backfillSdkKeys(): Promise<void> {
+    if (!pool) return;
+    let count = 0;
+    for (const [vault, agent] of this.cache) {
+      if (agent.sdkKey) continue;
+      const key = generateSdkKey();
+      await pool.query('UPDATE agents SET sdk_key = $1 WHERE vault = $2 AND sdk_key IS NULL', [key, vault]);
+      agent.sdkKey = key;
+      this.sdkKeyIndex.set(key, vault);
+      count++;
+    }
+    if (count > 0) console.log(`[storage] Backfilled SDK keys for ${count} agents`);
   }
 
   async create(agent: AgentConfig, ownerWallet: string): Promise<StoredAgent> {
@@ -95,11 +123,12 @@ class AgentStorage {
 
     const apiKeyEnc = agent.apiKey ? encrypt(agent.apiKey) : '';
     const walletKeyEnc = encrypt(walletSecretKey);
+    const sdkKey = generateSdkKey();
 
     if (pool) {
       await pool.query(
-        `INSERT INTO agents (vault, agent_id, name, system_prompt, price_usdc_micro, model, operator, registry, is_active, api_key_encrypted, agent_wallet, wallet_secret_key_encrypted, owner_wallet, is_containerized, container_ip)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        `INSERT INTO agents (vault, agent_id, name, system_prompt, price_usdc_micro, model, operator, registry, is_active, api_key_encrypted, agent_wallet, wallet_secret_key_encrypted, owner_wallet, is_containerized, container_ip, sdk_key)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
          ON CONFLICT (vault) DO UPDATE SET
            agent_id = COALESCE(NULLIF(EXCLUDED.agent_id,''), agents.agent_id),
            name = EXCLUDED.name,
@@ -115,12 +144,13 @@ class AgentStorage {
            owner_wallet = EXCLUDED.owner_wallet,
            is_containerized = EXCLUDED.is_containerized,
            container_ip = EXCLUDED.container_ip,
+           sdk_key = COALESCE(agents.sdk_key, EXCLUDED.sdk_key),
            updated_at = now()`,
         [
           agent.vault, agent.agentId || null, agent.name, agent.systemPrompt,
           agent.priceUsdcMicro, agent.model, agent.operator, agent.registry || null,
           agent.isActive, apiKeyEnc, agentWallet, walletKeyEnc, ownerWallet,
-          agent.isContainerized || false, agent.containerIp || null,
+          agent.isContainerized || false, agent.containerIp || null, sdkKey,
         ]
       );
     }
@@ -131,10 +161,12 @@ class AgentStorage {
       agentWallet,
       walletSecretKey: walletKeyEnc,
       ownerWallet,
+      sdkKey,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
     this.cache.set(agent.vault, stored);
+    this.sdkKeyIndex.set(sdkKey, agent.vault);
     return { ...stored, apiKey: agent.apiKey, walletSecretKey };
   }
 
@@ -260,6 +292,14 @@ class AgentStorage {
 
   getAll(): StoredAgent[] {
     return Array.from(this.cache.values()).map(a => this.decryptAgent(a));
+  }
+
+  getBySdkKey(sdkKey: string): StoredAgent | null {
+    const vault = this.sdkKeyIndex.get(sdkKey);
+    if (!vault) return null;
+    const agent = this.cache.get(vault);
+    if (!agent) return null;
+    return this.decryptAgent(agent);
   }
 
   async delete(id: string): Promise<boolean> {

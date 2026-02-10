@@ -7,7 +7,7 @@ declare_id!("HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS");
 const BPS_DENOMINATOR: u64 = 10_000;
 const VIRTUAL_SHARES: u64 = 1_000_000;
 const VIRTUAL_ASSETS: u64 = 1_000_000;
-const MIN_OPERATOR_SHARES: u64 = 100_000_000; // Operator must hold 100 shares minimum
+const MIN_OPERATOR_SHARES: u64 = 1_000_000; // Operator must hold ~$1 USDC worth of shares
 
 #[program]
 pub mod agent_vault {

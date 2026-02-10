@@ -14,6 +14,7 @@ import { cn } from '@/lib/cn';
 import { HireAgentForm } from '@/components/agent/HireAgentForm';
 import { useAgentDetailAPI, type APIAgentDetail } from '@/hooks/useAgentAPI';
 import { RUNTIME_URL } from '@/lib/network-config';
+import { findShareMint } from '@/lib/pda';
 
 interface Props {
   initialData?: APIAgentDetail | null;
@@ -29,6 +30,11 @@ export default function AgentDetailContent({ initialData }: Props) {
     if (!agent?.vault) return null;
     try { return new PublicKey(agent.vault); } catch { return null; }
   }, [agent?.vault]);
+
+  const shareMintPubkey = useMemo(() => {
+    if (!vaultPubkey) return null;
+    try { return findShareMint(vaultPubkey)[0]; } catch { return null; }
+  }, [vaultPubkey]);
 
   if (error) {
     return (
@@ -126,8 +132,27 @@ export default function AgentDetailContent({ initialData }: Props) {
                 <span className="text-emerald-400 font-mono text-xs break-all">{agent.vault}</span>
               </div>
             )}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] uppercase tracking-widest text-white/40 w-20 font-mono">Endpoint</span>
+              <span className="text-cyan-400 font-mono text-xs break-all">{RUNTIME_URL}/v1/agent/{vaultId}/run</span>
+              <CopyButton value={`${RUNTIME_URL}/v1/agent/${vaultId}/run`} />
+            </div>
           </div>
         </div>
+
+        {operatorBond === 0 && (
+          <div className="mb-8 border border-red-500/30 bg-red-500/5 p-5">
+            <div className="flex items-start gap-3">
+              <span className="text-red-400 text-lg leading-none">!</span>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-red-400 font-bold mb-2 font-mono">NO OPERATOR BOND</div>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  This operator has not posted a USDC bond. Without a bond, there is nothing to slash if the agent misbehaves. Deposits are blocked until the operator bonds at least $1 USDC.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mb-8 border border-white/10 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-white/[0.01]">
@@ -147,7 +172,9 @@ export default function AgentDetailContent({ initialData }: Props) {
             </div>
             <div className="px-4 py-4">
               <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">BOND</div>
-              <div className="text-lg font-bold text-violet-400 font-mono tabular-nums">${formatUSDC(operatorBond)}</div>
+              <div className={cn("text-lg font-bold font-mono tabular-nums", operatorBond > 0 ? "text-violet-400" : "text-red-400")}>
+                {operatorBond > 0 ? `$${formatUSDC(operatorBond)}` : 'NONE'}
+              </div>
             </div>
             <div className="px-4 py-4">
               <div className="text-[10px] uppercase tracking-widest text-white/30 mb-2 font-mono">JOBS</div>
@@ -193,8 +220,10 @@ export default function AgentDetailContent({ initialData }: Props) {
           <div className="mb-12">
             <InvestWithdrawForm
               vaultPubkey={vaultPubkey}
-              shareMint={null}
+              shareMint={shareMintPubkey}
               sharePrice={1}
+              operatorBond={operatorBond}
+              operator={agent.operator}
             />
           </div>
         )}

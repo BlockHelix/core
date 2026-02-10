@@ -17,6 +17,7 @@ import {
   requireWalletAuth,
 } from './routes/admin';
 import { handleTest } from './routes/test';
+import sdkRoutes from './routes/sdk';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
 import { eventIndexer } from './services/event-indexer';
@@ -270,6 +271,8 @@ export function createApp(): express.Application {
   });
   app.post('/admin/openclaw/deploy', adminLimit, requireWalletAuth, handleDeployOpenClaw);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
+
+  app.use('/v1/sdk', sdkRoutes);
 
   // x402 payment middleware - only affects routes defined AFTER this
   app.use((req, _res, next) => {

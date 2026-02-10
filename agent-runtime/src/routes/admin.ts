@@ -287,22 +287,6 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
   }
 
   try {
-    const container = await containerManager.deployAgent({
-      agentId: agentId || vault,
-      systemPrompt,
-      anthropicApiKey: apiKey,
-      model,
-      telegramBotToken,
-      heartbeat: heartbeat?.enabled ? {
-        enabled: true,
-        interval: heartbeat.interval,
-        model: heartbeat.model,
-        activeStart: heartbeat.activeStart,
-        activeEnd: heartbeat.activeEnd,
-        timezone: heartbeat.timezone,
-      } : undefined,
-    });
-
     const fullConfig: AgentConfig = {
       agentId: agentId || '',
       name,
@@ -315,13 +299,34 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       isActive: true,
       apiKey,
       isContainerized: true,
-      containerIp: container.privateIp,
       agentWallet,
       walletSecretKey,
     };
 
-    await agentStorage.create(fullConfig, ownerWallet || operator || '');
+    const stored = await agentStorage.create(fullConfig, ownerWallet || operator || '');
     eventIndexer.refreshMappings();
+
+    const runtimeUrl = process.env.RUNTIME_URL || `http://${req.headers.host}`;
+
+    const container = await containerManager.deployAgent({
+      agentId: agentId || vault,
+      systemPrompt,
+      anthropicApiKey: apiKey,
+      model,
+      telegramBotToken,
+      sdkKey: stored.sdkKey,
+      runtimeUrl,
+      heartbeat: heartbeat?.enabled ? {
+        enabled: true,
+        interval: heartbeat.interval,
+        model: heartbeat.model,
+        activeStart: heartbeat.activeStart,
+        activeEnd: heartbeat.activeEnd,
+        timezone: heartbeat.timezone,
+      } : undefined,
+    });
+
+    await agentStorage.update(vault, { containerIp: container.privateIp });
 
     res.status(201).json({
       message: 'OpenClaw agent deployed',

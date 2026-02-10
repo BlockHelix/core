@@ -16,14 +16,20 @@ interface InvestWithdrawFormProps {
   vaultPubkey: PublicKey | null;
   shareMint: PublicKey | null;
   sharePrice: number;
+  operatorBond?: number;
+  operator?: string | null;
 }
 
 export function InvestWithdrawForm({
   vaultPubkey,
   shareMint,
-  sharePrice
+  sharePrice,
+  operatorBond = 0,
+  operator,
 }: InvestWithdrawFormProps) {
   const { authenticated: connected, walletAddress } = useAuth();
+  const isOperator = !!(walletAddress && operator && walletAddress === operator);
+  const noBond = operatorBond === 0;
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -122,11 +128,11 @@ export function InvestWithdrawForm({
           onClick={() => setActiveTab('deposit')}
           className={`flex-1 px-5 py-2.5 text-[10px] uppercase tracking-widest font-bold transition-all duration-300 font-mono ${
             activeTab === 'deposit'
-              ? 'bg-emerald-400/10 text-emerald-400 border-b-2 border-emerald-400'
+              ? noBond ? 'bg-red-400/10 text-red-400 border-b-2 border-red-400' : 'bg-emerald-400/10 text-emerald-400 border-b-2 border-emerald-400'
               : 'text-white/40 hover:text-white hover:bg-white/[0.02]'
           }`}
         >
-          DEPOSIT
+          {noBond && isOperator ? 'POST BOND' : 'DEPOSIT'}
         </button>
         <button
           onClick={() => setActiveTab('withdraw')}
@@ -143,6 +149,28 @@ export function InvestWithdrawForm({
       <div className="p-6">
         {activeTab === 'deposit' ? (
           <div className="space-y-5">
+            {noBond && isOperator && (
+              <div className="p-4 border border-red-400/30 bg-red-400/5">
+                <div className="text-[10px] uppercase tracking-widest text-red-400 font-bold mb-2 font-mono">
+                  BOND REQUIRED
+                </div>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  Post at least $1 USDC as your slashable bond. This is your skin in the game &mdash; it gets slashed if the agent misbehaves. Investors cannot deposit until you bond.
+                </p>
+              </div>
+            )}
+
+            {noBond && !isOperator && connected && (
+              <div className="p-4 border border-white/10 bg-white/5">
+                <div className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-2 font-mono">
+                  DEPOSITS BLOCKED
+                </div>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  The operator has not posted a bond yet. Deposits are disabled until the operator stakes at least $1 USDC as slashable collateral.
+                </p>
+              </div>
+            )}
+
             {connected && hasNoUsdc && (
               <div className="p-4 border border-amber-400/30 bg-amber-400/5">
                 <div className="text-[10px] uppercase tracking-widest text-amber-400 font-bold mb-2 font-mono">
@@ -210,10 +238,10 @@ export function InvestWithdrawForm({
             {connected ? (
               <button
                 onClick={handleDeposit}
-                disabled={!depositAmount || parseFloat(depositAmount) <= 0 || isLoading || hasNoUsdc}
+                disabled={!depositAmount || parseFloat(depositAmount) <= 0 || isLoading || hasNoUsdc || (noBond && !isOperator)}
                 className="w-full bg-emerald-400 text-black font-bold py-3 text-xs tracking-widest hover:bg-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
               >
-                {isLoading ? 'PROCESSING...' : 'EXECUTE DEPOSIT'}
+                {isLoading ? 'PROCESSING...' : noBond && isOperator ? 'POST BOND' : noBond && !isOperator ? 'NO BOND — DEPOSITS BLOCKED' : 'EXECUTE DEPOSIT'}
               </button>
             ) : (
               <div className="w-full border border-white/30 text-white/40 text-center font-bold py-3 text-[10px] tracking-widest font-mono">

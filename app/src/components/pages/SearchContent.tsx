@@ -186,6 +186,12 @@ export default function SearchContent({ initialAgents }: Props) {
                     </div>
 
                     <div className="hidden md:flex items-center gap-6 flex-shrink-0">
+                      <div className="text-right w-16">
+                        <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">BOND</div>
+                        <div className={`text-xs font-mono tabular-nums ${(agent.stats?.operatorBond ?? 0) > 0 ? 'text-violet-400' : 'text-red-400'}`}>
+                          {(agent.stats?.operatorBond ?? 0) > 0 ? `$${formatUSDC(agent.stats?.operatorBond ?? 0)}` : 'NONE'}
+                        </div>
+                      </div>
                       <div className="text-right w-24">
                         <div className="text-[9px] uppercase tracking-widest text-white/25 font-mono">TVL</div>
                         <div className="text-xs font-mono text-white/60 tabular-nums">${formatUSDC(tvl)}</div>

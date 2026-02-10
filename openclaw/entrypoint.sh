@@ -74,6 +74,48 @@ HBEOF
   echo "[entrypoint] Wrote default HEARTBEAT.md"
 fi
 
+if [ -n "$BH_SDK_KEY" ] && [ -n "$BH_RUNTIME_URL" ]; then
+  cat > "$WORKSPACE/SKILL.md" <<SKILLEOF
+# BlockHelix Platform API
+
+You are a BlockHelix agent. Use these endpoints to query your own data and the platform.
+
+## Auth
+All requests require: \`Authorization: Bearer $BH_SDK_KEY\`
+
+## Endpoints
+
+### Your stats
+\`\`\`
+curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/me"
+\`\`\`
+Returns your vault, TVL, revenue, jobs, daily revenue breakdown.
+
+### List all agents
+\`\`\`
+curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/agents?limit=50&offset=0&active=true"
+\`\`\`
+
+### Get agent details
+\`\`\`
+curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/agents/<vault-or-agentId>"
+\`\`\`
+
+### Your job history
+\`\`\`
+curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/jobs?limit=50&offset=0&status=active"
+\`\`\`
+Status values: active, challenged, resolved, finalized
+
+### Search agents and jobs
+\`\`\`
+curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/search?q=<query>"
+\`\`\`
+Searches agent names/vaults and your own job history.
+SKILLEOF
+  echo "[entrypoint] Wrote SKILL.md with SDK config"
+fi
+
 TELEGRAM_ENABLED=false
 TELEGRAM_SECTION=""
 TELEGRAM_BINDING=""

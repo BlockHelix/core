@@ -4,34 +4,32 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateAgent } from '@/hooks/useCreateAgent';
+import { useDeposit } from '@/hooks/useVaultTransactions';
 import { useWallets } from '@privy-io/react-auth/solana';
+import { findShareMint } from '@/lib/pda';
 import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
-import { registerAgentWithRuntime, deployOpenClaw, registerCustomAgent } from '@/lib/runtime';
+import { deployOpenClaw, registerCustomAgent } from '@/lib/runtime';
 import { useSetJobSigner } from '@/hooks/useSetJobSigner';
 import { PublicKey } from '@solana/web3.js';
 import WalletButton from '@/components/WalletButton';
-import TestAgentPanel from '@/components/create/TestAgentPanel';
 import PriceInput from '@/components/create/PriceInput';
 
 const EXPECTED_NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
 
-type AgentType = 'standard' | 'openclaw' | 'custom';
+type AgentType = 'openclaw' | 'custom';
 
 const TABS: { type: AgentType; label: string; accent: string; accentBg: string; accentBorder: string }[] = [
-  { type: 'standard', label: 'Standard', accent: 'text-cyan-500', accentBg: 'bg-cyan-500', accentBorder: 'border-cyan-500' },
   { type: 'openclaw', label: 'OpenClaw', accent: 'text-orange-500', accentBg: 'bg-orange-500', accentBorder: 'border-orange-500' },
   { type: 'custom', label: 'Custom', accent: 'text-violet-500', accentBg: 'bg-violet-500', accentBorder: 'border-violet-500' },
 ];
 
 const TYPE_INFO: Record<AgentType, string> = {
-  standard: 'Hosted inference. Free to create. You provide the prompt and API key, we run it. Bond: $1 USDC.',
   openclaw: 'Isolated container. Private subnet, no public IP, 256 CPU / 512 MB. ~$10/mo container cost. Bond: $1 USDC.',
   custom: 'External agent. Free to register. You run your own server and register your endpoint URL to accept x402 payments. Bond: $1 USDC.',
 };
 
 const DEFAULT_PRICES: Record<AgentType, number> = {
-  standard: 0.05,
   openclaw: 0.10,
   custom: 0.05,
 };
@@ -39,19 +37,19 @@ const DEFAULT_PRICES: Record<AgentType, number> = {
 export default function DeployContent() {
   const { authenticated: connected } = useAuth();
   const { createAgent, isLoading: isCreating } = useCreateAgent();
+  const { deposit } = useDeposit();
   const { setJobSigner } = useSetJobSigner();
   const { wallets } = useWallets();
   const wallet = wallets[0];
   const router = useRouter();
 
-  const [agentType, setAgentType] = useState<AgentType>('standard');
+  const [agentType, setAgentType] = useState<AgentType>('openclaw');
   const [name, setName] = useState('');
   const [githubHandle, setGithubHandle] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
-  const [pricePerCall, setPricePerCall] = useState(DEFAULT_PRICES.standard);
+  const [pricePerCall, setPricePerCall] = useState(DEFAULT_PRICES.openclaw);
   const [apiKey, setApiKey] = useState('');
   const [endpointUrl, setEndpointUrl] = useState('');
-  const [isTestMode, setIsTestMode] = useState(false);
   const [deploySuccess, setDeploySuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -61,7 +59,6 @@ export default function DeployContent() {
     setAgentType(type);
     setPricePerCall(DEFAULT_PRICES[type]);
     setErrors({});
-    setIsTestMode(false);
   };
 
   const validateForm = (): boolean => {
@@ -134,27 +131,17 @@ export default function DeployContent() {
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
       const vaultStr = result.vaultState.toString();
 
-      if (agentType === 'standard') {
-        toast('Registering with runtime...', 'info');
-        try {
-          await registerAgentWithRuntime({
-            agentId: vaultStr,
-            name,
-            systemPrompt,
-            priceUsdcMicro,
-            agentWallet: agentWalletAddress,
-            vault: vaultStr,
-            registry: '',
-            apiKey,
-            ownerWallet: wallet?.address,
-            signMessage: wallet.signMessage.bind(wallet),
-          });
-          toast('Agent registered with runtime!', 'success');
-        } catch (runtimeError: any) {
-          console.error('Runtime registration error:', runtimeError);
-          toast(`Warning: Agent created on-chain but runtime registration failed: ${runtimeError.message}`, 'info');
-        }
-      } else if (agentType === 'openclaw') {
+      try {
+        toast('Depositing operator bond...', 'info');
+        const [shareMint] = findShareMint(result.vaultState);
+        const bondResult = await deposit(result.vaultState, shareMint, 1);
+        toastTx('$1 USDC bond deposited!', bondResult.signature);
+      } catch (bondErr: any) {
+        console.error('Bond deposit failed:', bondErr);
+        toast(`Warning: Agent created but bond deposit failed: ${bondErr.message}. Deposit via the agent detail page.`, 'info');
+      }
+
+      if (agentType === 'openclaw') {
         toast('Starting container...', 'info');
         await deployOpenClaw({
           agentId: vaultStr,
@@ -242,9 +229,7 @@ export default function DeployContent() {
             <p className="text-lg text-white/60">
               {agentType === 'openclaw'
                 ? 'Your OpenClaw agent is running in an isolated container.'
-                : agentType === 'custom'
-                  ? 'Your custom agent endpoint has been registered.'
-                  : 'Your agent is now live and ready to accept calls.'}
+                : 'Your custom agent endpoint has been registered.'}
             </p>
           </div>
         </div>
@@ -358,9 +343,7 @@ export default function DeployContent() {
                 />
                 {errors.apiKey && <p className="text-xs text-red-400 mt-1 font-mono">{errors.apiKey}</p>}
                 <p className="text-xs text-white/30 mt-2 font-mono">
-                  {agentType === 'openclaw'
-                    ? 'Your key is passed to the container at deploy time. Platform never stores it.'
-                    : 'Get your key from console.anthropic.com. You pay Claude directly for usage.'}
+                  Your key is passed to the container at deploy time. Platform never stores it.
                 </p>
               </div>
             )}
@@ -403,16 +386,6 @@ export default function DeployContent() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            {agentType === 'standard' && (
-              <button
-                onClick={() => {
-                  if (validateForm()) setIsTestMode(!isTestMode);
-                }}
-                className="px-6 py-3 border border-white/20 text-white/70 text-[10px] uppercase tracking-widest font-mono hover:bg-white/5 transition-colors"
-              >
-                {isTestMode ? 'Hide Test' : 'Test Agent'}
-              </button>
-            )}
             <button
               onClick={handleDeploy}
               disabled={isCreating}
@@ -426,13 +399,6 @@ export default function DeployContent() {
             </button>
           </div>
 
-          {isTestMode && agentType === 'standard' && (
-            <TestAgentPanel
-              systemPrompt={systemPrompt}
-              name={name}
-              apiKey={apiKey}
-            />
-          )}
         </div>
       </div>
     </main>
