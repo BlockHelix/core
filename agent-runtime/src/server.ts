@@ -14,6 +14,7 @@ import {
   handleDeployOpenClaw,
   handleStopOpenClaw,
   handleGenerateKeypair,
+  handleAdminTestAgent,
   requireWalletAuth,
 } from './routes/admin';
 import { handleTest } from './routes/test';
@@ -268,6 +269,7 @@ export function createApp(): express.Application {
   });
   app.post('/admin/openclaw/deploy', adminLimit, requireWalletAuth, handleDeployOpenClaw);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
+  app.post('/admin/agents/:agentId/test', adminLimit, handleAdminTestAgent);
 
   // x402 payment middleware - only affects routes defined AFTER this
   app.use((req, _res, next) => {

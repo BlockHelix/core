@@ -6,6 +6,7 @@ import { verifyWalletSignature, parseSignMessage, isMessageRecent } from '../ser
 import { containerManager } from '../services/container-manager';
 import { eventIndexer } from '../services/event-indexer';
 import { encrypt } from '../services/crypto';
+import { runAgent } from '../services/llm';
 import type { AgentConfig } from '../types';
 
 export function requireWalletAuth(req: Request, res: Response, next: NextFunction): void {
@@ -344,6 +345,35 @@ export async function handleStopOpenClaw(req: Request, res: Response): Promise<v
   } catch (err) {
     console.error('[openclaw] Stop failed:', err);
     const message = err instanceof Error ? err.message : 'Stop failed';
+    res.status(500).json({ error: message });
+  }
+}
+
+export async function handleAdminTestAgent(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const { input } = req.body;
+
+  if (!input || typeof input !== 'string') {
+    res.status(400).json({ error: 'input is required' });
+    return;
+  }
+
+  const agent = agentStorage.get(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Agent not found' });
+    return;
+  }
+
+  if (!agent.apiKey) {
+    res.status(400).json({ error: 'Agent has no API key configured' });
+    return;
+  }
+
+  try {
+    const result = await runAgent({ agent, input });
+    res.json({ output: result.output, model: result.model, tokens: result.inputTokens + result.outputTokens });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Test failed';
     res.status(500).json({ error: message });
   }
 }
