@@ -270,6 +270,7 @@ resource "aws_ecs_task_definition" "agent" {
         { name = "AWS_REGION", value = data.aws_region.current.name },
         { name = "KMS_KEY_ID", value = local.kms_job_signer_id },
         { name = "ALERT_SNS_TOPIC_ARN", value = aws_sns_topic.alerts.arn },
+        { name = "AGENT_EFS_ID", value = aws_efs_file_system.agent_workspaces.id },
       ]
 
       secrets = [

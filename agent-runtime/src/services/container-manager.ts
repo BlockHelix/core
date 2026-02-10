@@ -4,17 +4,26 @@ import {
   RunTaskCommand,
   StopTaskCommand,
   DescribeTasksCommand,
+  RegisterTaskDefinitionCommand,
+  DescribeTaskDefinitionCommand,
 } from '@aws-sdk/client-ecs';
 import {
   EC2Client,
   DescribeNetworkInterfacesCommand,
 } from '@aws-sdk/client-ec2';
+import {
+  EFSClient,
+  CreateAccessPointCommand,
+  DeleteAccessPointCommand,
+  DescribeAccessPointsCommand,
+} from '@aws-sdk/client-efs';
 
 interface OpenClawContainer {
   taskArn: string;
   privateIp: string;
   agentId: string;
   startedAt: number;
+  accessPointId?: string;
 }
 
 interface HeartbeatConfig {
@@ -40,11 +49,90 @@ const TASK_DEFINITION = process.env.OPENCLAW_TASK_DEFINITION || '';
 const SECURITY_GROUP = process.env.OPENCLAW_SECURITY_GROUP || '';
 const SUBNETS = (process.env.OPENCLAW_SUBNETS || '').split(',').filter(Boolean);
 const MAX_CONTAINERS = parseInt(process.env.MAX_OPENCLAW_CONTAINERS || '10', 10);
+const AGENT_EFS_ID = process.env.AGENT_EFS_ID || '';
 
 class ContainerManager {
   private containers = new Map<string, OpenClawContainer>();
   private ecs = new ECSClient({});
   private ec2 = new EC2Client({});
+  private efs = new EFSClient({});
+
+  private async getOrCreateAccessPoint(agentId: string): Promise<string> {
+    if (!AGENT_EFS_ID) {
+      console.log('[container] No AGENT_EFS_ID configured, skipping EFS');
+      return '';
+    }
+
+    const existing = await this.efs.send(new DescribeAccessPointsCommand({
+      FileSystemId: AGENT_EFS_ID,
+    }));
+
+    const match = existing.AccessPoints?.find(
+      ap => ap.RootDirectory?.Path === `/agents/${agentId}`
+    );
+    if (match?.AccessPointId) {
+      console.log(`[container] Reusing access point ${match.AccessPointId} for ${agentId}`);
+      return match.AccessPointId;
+    }
+
+    const result = await this.efs.send(new CreateAccessPointCommand({
+      FileSystemId: AGENT_EFS_ID,
+      PosixUser: { Uid: 1000, Gid: 1000 },
+      RootDirectory: {
+        Path: `/agents/${agentId}`,
+        CreationInfo: { OwnerUid: 1000, OwnerGid: 1000, Permissions: '755' },
+      },
+      Tags: [{ Key: 'AgentId', Value: agentId }],
+    }));
+
+    const apId = result.AccessPointId!;
+    console.log(`[container] Created access point ${apId} at /agents/${agentId}`);
+    return apId;
+  }
+
+  private async registerTaskDefWithEfs(accessPointId: string): Promise<string> {
+    const desc = await this.ecs.send(new DescribeTaskDefinitionCommand({
+      taskDefinition: TASK_DEFINITION,
+    }));
+
+    const baseDef = desc.taskDefinition!;
+    const containers = baseDef.containerDefinitions!.map(c => ({
+      ...c,
+      mountPoints: [
+        ...(c.mountPoints || []),
+        { sourceVolume: 'agent-workspace', containerPath: '/app/data/openclaw', readOnly: false },
+      ],
+    }));
+
+    const result = await this.ecs.send(new RegisterTaskDefinitionCommand({
+      family: baseDef.family!,
+      networkMode: baseDef.networkMode,
+      requiresCompatibilities: baseDef.requiresCompatibilities as any,
+      cpu: baseDef.cpu,
+      memory: baseDef.memory,
+      executionRoleArn: baseDef.executionRoleArn,
+      taskRoleArn: baseDef.taskRoleArn,
+      containerDefinitions: containers,
+      volumes: [
+        ...(baseDef.volumes || []),
+        {
+          name: 'agent-workspace',
+          efsVolumeConfiguration: {
+            fileSystemId: AGENT_EFS_ID,
+            transitEncryption: 'ENABLED',
+            authorizationConfig: {
+              accessPointId,
+              iam: 'ENABLED',
+            },
+          },
+        },
+      ],
+    }));
+
+    const arn = result.taskDefinition!.taskDefinitionArn!;
+    console.log(`[container] Registered task definition ${arn} with EFS access point ${accessPointId}`);
+    return arn;
+  }
 
   async deployAgent(params: DeployParams): Promise<OpenClawContainer> {
     if (this.containers.has(params.agentId)) {
@@ -55,9 +143,19 @@ class ContainerManager {
       throw new Error(`Container limit reached (${MAX_CONTAINERS}). Stop an existing agent before deploying a new one.`);
     }
 
+    let taskDef = TASK_DEFINITION;
+    let accessPointId = '';
+
+    if (AGENT_EFS_ID) {
+      accessPointId = await this.getOrCreateAccessPoint(params.agentId);
+      if (accessPointId) {
+        taskDef = await this.registerTaskDefWithEfs(accessPointId);
+      }
+    }
+
     const result = await this.ecs.send(new RunTaskCommand({
       cluster: ECS_CLUSTER,
-      taskDefinition: TASK_DEFINITION,
+      taskDefinition: taskDef,
       launchType: 'FARGATE',
       count: 1,
       networkConfiguration: {
@@ -105,6 +203,7 @@ class ContainerManager {
       privateIp,
       agentId: params.agentId,
       startedAt: Date.now(),
+      accessPointId: accessPointId || undefined,
     };
 
     this.containers.set(params.agentId, container);
@@ -194,7 +293,7 @@ class ContainerManager {
     }));
 
     this.containers.delete(agentId);
-    console.log(`[container] Stopped agent ${agentId}`);
+    console.log(`[container] Stopped agent ${agentId} (access point preserved for restart)`);
   }
 
   getContainer(agentId: string): OpenClawContainer | undefined {
