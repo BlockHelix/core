@@ -29,7 +29,7 @@ if [ "$PROVIDER" = "anthropic" ]; then
     echo "[entrypoint] ERROR: ANTHROPIC_API_KEY is required for model $MODEL_ID"
     exit 1
   fi
-  openclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY" --non-interactive 2>/dev/null || true
+  OPENCLAW_AUTO_UPDATE=false openclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY" --non-interactive 2>/dev/null || true
   openclaw models set "$MODEL_ID" 2>/dev/null || true
 elif [ "$PROVIDER" = "openai" ]; then
   if [ -z "$OPENAI_API_KEY" ]; then

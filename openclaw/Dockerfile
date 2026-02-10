@@ -17,6 +17,7 @@ USER node
 
 ENV PORT=3001
 ENV NODE_ENV=production
+ENV OPENCLAW_AUTO_UPDATE=false
 ENV HOME=/app/data/openclaw
 ENV XDG_CACHE_HOME=/app/data/openclaw/cache
 ENV XDG_CONFIG_HOME=/app/data/openclaw/config
