@@ -21,6 +21,7 @@ import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './service
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
 import { eventIndexer } from './services/event-indexer';
 import { agentStorage } from './services/storage';
+import { checkDb } from './services/db';
 import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
 import { EmbeddedFacilitatorClient } from './services/embedded-facilitator';
 
@@ -141,16 +142,18 @@ export function createApp(): express.Application {
   console.log('[x402] Configured payment route: POST /v1/agent/*/run, payTo:', AGENT_WALLET);
 
   // Routes that don't need payment - MUST be before x402 middleware
-  app.get('/health', (_req, res) => {
+  app.get('/health', async (_req, res) => {
     const agents = getAllHostedAgents();
     const kmsEnabled = isKmsEnabled();
     const kmsPubkey = getKmsPublicKey();
+    const dbOk = await checkDb();
     res.json({
       status: 'ok',
       service: 'BlockHelix Agent Runtime',
-      version: '0.3.0',
+      version: '0.4.0',
       network: NETWORK,
       facilitator: USE_EMBEDDED_FACILITATOR ? 'embedded' : 'http',
+      database: dbOk ? 'connected' : 'disconnected',
       kms: kmsEnabled ? { enabled: true, publicKey: kmsPubkey?.toBase58() } : { enabled: false },
       replay: lastReplay ? {
         agentsSynced: lastReplay.agentsSynced,
@@ -167,11 +170,18 @@ export function createApp(): express.Application {
     });
   });
 
+  let agentsListCache: { data: any; ts: number } | null = null;
+
   app.get('/v1/agents', async (_req, res) => {
+    if (agentsListCache && Date.now() - agentsListCache.ts < DETAIL_CACHE_TTL) {
+      res.json(agentsListCache.data);
+      return;
+    }
+
     const agents = getAllHostedAgents();
     const vaults = agents.map(a => a.vault).filter(Boolean) as string[];
     const statsMap = await eventIndexer.getStatsForVaults(vaults);
-    res.json({
+    const data = {
       agents: agents.map(a => {
         const s = a.vault ? statsMap.get(a.vault) : undefined;
         return {
@@ -190,23 +200,32 @@ export function createApp(): express.Application {
           } : null,
         };
       }),
-    });
+    };
+    agentsListCache = { data, ts: Date.now() };
+    res.json(data);
   });
+
+  const agentDetailCache = new Map<string, { data: any; ts: number }>();
+  const DETAIL_CACHE_TTL = 15_000;
 
   app.get('/v1/agent/:agentId', async (req, res) => {
     const { agentId } = req.params;
-    let agent = await getAgentConfig(agentId);
-    if (!agent) {
-      const all = getAllHostedAgents();
-      const match = all.find(a => a.vault === agentId || a.operator === agentId);
-      if (match) agent = match;
+
+    const cached = agentDetailCache.get(agentId);
+    if (cached && Date.now() - cached.ts < DETAIL_CACHE_TTL) {
+      res.json(cached.data);
+      return;
     }
+
+    const all = getAllHostedAgents();
+    let agent = all.find(a => a.agentId === agentId || a.vault === agentId) || null;
+    if (!agent) agent = await getAgentConfig(agentId);
     if (!agent) {
       res.status(404).json({ error: `Agent not found: ${agentId}` });
       return;
     }
     const s = agent.vault ? await eventIndexer.getStats(agent.vault, true) : await eventIndexer.getStatsByAgentId(agentId, true);
-    res.json({
+    const data = {
       agentId: agent.agentId,
       name: agent.name,
       operator: agent.operator || null,
@@ -222,7 +241,9 @@ export function createApp(): express.Application {
       } : null,
       revenueHistory: s?.revenueByDay || [],
       recentJobs: s?.recentJobs || [],
-    });
+    };
+    agentDetailCache.set(agentId, { data, ts: Date.now() });
+    res.json(data);
   });
 
   app.post('/v1/test', handleTest);

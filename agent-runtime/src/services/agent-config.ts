@@ -100,9 +100,7 @@ function onChainToAgentConfig(onChain: OnChainAgentMetadata): AgentConfig {
 }
 
 export async function getAgentConfig(agentId: string): Promise<AgentConfig | null> {
-  // First check local storage (for hosted agents with custom config)
-  // Use async getter to reload from S3 if not in memory (handles container replacement)
-  const hosted = await agentStorage.getAsync(agentId);
+  const hosted = agentStorage.get(agentId);
   if (hosted) return hosted;
 
   // Try to load from on-chain by numeric ID

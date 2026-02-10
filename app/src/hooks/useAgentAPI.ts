@@ -45,11 +45,18 @@ let cachedAgents: APIAgent[] | null = null;
 let cacheTime = 0;
 const CACHE_TTL = 30_000;
 
-export function useAgentListAPI() {
-  const [agents, setAgents] = useState<APIAgent[]>(cachedAgents || []);
-  const [isLoading, setIsLoading] = useState(!cachedAgents);
+export function useAgentListAPI(initialData?: APIAgent[] | null) {
+  const [agents, setAgents] = useState<APIAgent[]>(initialData ?? cachedAgents ?? []);
+  const [isLoading, setIsLoading] = useState(!initialData && !cachedAgents);
   const [error, setError] = useState<string | null>(null);
-  const fetchedRef = useRef(false);
+  const fetchedRef = useRef(!!initialData);
+
+  useEffect(() => {
+    if (initialData && !cachedAgents) {
+      cachedAgents = initialData;
+      cacheTime = Date.now();
+    }
+  }, [initialData]);
 
   useEffect(() => {
     if (fetchedRef.current) return;
@@ -77,11 +84,11 @@ export function useAgentListAPI() {
   return { agents, isLoading, error };
 }
 
-export function useAgentDetailAPI(agentId: string) {
-  const [agent, setAgent] = useState<APIAgentDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function useAgentDetailAPI(agentId: string, initialData?: APIAgentDetail | null) {
+  const [agent, setAgent] = useState<APIAgentDetail | null>(initialData ?? null);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
-  const fetchedRef = useRef<string | null>(null);
+  const fetchedRef = useRef<string | null>(initialData ? agentId : null);
 
   useEffect(() => {
     if (!agentId || fetchedRef.current === agentId) return;

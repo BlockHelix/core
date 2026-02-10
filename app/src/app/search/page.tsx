@@ -1,11 +1,26 @@
-'use client';
+import { Suspense } from 'react';
+import SearchContent from '@/components/pages/SearchContent';
 
-import dynamic from 'next/dynamic';
+const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
 
-const SearchContent = dynamic(() => import('@/components/pages/SearchContent'), {
-  ssr: false,
-});
+async function getAgents() {
+  try {
+    const res = await fetch(`${RUNTIME_URL}/v1/agents`, {
+      next: { revalidate: 15 },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.agents;
+  } catch {
+    return null;
+  }
+}
 
-export default function SearchPage() {
-  return <SearchContent />;
+export default async function SearchPage() {
+  const initialAgents = await getAgents();
+  return (
+    <Suspense>
+      <SearchContent initialAgents={initialAgents} />
+    </Suspense>
+  );
 }

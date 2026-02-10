@@ -265,16 +265,10 @@ export async function handleUpdateAgentConfig(req: Request, res: Response): Prom
 export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
   const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken } = req.body;
 
-  if (!agentId || !name || !systemPrompt || !apiKey) {
+  if (!vault || !name || !systemPrompt || !apiKey) {
     res.status(400).json({
-      error: 'Missing required fields: agentId, name, systemPrompt, apiKey',
+      error: 'Missing required fields: vault, name, systemPrompt, apiKey',
     });
-    return;
-  }
-
-  const existing = getHostedAgent(agentId);
-  if (existing) {
-    res.status(409).json({ error: `Agent already exists: ${agentId}` });
     return;
   }
 
@@ -293,7 +287,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
 
   try {
     const container = await containerManager.deployAgent({
-      agentId,
+      agentId: agentId || vault,
       systemPrompt,
       anthropicApiKey: apiKey,
       model,
@@ -301,13 +295,13 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
     });
 
     const fullConfig: AgentConfig = {
-      agentId,
+      agentId: agentId || '',
       name,
       systemPrompt,
       priceUsdcMicro: priceUsdcMicro ?? 100_000,
       model: model || 'claude-sonnet-4-20250514',
       operator: operator || '',
-      vault: vault || '',
+      vault,
       registry: registry || '',
       isActive: true,
       apiKey,
@@ -324,6 +318,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       message: 'OpenClaw agent deployed',
       agent: {
         agentId: fullConfig.agentId,
+        vault: fullConfig.vault,
         name: fullConfig.name,
         priceUsdcMicro: fullConfig.priceUsdcMicro,
         model: fullConfig.model,

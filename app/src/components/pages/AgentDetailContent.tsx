@@ -12,14 +12,18 @@ import { InvestWithdrawForm } from '@/components/InvestWithdrawForm';
 import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
 import { HireAgentForm } from '@/components/agent/HireAgentForm';
-import { useAgentDetailAPI } from '@/hooks/useAgentAPI';
+import { useAgentDetailAPI, type APIAgentDetail } from '@/hooks/useAgentAPI';
 import { RUNTIME_URL } from '@/lib/network-config';
 
-export default function AgentDetailContent() {
+interface Props {
+  initialData?: APIAgentDetail | null;
+}
+
+export default function AgentDetailContent({ initialData }: Props) {
   const params = useParams();
   const agentIdStr = params.id as string;
 
-  const { agent, isLoading, error } = useAgentDetailAPI(agentIdStr);
+  const { agent, isLoading, error } = useAgentDetailAPI(agentIdStr, initialData);
 
   const vaultPubkey = useMemo(() => {
     if (!agent?.vault) return null;

@@ -8,9 +8,14 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-# CloudWatch log group for container logs
+# CloudWatch log groups
 resource "aws_cloudwatch_log_group" "agent" {
   name              = "/ecs/${local.name_prefix}-agent"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "postgres" {
+  name              = "/ecs/${local.name_prefix}-postgres"
   retention_in_days = 7
 }
 
@@ -78,7 +83,7 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
-# S3 bucket for agent config storage
+# S3 bucket kept for legacy/backup but no longer primary storage
 resource "aws_s3_bucket" "agent_storage" {
   bucket = "${local.name_prefix}-storage"
 }
@@ -104,7 +109,7 @@ resource "aws_secretsmanager_secret" "encryption_key" {
   name = "${local.name_prefix}/encryption-key"
 }
 
-# Allow ECS task to access S3 bucket
+# Allow ECS task to access S3 bucket (kept for backup/migration)
 resource "aws_iam_role_policy" "ecs_task_s3" {
   name = "${local.name_prefix}-s3-access"
   role = aws_iam_role.ecs_task.id
@@ -132,6 +137,43 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
   })
 }
 
+# EFS for persistent postgres data
+resource "aws_efs_file_system" "postgres" {
+  creation_token = "${local.name_prefix}-postgres"
+  encrypted      = true
+
+  tags = {
+    Name = "${local.name_prefix}-postgres"
+  }
+}
+
+resource "aws_efs_mount_target" "postgres" {
+  count           = length(data.aws_subnets.default.ids)
+  file_system_id  = aws_efs_file_system.postgres.id
+  subnet_id       = data.aws_subnets.default.ids[count.index]
+  security_groups = [aws_security_group.efs.id]
+}
+
+resource "aws_security_group" "efs" {
+  name        = "${local.name_prefix}-efs"
+  description = "Allow ECS tasks to access EFS"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_tasks.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 # ECS Task Definition
 resource "aws_ecs_task_definition" "agent" {
   family                   = "${local.name_prefix}-agent"
@@ -142,10 +184,63 @@ resource "aws_ecs_task_definition" "agent" {
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
 
+  volume {
+    name = "postgres-data"
+    efs_volume_configuration {
+      file_system_id = aws_efs_file_system.postgres.id
+      root_directory = "/blockhelix-postgres"
+    }
+  }
+
   container_definitions = jsonencode([
+    {
+      name      = "postgres"
+      image     = "postgres:16-alpine"
+      essential = true
+      memory    = 256
+
+      environment = [
+        { name = "POSTGRES_USER", value = "blockhelix" },
+        { name = "POSTGRES_PASSWORD", value = "blockhelix" },
+        { name = "POSTGRES_DB", value = "blockhelix" },
+        { name = "PGDATA", value = "/var/lib/postgresql/data/pgdata" },
+      ]
+
+      mountPoints = [
+        {
+          sourceVolume  = "postgres-data"
+          containerPath = "/var/lib/postgresql/data"
+          readOnly      = false
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.postgres.name
+          "awslogs-region"        = data.aws_region.current.name
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "pg_isready -U blockhelix"]
+        interval    = 10
+        timeout     = 5
+        retries     = 5
+        startPeriod = 30
+      }
+    },
     {
       name  = "agent"
       image = "${aws_ecr_repository.agent.repository_url}:latest"
+
+      dependsOn = [
+        {
+          containerName = "postgres"
+          condition     = "HEALTHY"
+        }
+      ]
 
       portMappings = [
         {
@@ -158,6 +253,7 @@ resource "aws_ecs_task_definition" "agent" {
       environment = [
         { name = "PORT", value = tostring(var.container_port) },
         { name = "NODE_ENV", value = var.environment == "prod" ? "production" : "development" },
+        { name = "DATABASE_URL", value = "postgres://blockhelix:blockhelix@localhost:5432/blockhelix" },
         { name = "ANCHOR_PROVIDER_URL", value = "https://devnet.helius-rpc.com/?api-key=961bdec6-492a-4967-b110-349e45035f17" },
         { name = "SOLANA_NETWORK", value = "devnet" },
         { name = "VAULT_PROGRAM_ID", value = "HY1b7thWZtAxj7thFw5zA3sHq2D8NXhDkYsNjck2r4HS" },
@@ -171,8 +267,6 @@ resource "aws_ecs_task_definition" "agent" {
         { name = "OPENCLAW_TASK_DEFINITION", value = aws_ecs_task_definition.openclaw.arn },
         { name = "OPENCLAW_SECURITY_GROUP", value = aws_security_group.openclaw_agents.id },
         { name = "OPENCLAW_SUBNETS", value = join(",", aws_subnet.private[*].id) },
-        { name = "USE_S3_STORAGE", value = "true" },
-        { name = "STORAGE_BUCKET", value = aws_s3_bucket.agent_storage.id },
         { name = "AWS_REGION", value = data.aws_region.current.name },
         { name = "KMS_KEY_ID", value = local.kms_job_signer_id },
       ]
@@ -219,6 +313,7 @@ resource "aws_ecs_service" "agent" {
   task_definition = aws_ecs_task_definition.agent.arn
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
+  platform_version = "1.4.0"
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids

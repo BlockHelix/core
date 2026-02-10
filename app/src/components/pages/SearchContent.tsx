@@ -34,8 +34,12 @@ function matchesQuery(agent: APIAgent, q: string): boolean {
     (agent.operator || '').toLowerCase().includes(lower);
 }
 
-export default function SearchContent() {
-  const { agents, isLoading, error } = useAgentListAPI();
+interface Props {
+  initialAgents?: APIAgent[] | null;
+}
+
+export default function SearchContent({ initialAgents }: Props) {
+  const { agents, isLoading, error } = useAgentListAPI(initialAgents);
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);

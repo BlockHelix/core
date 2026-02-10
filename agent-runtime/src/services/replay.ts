@@ -2,13 +2,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import fs from 'fs';
 import { agentStorage } from './storage';
-import type { AgentConfig } from '../types';
 import { FACTORY_PROGRAM_ID, RPC_URL } from '../config';
-
-const DEFAULT_PROMPT = process.env.DEFAULT_AGENT_PROMPT || 'You are a helpful AI assistant.';
-const DEFAULT_PRICE = parseInt(process.env.DEFAULT_AGENT_PRICE || '50000', 10);
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
-const DEFAULT_API_KEY = process.env.DEFAULT_AGENT_API_KEY || process.env.ANTHROPIC_API_KEY || '';
 
 const AGENT_METADATA_DISCRIMINATOR = Buffer.from([106, 95, 194, 10, 53, 133, 159, 163]);
 
@@ -63,37 +57,23 @@ export async function replayFromChain(): Promise<ReplayStats> {
     return stats;
   }
 
-  // 2. Sync each agent into local storage
   for (const account of agentAccounts) {
     const onChain = account.account as any;
-    const agentId = onChain.agentId?.toString?.() ?? onChain.agentId;
+    const agentId = (onChain.agentId?.toString?.() ?? onChain.agentId).toString();
     const name = onChain.name as string;
     const operator = (onChain.operator as PublicKey).toBase58();
     const vault = (onChain.vault as PublicKey).toBase58();
     const registry = (onChain.registry as PublicKey).toBase58();
 
-    const existing = agentStorage.get(agentId.toString());
+    const existing = agentStorage.get(vault);
     if (existing) {
-      console.log(`[replay] Agent ${agentId} (${name}) already in storage, skipping`);
+      console.log(`[replay] Agent ${agentId} (${name}) vault=${vault.slice(0,8)}... already in storage, skipping`);
       stats.agentsSkipped++;
       continue;
     }
 
-    const config: AgentConfig = {
-      agentId: agentId.toString(),
-      name,
-      systemPrompt: DEFAULT_PROMPT,
-      priceUsdcMicro: DEFAULT_PRICE,
-      model: DEFAULT_MODEL,
-      operator,
-      vault,
-      registry,
-      isActive: onChain.isActive ?? true,
-      apiKey: DEFAULT_API_KEY,
-    };
-
-    await agentStorage.create(config, operator);
-    console.log(`[replay] Synced agent ${agentId} (${name}) from chain`);
+    await agentStorage.createMinimal(vault, agentId, name, operator, registry, onChain.isActive ?? true);
+    console.log(`[replay] Synced agent ${agentId} (${name}) vault=${vault.slice(0,8)}... from chain`);
     stats.agentsSynced++;
   }
 
@@ -137,28 +117,17 @@ export function subscribeToFactory(): void {
 
       try {
         const decoded = (factoryProgram.coder.accounts as any).decode('AgentMetadata', data);
-        const agentId = decoded.agentId?.toString?.() ?? decoded.agentId;
+        const agentId = (decoded.agentId?.toString?.() ?? decoded.agentId).toString();
         const name = decoded.name as string;
         const operator = (decoded.operator as PublicKey).toBase58();
+        const vault = (decoded.vault as PublicKey).toBase58();
+        const registry = (decoded.registry as PublicKey).toBase58();
 
-        const existing = agentStorage.get(agentId.toString());
+        const existing = agentStorage.get(vault);
         if (existing) return;
 
-        const config: AgentConfig = {
-          agentId: agentId.toString(),
-          name,
-          systemPrompt: DEFAULT_PROMPT,
-          priceUsdcMicro: DEFAULT_PRICE,
-          model: DEFAULT_MODEL,
-          operator,
-          vault: (decoded.vault as PublicKey).toBase58(),
-          registry: (decoded.registry as PublicKey).toBase58(),
-          isActive: decoded.isActive ?? true,
-          apiKey: DEFAULT_API_KEY,
-        };
-
-        await agentStorage.create(config, operator);
-        console.log(`[factory-ws] New agent detected: ${agentId} (${name}) by ${operator}`);
+        await agentStorage.createMinimal(vault, agentId, name, operator, registry, decoded.isActive ?? true);
+        console.log(`[factory-ws] New agent detected: ${agentId} (${name}) vault=${vault.slice(0,8)}...`);
       } catch (err) {
         console.error('[factory-ws] Failed to decode account:', err instanceof Error ? err.message : err);
       }

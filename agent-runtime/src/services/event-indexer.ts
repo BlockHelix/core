@@ -1,8 +1,8 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Connection, PublicKey, Logs } from '@solana/web3.js';
-import { Pool } from 'pg';
 import fs from 'fs';
 import { agentStorage } from './storage';
+import { pool } from './db';
 import { RPC_URL, VAULT_PROGRAM_ID, REGISTRY_PROGRAM_ID } from '../config';
 
 export interface AgentStats {
@@ -20,7 +20,6 @@ export interface AgentStats {
   updatedAt: number;
 }
 
-const DATABASE_URL = process.env.DATABASE_URL || '';
 const CURSOR_FLUSH_INTERVAL = 5000;
 const TVL_DEBOUNCE = 30_000;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -58,7 +57,6 @@ function dateKey(ts?: number): string {
 
 class EventIndexer {
   private connection: Connection;
-  private pool: Pool | null = null;
   private vaultProgram: anchor.Program | null = null;
   private vaultToAgentId = new Map<string, string>();
   private agentIdToVault = new Map<string, string>();
@@ -77,8 +75,8 @@ class EventIndexer {
   }
 
   private async ensureSchema(): Promise<void> {
-    if (!this.pool) return;
-    await this.pool.query(`
+    if (!pool) return;
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS indexer_cursors (
         program TEXT PRIMARY KEY,
         last_signature TEXT,
@@ -130,8 +128,8 @@ class EventIndexer {
   }
 
   private async loadCursors(): Promise<void> {
-    if (!this.pool) return;
-    const rows = await this.pool.query('SELECT program, last_signature FROM indexer_cursors');
+    if (!pool) return;
+    const rows = await pool.query('SELECT program, last_signature FROM indexer_cursors');
     for (const row of rows.rows) {
       if (row.program === 'vault') this.lastSignatures.vault = row.last_signature;
       if (row.program === 'registry') this.lastSignatures.registry = row.last_signature;
@@ -146,11 +144,11 @@ class EventIndexer {
   }
 
   private async flushCursors(): Promise<void> {
-    if (!this.pool) return;
+    if (!pool) return;
     for (const program of this.cursorDirty) {
       const last = this.lastSignatures[program];
       if (!last) continue;
-      await this.pool.query(
+      await pool.query(
         `INSERT INTO indexer_cursors (program, last_signature, updated_at)
          VALUES ($1, $2, now())
          ON CONFLICT (program) DO UPDATE SET last_signature = EXCLUDED.last_signature, updated_at = now()`
@@ -193,8 +191,8 @@ class EventIndexer {
   }
 
   private async ensureStatsRows(vaults: string[]): Promise<void> {
-    if (!this.pool || vaults.length === 0) return;
-    await this.pool.query(
+    if (!pool || vaults.length === 0) return;
+    await pool.query(
       `INSERT INTO agent_stats (vault)
        SELECT UNNEST($1::text[])
        ON CONFLICT (vault) DO NOTHING`,
@@ -210,17 +208,8 @@ class EventIndexer {
   async init(): Promise<void> {
     console.log('[indexer] Starting event indexer...');
 
-    if (!DATABASE_URL) {
-      console.warn('[indexer] DATABASE_URL not set; indexer disabled');
-      this.initDone = true;
-      return;
-    }
-
-    try {
-      this.pool = new Pool({ connectionString: DATABASE_URL });
-      await this.pool.query('SELECT 1');
-    } catch (err) {
-      console.warn('[indexer] Failed to connect to Postgres:', err instanceof Error ? err.message : err);
+    if (!pool) {
+      console.warn('[indexer] No database pool; indexer disabled');
       this.initDone = true;
       return;
     }
@@ -339,7 +328,7 @@ class EventIndexer {
     if (!vaultKey && data.registry) {
       vaultKey = this.registryToVault.get(data.registry.toString());
     }
-    if (!vaultKey || !this.pool) return;
+    if (!vaultKey || !pool) return;
 
     await this.ensureStatsRows([vaultKey]);
 
@@ -351,7 +340,7 @@ class EventIndexer {
 
       case 'RevenueReceived': {
         const vaultCut = toBigInt(data.vaultCut || data.vault_cut);
-        await this.pool.query(
+        await pool.query(
           `INSERT INTO agent_stats (vault, total_revenue, total_jobs, updated_at)
            VALUES ($1, $2, 1, now())
            ON CONFLICT (vault) DO UPDATE
@@ -362,7 +351,7 @@ class EventIndexer {
         );
 
         const day = dateKey();
-        await this.pool.query(
+        await pool.query(
           `INSERT INTO revenue_daily (vault, day, revenue)
            VALUES ($1, $2, $3)
            ON CONFLICT (vault, day) DO UPDATE
@@ -376,7 +365,7 @@ class EventIndexer {
 
       case 'Slashed': {
         const slashTotal = toBigInt(data.slashTotal || data.slash_total);
-        await this.pool.query(
+        await pool.query(
           `INSERT INTO agent_stats (vault, total_slashed, slash_events, updated_at)
            VALUES ($1, $2, 1, now())
            ON CONFLICT (vault) DO UPDATE
@@ -389,7 +378,7 @@ class EventIndexer {
       }
 
       case 'VaultPaused':
-        await this.pool.query(
+        await pool.query(
           `INSERT INTO agent_stats (vault, paused, updated_at)
            VALUES ($1, true, now())
            ON CONFLICT (vault) DO UPDATE SET paused = true, updated_at = now()`,
@@ -398,7 +387,7 @@ class EventIndexer {
         break;
 
       case 'VaultUnpaused':
-        await this.pool.query(
+        await pool.query(
           `INSERT INTO agent_stats (vault, paused, updated_at)
            VALUES ($1, false, now())
            ON CONFLICT (vault) DO UPDATE SET paused = false, updated_at = now()`,
@@ -412,7 +401,7 @@ class EventIndexer {
         const paymentAmount = toBigInt(data.paymentAmount || data.payment_amount);
         const createdAt = toBigInt(data.createdAt || data.created_at);
 
-        await this.pool.query(
+        await pool.query(
           `INSERT INTO job_receipts (vault, job_id, client, payment_amount, created_at, status, tx_signature)
            VALUES ($1, $2, $3, $4, $5, 'active', $6)
            ON CONFLICT (vault, job_id) DO UPDATE
@@ -424,7 +413,7 @@ class EventIndexer {
           [vaultKey, jobId.toString(), client, paymentAmount.toString(), createdAt.toString(), txSignature]
         );
 
-        await this.pool.query(
+        await pool.query(
           `INSERT INTO agent_stats (vault, jobs_recorded, updated_at)
            VALUES ($1, 1, now())
            ON CONFLICT (vault) DO UPDATE
@@ -437,7 +426,7 @@ class EventIndexer {
 
       case 'JobChallenged': {
         const jobId = toBigInt(data.jobId || data.job_id);
-        await this.pool.query(
+        await pool.query(
           `UPDATE job_receipts SET status = 'challenged' WHERE vault = $1 AND job_id = $2`,
           [vaultKey, jobId.toString()]
         );
@@ -446,7 +435,7 @@ class EventIndexer {
 
       case 'JobResolved': {
         const jobId = toBigInt(data.jobId || data.job_id);
-        await this.pool.query(
+        await pool.query(
           `UPDATE job_receipts SET status = 'resolved' WHERE vault = $1 AND job_id = $2`,
           [vaultKey, jobId.toString()]
         );
@@ -455,7 +444,7 @@ class EventIndexer {
 
       case 'JobFinalized': {
         const jobId = toBigInt(data.jobId || data.job_id);
-        await this.pool.query(
+        await pool.query(
           `UPDATE job_receipts SET status = 'finalized' WHERE vault = $1 AND job_id = $2`,
           [vaultKey, jobId.toString()]
         );
@@ -472,7 +461,7 @@ class EventIndexer {
   }
 
   private async refreshTvl(vault: string): Promise<void> {
-    if (!this.vaultProgram || !this.pool) return;
+    if (!this.vaultProgram || !pool) return;
     try {
       const vaultPubkey = new PublicKey(vault);
       const vaultData = await (this.vaultProgram.account as any).vaultState.fetch(vaultPubkey);
@@ -487,7 +476,7 @@ class EventIndexer {
       const operatorBond = toBigInt(v.operatorBond);
       const paused = !!v.paused;
 
-      await this.pool.query(
+      await pool.query(
         `INSERT INTO agent_stats (vault, tvl, operator_bond, paused, updated_at)
          VALUES ($1, $2, $3, $4, now())
          ON CONFLICT (vault) DO UPDATE
@@ -543,14 +532,14 @@ class EventIndexer {
   }
 
   async getStats(vault: string, withDetails = false): Promise<AgentStats | undefined> {
-    if (!this.pool) return undefined;
-    const res = await this.pool.query('SELECT * FROM agent_stats WHERE vault = $1', [vault]);
+    if (!pool) return undefined;
+    const res = await pool.query('SELECT * FROM agent_stats WHERE vault = $1', [vault]);
     if (res.rows.length === 0) return undefined;
 
     const base = this.rowToStats(res.rows[0], withDetails);
 
     if (withDetails) {
-      const revenueRows = await this.pool.query(
+      const revenueRows = await pool.query(
         'SELECT day, revenue FROM revenue_daily WHERE vault = $1 ORDER BY day ASC',
         [vault]
       );
@@ -559,7 +548,7 @@ class EventIndexer {
         revenue: microToNumber(r.revenue),
       }));
 
-      const jobRows = await this.pool.query(
+      const jobRows = await pool.query(
         'SELECT job_id, client, payment_amount, created_at, status, tx_signature FROM job_receipts WHERE vault = $1 ORDER BY created_at DESC LIMIT 50',
         [vault]
       );
@@ -578,9 +567,9 @@ class EventIndexer {
 
   async getStatsForVaults(vaults: string[]): Promise<Map<string, AgentStats>> {
     const map = new Map<string, AgentStats>();
-    if (!this.pool || vaults.length === 0) return map;
+    if (!pool || vaults.length === 0) return map;
 
-    const res = await this.pool.query('SELECT * FROM agent_stats WHERE vault = ANY($1)', [vaults]);
+    const res = await pool.query('SELECT * FROM agent_stats WHERE vault = ANY($1)', [vaults]);
     for (const row of res.rows) {
       map.set(row.vault, this.rowToStats(row, false));
     }
@@ -611,8 +600,8 @@ class EventIndexer {
         this.vaultToAgentId.set(vault, agentId);
       }
     }
-    if (!vault || !this.pool) return;
-    void this.pool.query(
+    if (!vault || !pool) return;
+    void pool.query(
       `INSERT INTO agent_stats (vault, api_calls, updated_at)
        VALUES ($1, 1, now())
        ON CONFLICT (vault) DO UPDATE
@@ -629,7 +618,7 @@ class EventIndexer {
       eventsIndexed: this.eventsIndexed,
       lastBackfill: this.lastBackfill ? new Date(this.lastBackfill).toISOString() : null,
       subscriptions: this.subscriptionIds.length,
-      database: DATABASE_URL ? 'postgres' : 'disabled',
+      database: pool ? 'postgres' : 'disabled',
     };
   }
 
@@ -638,7 +627,6 @@ class EventIndexer {
       try { await this.connection.removeOnLogsListener(id); } catch {}
     }
     await this.flushCursors();
-    if (this.pool) await this.pool.end();
   }
 }
 

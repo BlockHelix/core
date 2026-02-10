@@ -23,7 +23,7 @@ services:
       VAULT_IDL_PATH: /app/idl/agent_vault.json
       REGISTRY_IDL_PATH: /app/idl/receipt_registry.json
       FACTORY_IDL_PATH: /app/idl/agent_factory.json
-      USE_S3_STORAGE: "false"
+      # S3 storage removed - using PostgreSQL
     ports:
       - "3002:3002"
     depends_on:
