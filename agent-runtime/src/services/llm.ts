@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AgentConfig } from '../types';
-import { PLATFORM_SOUL, buildSystemPrompt } from './platform-soul';
+import { buildSystemPrompt } from './platform-soul';
 
 export interface LLMRequest {
   agent: AgentConfig;
@@ -27,7 +27,7 @@ export async function runAgent(request: LLMRequest): Promise<LLMResponse> {
     userMessage = `Context:\n${JSON.stringify(context, null, 2)}\n\nUser Input:\n${input}`;
   }
 
-  const systemPrompt = buildSystemPrompt(PLATFORM_SOUL, agent.systemPrompt);
+  const systemPrompt = buildSystemPrompt(agent);
 
   const response = await anthropic.messages.create({
     model: agent.model,
