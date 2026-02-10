@@ -1,0 +1,72 @@
+name: Deploy OpenClaw Image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'openclaw/**'
+  schedule:
+    - cron: '0 6 * * 1' # Monday 06:00 UTC
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: blockhelix-dev-agent
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build candidate image
+        working-directory: openclaw
+        run: docker build -t openclaw-candidate:latest .
+
+      - name: Smoke test — start container
+        run: |
+          docker run -d --name openclaw-smoke \
+            -p 3001:3001 \
+            -e ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+            openclaw-candidate:latest
+
+      - name: Smoke test — poll health
+        run: |
+          echo "Waiting for healthy container (up to 90s)..."
+          for i in $(seq 1 18); do
+            RESP=$(curl -s http://localhost:3001/health || echo '{}')
+            STATUS=$(echo "$RESP" | jq -r '.status // empty')
+            WS=$(echo "$RESP" | jq -r '.ws // empty')
+            echo "  attempt $i: status=$STATUS ws=$WS"
+            if [ "$STATUS" = "ok" ] && [ "$WS" = "true" ]; then
+              echo "Smoke test passed"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Smoke test FAILED — dumping container logs:"
+          docker logs openclaw-smoke
+          exit 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push to ECR
+        run: |
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          SHA_TAG="openclaw-${{ github.sha }}"
+          docker tag openclaw-candidate:latest $REGISTRY/${{ env.ECR_REPOSITORY }}:openclaw-latest
+          docker tag openclaw-candidate:latest $REGISTRY/${{ env.ECR_REPOSITORY }}:$SHA_TAG
+          docker push $REGISTRY/${{ env.ECR_REPOSITORY }}:openclaw-latest
+          docker push $REGISTRY/${{ env.ECR_REPOSITORY }}:$SHA_TAG
+          echo "Pushed openclaw-latest + $SHA_TAG"
