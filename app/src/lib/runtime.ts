@@ -193,6 +193,7 @@ export interface DeployOpenClawParams {
   apiKey: string;
   ownerWallet?: string;
   telegramBotToken?: string;
+  braveApiKey?: string;
   jobSignerPubkey?: string;
   heartbeat?: HeartbeatParams;
   signMessage: WalletSignFn;

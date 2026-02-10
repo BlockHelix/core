@@ -47,6 +47,9 @@ export default function DeployContent() {
   const [pricePerCall, setPricePerCall] = useState(DEFAULT_PRICES.openclaw);
   const [apiKey, setApiKey] = useState('');
   const [endpointUrl, setEndpointUrl] = useState('');
+  const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [braveApiKey, setBraveApiKey] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [deploySuccess, setDeploySuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deploySteps, setDeploySteps] = useState<{ label: string; status: 'pending' | 'active' | 'done' | 'error'; detail?: string }[]>([]);
@@ -155,6 +158,8 @@ export default function DeployContent() {
           registry: '',
           apiKey,
           ownerWallet: wallet?.address,
+          telegramBotToken: telegramBotToken || undefined,
+          braveApiKey: braveApiKey || undefined,
           signMessage: wallet.signMessage.bind(wallet),
         });
         updateStep(1, 'done', 'deploying async');
@@ -409,6 +414,54 @@ export default function DeployContent() {
                 <p className="text-xs text-white/30 mt-2 font-mono">
                   Your key is passed to the container at deploy time. Platform never stores it.
                 </p>
+              </div>
+            )}
+
+            {/* Advanced (OpenClaw) */}
+            {agentType !== 'custom' && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/40 hover:text-white/60 font-mono transition-colors"
+                >
+                  <span className="text-xs">{showAdvanced ? '▾' : '▸'}</span>
+                  Advanced (optional)
+                </button>
+                {showAdvanced && (
+                  <div className="mt-4 space-y-6 pl-4 border-l border-white/10">
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                        Telegram Bot Token
+                      </label>
+                      <input
+                        type="password"
+                        value={telegramBotToken}
+                        onChange={(e) => setTelegramBotToken(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-white/30 transition-colors"
+                        placeholder="123456:ABC-DEF..."
+                      />
+                      <p className="text-xs text-white/30 mt-2 font-mono">
+                        Enables Telegram integration. Get one from @BotFather.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                        Brave Search API Key
+                      </label>
+                      <input
+                        type="password"
+                        value={braveApiKey}
+                        onChange={(e) => setBraveApiKey(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-white/30 transition-colors"
+                        placeholder="BSA..."
+                      />
+                      <p className="text-xs text-white/30 mt-2 font-mono">
+                        Enables web search tool. Get one from brave.com/search/api.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
