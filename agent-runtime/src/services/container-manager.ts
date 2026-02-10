@@ -4,7 +4,6 @@ import {
   RunTaskCommand,
   StopTaskCommand,
   DescribeTasksCommand,
-  ListTasksCommand,
   RegisterTaskDefinitionCommand,
   DescribeTaskDefinitionCommand,
 } from '@aws-sdk/client-ecs';
@@ -59,45 +58,6 @@ class ContainerManager {
   private ecs = new ECSClient({});
   private ec2 = new EC2Client({});
   private efs = new EFSClient({});
-
-  async recoverContainers(): Promise<void> {
-    if (!ECS_CLUSTER) return;
-    try {
-      const listResult = await this.ecs.send(new ListTasksCommand({
-        cluster: ECS_CLUSTER,
-        desiredStatus: 'RUNNING',
-        family: TASK_DEFINITION.split('/').pop()?.split(':')[0] || 'blockhelix-dev-openclaw',
-      }));
-      const taskArns = listResult.taskArns || [];
-      if (taskArns.length === 0) return;
-
-      const desc = await this.ecs.send(new DescribeTasksCommand({ cluster: ECS_CLUSTER, tasks: taskArns }));
-      for (const task of desc.tasks || []) {
-        const override = task.overrides?.containerOverrides?.find(c => c.name === 'openclaw');
-        const agentIdEnv = override?.environment?.find(e => e.name === 'AGENT_ID');
-        if (!agentIdEnv?.value) continue;
-
-        const eni = task.attachments?.find(a => a.type === 'ElasticNetworkInterface');
-        const eniId = eni?.details?.find(d => d.name === 'networkInterfaceId')?.value;
-        if (!eniId) continue;
-
-        const niDesc = await this.ec2.send(new DescribeNetworkInterfacesCommand({ NetworkInterfaceIds: [eniId] }));
-        const ip = niDesc.NetworkInterfaces?.[0]?.PrivateIpAddress;
-        if (!ip) continue;
-
-        this.containers.set(agentIdEnv.value, {
-          taskArn: task.taskArn!,
-          privateIp: ip,
-          agentId: agentIdEnv.value,
-          startedAt: task.startedAt?.getTime() || Date.now(),
-        });
-        console.log(`[container] Recovered ${agentIdEnv.value} at ${ip}:3001`);
-      }
-      console.log(`[container] Recovery complete: ${this.containers.size} containers`);
-    } catch (err) {
-      console.error('[container] Recovery failed:', err);
-    }
-  }
 
   private async getOrCreateAccessPoint(agentId: string): Promise<string> {
     if (!AGENT_EFS_ID) {
