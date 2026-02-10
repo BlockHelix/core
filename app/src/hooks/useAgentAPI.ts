@@ -37,6 +37,8 @@ export interface APIJobReceipt {
 }
 
 export interface APIAgentDetail extends APIAgent {
+  deployStatus?: string | null;
+  deployPhase?: string | null;
   revenueHistory: { date: string; revenue: number }[];
   recentJobs: APIJobReceipt[];
 }

@@ -157,6 +157,26 @@ export default function DeployContent() {
           ownerWallet: wallet?.address,
           signMessage: wallet.signMessage.bind(wallet),
         });
+        updateStep(1, 'done', 'deploying async');
+
+        // Step 3: Job signer (fire and forget before redirect)
+        updateStep(2, 'active');
+        try {
+          const runtimeUrl = process.env.NEXT_PUBLIC_RUNTIME_URL ||
+            (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+              ? 'https://agents.blockhelix.tech' : 'http://localhost:3001');
+          const health = await fetch(`${runtimeUrl}/health`).then(r => r.json());
+          if (health.kms?.publicKey) {
+            await setJobSigner(new PublicKey(vaultStr), new PublicKey(health.kms.publicKey));
+            updateStep(2, 'done');
+          } else {
+            updateStep(2, 'done', 'skipped');
+          }
+        } catch {
+          updateStep(2, 'error', 'failed — set in Edit Agent');
+        }
+
+        router.push(`/agent/${vaultStr}`);
       } else {
         await registerCustomAgent({
           agentId: vaultStr,
@@ -168,30 +188,30 @@ export default function DeployContent() {
           ownerWallet: wallet?.address,
           signMessage: wallet.signMessage.bind(wallet),
         });
-      }
-      updateStep(1, 'done');
+        updateStep(1, 'done');
 
-      // Step 3: Job signer
-      updateStep(2, 'active');
-      try {
-        const runtimeUrl = process.env.NEXT_PUBLIC_RUNTIME_URL ||
-          (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-            ? 'https://agents.blockhelix.tech' : 'http://localhost:3001');
-        const health = await fetch(`${runtimeUrl}/health`).then(r => r.json());
-        if (health.kms?.publicKey) {
-          await setJobSigner(new PublicKey(vaultStr), new PublicKey(health.kms.publicKey));
-          updateStep(2, 'done');
-        } else {
-          updateStep(2, 'done', 'skipped');
+        // Step 3: Job signer
+        updateStep(2, 'active');
+        try {
+          const runtimeUrl = process.env.NEXT_PUBLIC_RUNTIME_URL ||
+            (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+              ? 'https://agents.blockhelix.tech' : 'http://localhost:3001');
+          const health = await fetch(`${runtimeUrl}/health`).then(r => r.json());
+          if (health.kms?.publicKey) {
+            await setJobSigner(new PublicKey(vaultStr), new PublicKey(health.kms.publicKey));
+            updateStep(2, 'done');
+          } else {
+            updateStep(2, 'done', 'skipped');
+          }
+        } catch {
+          updateStep(2, 'error', 'failed — set in Edit Agent');
         }
-      } catch {
-        updateStep(2, 'error', 'failed — set in Edit Agent');
-      }
 
-      setDeploySuccess(true);
-      setTimeout(() => {
-        router.push(`/agent/${vaultStr}`);
-      }, 3000);
+        setDeploySuccess(true);
+        setTimeout(() => {
+          router.push(`/agent/${vaultStr}`);
+        }, 3000);
+      }
 
     } catch (error: any) {
       console.error('Deploy error:', error);

@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { formatUSDC } from '@/lib/format';
 import { CopyButton } from '@/components/CopyButton';
@@ -15,6 +15,7 @@ import { HireAgentForm } from '@/components/agent/HireAgentForm';
 import { useAgentDetailAPI, type APIAgentDetail } from '@/hooks/useAgentAPI';
 import { RUNTIME_URL } from '@/lib/network-config';
 import { findShareMint } from '@/lib/pda';
+import { getDeployStatus, type DeployStatusResponse } from '@/lib/runtime';
 
 interface Props {
   initialData?: APIAgentDetail | null;
@@ -25,6 +26,36 @@ export default function AgentDetailContent({ initialData }: Props) {
   const agentIdStr = params.id as string;
 
   const { agent, isLoading, error } = useAgentDetailAPI(agentIdStr, initialData);
+
+  const [deployState, setDeployState] = useState<DeployStatusResponse | null>(null);
+  const isDeploying = agent?.deployStatus === 'deploying' || deployState?.deployStatus === 'deploying';
+  const deployFailed = deployState?.deployStatus === 'failed';
+  const deployDone = deployState?.deployStatus === 'active';
+
+  useEffect(() => {
+    if (!agent || agent.deployStatus !== 'deploying') return;
+    let cancelled = false;
+
+    const poll = async () => {
+      while (!cancelled) {
+        try {
+          const status = await getDeployStatus(agentIdStr);
+          if (cancelled) return;
+          setDeployState(status);
+          if (status.deployStatus !== 'deploying') return;
+        } catch {
+          // ignore, retry
+        }
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [agent?.deployStatus, agentIdStr]);
+
+  const handleRetryDeploy = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   const vaultPubkey = useMemo(() => {
     if (!agent?.vault) return null;
@@ -78,6 +109,89 @@ export default function AgentDetailContent({ initialData }: Props) {
             <Link href="/search" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Back to Agents
             </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if ((isDeploying || deployFailed) && !deployDone) {
+    const phaseLabels: Record<string, string> = {
+      efs: 'Creating home',
+      task_def: 'Preparing',
+      launching: 'Waking up',
+      networking: 'Connecting',
+      health: 'Almost there',
+      complete: 'Ready',
+    };
+    const phases = ['efs', 'task_def', 'launching', 'networking', 'health', 'complete'];
+    const currentPhase = deployState?.deployPhase || agent.deployPhase || null;
+    const currentIdx = currentPhase ? phases.indexOf(currentPhase) : -1;
+
+    return (
+      <main className="min-h-screen py-20 lg:py-32">
+        <div className="max-w-2xl mx-auto px-6 lg:px-8">
+          <Link href="/search" className="inline-flex items-center gap-2 text-xs text-white/60 hover:text-white transition-colors uppercase tracking-widest font-mono mb-8">
+            <span>&larr;</span>
+            <span>BACK</span>
+          </Link>
+
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-2 font-mono">{agent.name}</h1>
+          <p className="text-sm text-white/40 font-mono mb-8 break-all">{agent.vault || agent.agentId}</p>
+
+          <div className="border border-white/10 bg-white/[0.02]">
+            <div className="px-5 py-3 border-b border-white/10 flex items-center gap-3">
+              {deployFailed ? (
+                <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+              ) : (
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              )}
+              <span className="text-[10px] uppercase tracking-widest text-white/50 font-mono font-bold">
+                {deployFailed ? 'DEPLOY FAILED' : 'DEPLOYING'}
+              </span>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {phases.map((phase, i) => {
+                let status: 'pending' | 'active' | 'done' | 'error' = 'pending';
+                if (deployFailed && i === currentIdx) status = 'error';
+                else if (i < currentIdx) status = 'done';
+                else if (i === currentIdx) status = 'active';
+
+                return (
+                  <div key={phase} className="flex items-start gap-3">
+                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {status === 'pending' && <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
+                      {status === 'active' && <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />}
+                      {status === 'done' && <span className="text-emerald-400 text-sm">&#10003;</span>}
+                      {status === 'error' && <span className="text-red-400 text-sm">&#10007;</span>}
+                    </div>
+                    <span className={cn(
+                      'text-sm font-mono',
+                      status === 'active' && 'text-cyan-400',
+                      status === 'done' && 'text-white/60',
+                      status === 'error' && 'text-red-400',
+                      status === 'pending' && 'text-white/30',
+                    )}>
+                      {phaseLabels[phase]}
+                      {status === 'active' && <span className="animate-pulse">...</span>}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {deployFailed && (
+              <div className="px-5 py-4 border-t border-red-400/20 bg-red-400/5">
+                <p className="text-sm text-red-400 font-mono mb-3">{deployState?.error || 'Unknown error'}</p>
+                <button
+                  onClick={handleRetryDeploy}
+                  className="px-4 py-2 bg-red-400 text-black text-[10px] uppercase tracking-widest font-mono font-bold hover:opacity-90 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>

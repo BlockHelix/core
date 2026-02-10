@@ -35,6 +35,8 @@ interface HeartbeatConfig {
   timezone?: string;
 }
 
+type DeployPhase = 'efs' | 'task_def' | 'launching' | 'networking' | 'health' | 'complete';
+
 interface DeployParams {
   agentId: string;
   systemPrompt: string;
@@ -44,6 +46,7 @@ interface DeployParams {
   heartbeat?: HeartbeatConfig;
   sdkKey?: string;
   runtimeUrl?: string;
+  onProgress?: (phase: DeployPhase) => void;
 }
 
 const ECS_CLUSTER = process.env.ECS_CLUSTER_NAME || '';
@@ -145,16 +148,20 @@ class ContainerManager {
       throw new Error(`Container limit reached (${MAX_CONTAINERS}). Stop an existing agent before deploying a new one.`);
     }
 
+    const progress = params.onProgress || (() => {});
     let taskDef = TASK_DEFINITION;
     let accessPointId = '';
 
     if (AGENT_EFS_ID) {
+      progress('efs');
       accessPointId = await this.getOrCreateAccessPoint(params.agentId);
       if (accessPointId) {
+        progress('task_def');
         taskDef = await this.registerTaskDefWithEfs(accessPointId);
       }
     }
 
+    progress('launching');
     const result = await this.ecs.send(new RunTaskCommand({
       cluster: ECS_CLUSTER,
       taskDefinition: taskDef,
@@ -199,7 +206,9 @@ class ContainerManager {
 
     console.log(`[container] Started task ${taskArn} for agent ${params.agentId}`);
 
+    progress('networking');
     const privateIp = await this.waitForPrivateIp(taskArn);
+    progress('health');
     await this.waitForHealth(privateIp);
 
     const container: OpenClawContainer = {
@@ -211,6 +220,7 @@ class ContainerManager {
     };
 
     this.containers.set(params.agentId, container);
+    progress('complete');
     console.log(`[container] Agent ${params.agentId} running at ${privateIp}:3001`);
     return container;
   }

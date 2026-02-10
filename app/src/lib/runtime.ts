@@ -220,7 +220,21 @@ export async function requestJobSignerKeypair(): Promise<string> {
   return data.publicKey as string;
 }
 
-export async function deployOpenClaw(params: DeployOpenClawParams): Promise<RegisterAgentResponse> {
+export interface DeployOpenClawResponse {
+  message: string;
+  agent: {
+    agentId: string;
+    vault: string;
+    name: string;
+    priceUsdcMicro: number;
+    model: string;
+    isActive: boolean;
+    isContainerized: boolean;
+    deployStatus: string;
+  };
+}
+
+export async function deployOpenClaw(params: DeployOpenClawParams): Promise<DeployOpenClawResponse> {
   if (!RUNTIME_URL) {
     throw new Error('Runtime URL not configured');
   }
@@ -239,6 +253,25 @@ export async function deployOpenClaw(params: DeployOpenClawParams): Promise<Regi
     throw new Error(errorData.error || `OpenClaw deploy failed: ${response.status}`);
   }
 
+  return response.json();
+}
+
+export interface DeployStatusResponse {
+  deployStatus: 'pending' | 'deploying' | 'active' | 'failed';
+  deployPhase: string | null;
+  containerIp: string | null;
+  error: string | null;
+}
+
+export async function getDeployStatus(agentId: string): Promise<DeployStatusResponse> {
+  if (!RUNTIME_URL) {
+    throw new Error('Runtime URL not configured');
+  }
+
+  const response = await fetch(`${RUNTIME_URL}/admin/openclaw/${agentId}/deploy-status`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch deploy status: ${response.status}`);
+  }
   return response.json();
 }
 

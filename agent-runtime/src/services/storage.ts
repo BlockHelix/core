@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS agents (
   is_containerized BOOLEAN DEFAULT false,
   container_ip TEXT,
   sdk_key TEXT,
+  deploy_status TEXT DEFAULT 'pending',
+  deploy_phase TEXT,
+  deploy_error TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -53,6 +56,9 @@ function rowToStored(row: any): StoredAgent {
     ownerWallet: row.owner_wallet,
     isContainerized: row.is_containerized || false,
     containerIp: row.container_ip || undefined,
+    deployStatus: row.deploy_status || 'pending',
+    deployPhase: row.deploy_phase || undefined,
+    deployError: row.deploy_error || undefined,
     sdkKey: row.sdk_key || undefined,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
@@ -78,6 +84,9 @@ class AgentStorage {
     await pool.query(SCHEMA_SQL);
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS sdk_key TEXT');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_agents_sdk_key ON agents(sdk_key)');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS deploy_status TEXT DEFAULT \'pending\'');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS deploy_phase TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS deploy_error TEXT');
     await this.loadCache();
     await this.backfillSdkKeys();
     this.initialized = true;
@@ -208,6 +217,7 @@ class AgentStorage {
         name: 'name', systemPrompt: 'system_prompt', priceUsdcMicro: 'price_usdc_micro',
         model: 'model', operator: 'operator', registry: 'registry', isActive: 'is_active',
         isContainerized: 'is_containerized', containerIp: 'container_ip',
+        deployStatus: 'deploy_status', deployPhase: 'deploy_phase', deployError: 'deploy_error',
       };
       for (const [key, col] of Object.entries(map)) {
         if ((updates as any)[key] !== undefined) {

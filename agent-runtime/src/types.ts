@@ -13,6 +13,9 @@ export interface AgentConfig {
   walletSecretKey?: string;
   isContainerized?: boolean;
   containerIp?: string;
+  deployStatus?: 'pending' | 'deploying' | 'active' | 'failed';
+  deployPhase?: string;
+  deployError?: string;
 }
 
 export interface RunRequest {

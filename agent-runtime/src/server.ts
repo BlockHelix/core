@@ -12,6 +12,7 @@ import {
   handleGetAgentConfig,
   handleUpdateAgentConfig,
   handleDeployOpenClaw,
+  handleDeployStatus,
   handleStopOpenClaw,
   handleGenerateKeypair,
   requireWalletAuth,
@@ -215,7 +216,7 @@ export function createApp(): express.Application {
     const { agentId } = req.params;
 
     const cached = agentDetailCache.get(agentId);
-    if (cached && Date.now() - cached.ts < DETAIL_CACHE_TTL) {
+    if (cached && Date.now() - cached.ts < DETAIL_CACHE_TTL && cached.data.deployStatus !== 'deploying') {
       res.json(cached.data);
       return;
     }
@@ -237,6 +238,8 @@ export function createApp(): express.Application {
       isActive: agent.isActive,
       vault: agent.vault || null,
       registry: agent.registry || null,
+      deployStatus: agent.deployStatus || null,
+      deployPhase: agent.deployPhase || null,
       stats: s ? {
         tvl: s.tvl, totalRevenue: s.totalRevenue, totalJobs: s.totalJobs,
         apiCalls: s.apiCalls, paused: s.paused, slashEvents: s.slashEvents,
@@ -270,6 +273,7 @@ export function createApp(): express.Application {
     }
   });
   app.post('/admin/openclaw/deploy', adminLimit, requireWalletAuth, handleDeployOpenClaw);
+  app.get('/admin/openclaw/:agentId/deploy-status', handleDeployStatus);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
 
   app.use('/v1/sdk', sdkRoutes);

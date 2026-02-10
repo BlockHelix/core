@@ -301,14 +301,29 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       isContainerized: true,
       agentWallet,
       walletSecretKey,
+      deployStatus: 'deploying',
     };
 
     const stored = await agentStorage.create(fullConfig, ownerWallet || operator || '');
     eventIndexer.refreshMappings();
 
+    res.status(201).json({
+      message: 'OpenClaw deploy started',
+      agent: {
+        agentId: fullConfig.agentId,
+        vault: fullConfig.vault,
+        name: fullConfig.name,
+        priceUsdcMicro: fullConfig.priceUsdcMicro,
+        model: fullConfig.model,
+        isActive: false,
+        isContainerized: true,
+        deployStatus: 'deploying',
+      },
+    });
+
     const runtimeUrl = process.env.RUNTIME_URL || `http://${req.headers.host}`;
 
-    const container = await containerManager.deployAgent({
+    containerManager.deployAgent({
       agentId: agentId || vault,
       systemPrompt,
       anthropicApiKey: apiKey,
@@ -324,28 +339,45 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
         activeEnd: heartbeat.activeEnd,
         timezone: heartbeat.timezone,
       } : undefined,
-    });
-
-    await agentStorage.update(vault, { containerIp: container.privateIp, isActive: true });
-
-    res.status(201).json({
-      message: 'OpenClaw agent deployed',
-      agent: {
-        agentId: fullConfig.agentId,
-        vault: fullConfig.vault,
-        name: fullConfig.name,
-        priceUsdcMicro: fullConfig.priceUsdcMicro,
-        model: fullConfig.model,
-        isActive: true,
-        isContainerized: true,
-        containerIp: container.privateIp,
+      onProgress: (phase) => {
+        agentStorage.update(vault, { deployPhase: phase }).catch(() => {});
       },
+    }).then(async (container) => {
+      await agentStorage.update(vault, {
+        containerIp: container.privateIp,
+        isActive: true,
+        deployStatus: 'active',
+        deployPhase: 'complete',
+      });
+      console.log(`[openclaw] Async deploy complete for ${vault}`);
+    }).catch(async (err) => {
+      console.error('[openclaw] Async deploy failed:', err);
+      await agentStorage.update(vault, {
+        deployStatus: 'failed',
+        deployError: err instanceof Error ? err.message : 'Deploy failed',
+      }).catch(() => {});
     });
+
   } catch (err) {
     console.error('[openclaw] Deploy failed:', err);
     const message = err instanceof Error ? err.message : 'Deploy failed';
     res.status(500).json({ error: message });
   }
+}
+
+export async function handleDeployStatus(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Agent not found' });
+    return;
+  }
+  res.json({
+    deployStatus: agent.deployStatus || 'pending',
+    deployPhase: agent.deployPhase || null,
+    containerIp: agent.containerIp || null,
+    error: agent.deployError || null,
+  });
 }
 
 export async function handleStopOpenClaw(req: Request, res: Response): Promise<void> {
