@@ -27,7 +27,7 @@ export async function runAgent(request: LLMRequest): Promise<LLMResponse> {
     userMessage = `Context:\n${JSON.stringify(context, null, 2)}\n\nUser Input:\n${input}`;
   }
 
-  const systemPrompt = buildSystemPrompt(agent);
+  const systemPrompt = await buildSystemPrompt(agent);
 
   const response = await anthropic.messages.create({
     model: agent.model,
