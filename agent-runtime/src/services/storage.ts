@@ -138,20 +138,20 @@ class AgentStorage {
     return { ...stored, apiKey: agent.apiKey, walletSecretKey };
   }
 
-  async createMinimal(vault: string, agentId: string, name: string, operator: string, registry: string, isActive: boolean): Promise<void> {
+  async createMinimal(vault: string, agentId: string, name: string, operator: string, registry: string, _isActive: boolean): Promise<void> {
     if (pool) {
       await pool.query(
         `INSERT INTO agents (vault, agent_id, name, operator, registry, is_active, owner_wallet, system_prompt)
-         VALUES ($1,$2,$3,$4,$5,$6,$4,'')
+         VALUES ($1,$2,$3,$4,$5,false,$4,'')
          ON CONFLICT (vault) DO NOTHING`,
-        [vault, agentId, name, operator, registry, isActive]
+        [vault, agentId, name, operator, registry]
       );
     }
     if (!this.cache.has(vault)) {
       this.cache.set(vault, {
         agentId, name, systemPrompt: '', priceUsdcMicro: 100000,
         model: 'claude-sonnet-4-20250514', operator, vault, registry,
-        isActive, apiKey: '', ownerWallet: operator,
+        isActive: false, apiKey: '', ownerWallet: operator,
         createdAt: Date.now(), updatedAt: Date.now(),
       });
     }
