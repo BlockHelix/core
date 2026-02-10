@@ -8,6 +8,11 @@ const BPS_DENOMINATOR: u64 = 10_000;
 const VIRTUAL_SHARES: u64 = 1_000_000;
 const VIRTUAL_ASSETS: u64 = 1_000_000;
 const MIN_OPERATOR_SHARES: u64 = 1_000_000;
+const REGISTRY_PROGRAM_ID: Pubkey = Pubkey::new_from_array([
+    10, 243, 253, 65, 103, 161, 219, 39, 47, 3, 29, 190, 152, 85, 213, 78,
+    160, 151, 5, 146, 177, 217, 171, 166, 61, 204, 225, 68, 250, 230, 68, 202,
+]);
+const REGISTRY_ACTIVE_CHALLENGES_OFFSET: usize = 168;
 
 #[program]
 pub mod agent_vault {
@@ -159,6 +164,28 @@ pub mod agent_vault {
                 .checked_sub(shares)
                 .ok_or(VaultError::ArithmeticOverflow)?;
             require!(remaining >= MIN_OPERATOR_SHARES, VaultError::OperatorMinSharesRequired);
+        }
+
+        if is_operator {
+            let registry_info = ctx.accounts.registry_state
+                .as_ref()
+                .ok_or(VaultError::RegistryRequired)?;
+
+            let vault_key = ctx.accounts.vault_state.key();
+            let (expected_pda, _) = Pubkey::find_program_address(
+                &[b"registry", vault_key.as_ref()],
+                &REGISTRY_PROGRAM_ID,
+            );
+            require!(registry_info.key() == expected_pda, VaultError::InvalidRegistry);
+
+            let data = registry_info.try_borrow_data()?;
+            require!(data.len() >= REGISTRY_ACTIVE_CHALLENGES_OFFSET + 8, VaultError::InvalidRegistry);
+            let active_challenges = u64::from_le_bytes(
+                data[REGISTRY_ACTIVE_CHALLENGES_OFFSET..REGISTRY_ACTIVE_CHALLENGES_OFFSET + 8]
+                    .try_into()
+                    .unwrap(),
+            );
+            require!(active_challenges == 0, VaultError::PendingChallengesExist);
         }
 
         let clock = Clock::get()?;
@@ -512,6 +539,9 @@ pub struct Withdraw<'info> {
     )]
     pub deposit_record: Account<'info, DepositRecord>,
 
+    /// CHECK: Registry state — verified via PDA in handler. Required for operator withdrawals.
+    pub registry_state: Option<UncheckedAccount<'info>>,
+
     pub token_program: Program<'info, Token>,
 }
 
@@ -648,6 +678,12 @@ pub enum VaultError {
     SlippageExceeded,
     #[msg("Vault balance insufficient for 2x slash")]
     InsufficientVaultBalance,
+    #[msg("Registry account required for operator withdrawal")]
+    RegistryRequired,
+    #[msg("Cannot withdraw while challenges are pending")]
+    PendingChallengesExist,
+    #[msg("Registry account does not match vault PDA")]
+    InvalidRegistry,
 }
 
 #[event]

@@ -811,6 +811,10 @@ export type ReceiptRegistry = {
             "type": "u64"
           },
           {
+            "name": "activeChallenges",
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }

@@ -805,6 +805,10 @@
             "type": "u64"
           },
           {
+            "name": "active_challenges",
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }

@@ -661,6 +661,10 @@ export type AgentVault = {
           }
         },
         {
+          "name": "registryState",
+          "optional": true
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -853,6 +857,21 @@ export type AgentVault = {
       "code": 6010,
       "name": "insufficientVaultBalance",
       "msg": "Vault balance insufficient for 2x slash"
+    },
+    {
+      "code": 6011,
+      "name": "registryRequired",
+      "msg": "Registry account required for operator withdrawal"
+    },
+    {
+      "code": 6012,
+      "name": "pendingChallengesExist",
+      "msg": "Cannot withdraw while challenges are pending"
+    },
+    {
+      "code": 6013,
+      "name": "invalidRegistry",
+      "msg": "Registry account does not match vault PDA"
     }
   ],
   "types": [

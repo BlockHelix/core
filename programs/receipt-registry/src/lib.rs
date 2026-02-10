@@ -19,6 +19,7 @@ pub mod receipt_registry {
         registry.challenge_window = challenge_window;
         registry.total_challenged = 0;
         registry.total_resolved_against = 0;
+        registry.active_challenges = 0;
         registry.bump = ctx.bumps.registry_state;
 
         emit!(RegistryInitialized {
@@ -108,6 +109,9 @@ pub mod receipt_registry {
         registry.total_challenged = registry.total_challenged
             .checked_add(1)
             .ok_or(RegistryError::ArithmeticOverflow)?;
+        registry.active_challenges = registry.active_challenges
+            .checked_add(1)
+            .ok_or(RegistryError::ArithmeticOverflow)?;
 
         emit!(JobChallenged {
             registry: receipt.registry,
@@ -120,11 +124,16 @@ pub mod receipt_registry {
     }
 
     pub fn resolve_for_agent(ctx: Context<ResolveChallenge>, _job_id: u64) -> Result<()> {
+        let registry = &mut ctx.accounts.registry_state;
         let receipt = &mut ctx.accounts.job_receipt;
         let clock = Clock::get()?;
 
         receipt.status = JobStatus::Resolved;
         receipt.resolved_at = clock.unix_timestamp;
+
+        registry.active_challenges = registry.active_challenges
+            .checked_sub(1)
+            .ok_or(RegistryError::ArithmeticOverflow)?;
 
         emit!(JobResolved {
             registry: receipt.registry,
@@ -146,6 +155,9 @@ pub mod receipt_registry {
 
         registry.total_resolved_against = registry.total_resolved_against
             .checked_add(1)
+            .ok_or(RegistryError::ArithmeticOverflow)?;
+        registry.active_challenges = registry.active_challenges
+            .checked_sub(1)
             .ok_or(RegistryError::ArithmeticOverflow)?;
 
         emit!(JobResolved {
@@ -327,6 +339,7 @@ pub struct RegistryState {
     pub challenge_window: i64,
     pub total_challenged: u64,
     pub total_resolved_against: u64,
+    pub active_challenges: u64,
     pub bump: u8,
 }
 

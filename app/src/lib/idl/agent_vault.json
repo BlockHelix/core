@@ -655,6 +655,10 @@
           }
         },
         {
+          "name": "registry_state",
+          "optional": true
+        },
+        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -847,6 +851,21 @@
       "code": 6010,
       "name": "InsufficientVaultBalance",
       "msg": "Vault balance insufficient for 2x slash"
+    },
+    {
+      "code": 6011,
+      "name": "RegistryRequired",
+      "msg": "Registry account required for operator withdrawal"
+    },
+    {
+      "code": 6012,
+      "name": "PendingChallengesExist",
+      "msg": "Cannot withdraw while challenges are pending"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidRegistry",
+      "msg": "Registry account does not match vault PDA"
     }
   ],
   "types": [
