@@ -45,6 +45,7 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
   const { registryProgram } = usePrograms();
   const [currentJobSigner, setCurrentJobSigner] = useState<string | null>(null);
   const [jobSignerStatus, setJobSignerStatus] = useState<'loading' | 'not_set' | 'set' | 'error'>('loading');
+  const [runtimeSignerKey, setRuntimeSignerKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!connected || !wallet?.address) {
@@ -73,7 +74,16 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
   }, [agentId, connected, wallet?.address]);
 
   useEffect(() => {
-    if (!agent?.vault || !registryProgram) {
+    const runtimeUrl = process.env.NEXT_PUBLIC_RUNTIME_URL ||
+      (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+        ? 'https://agents.blockhelix.tech' : 'http://localhost:3001');
+    fetch(`${runtimeUrl}/health`).then(r => r.json()).then(d => {
+      if (d.kms?.publicKey) setRuntimeSignerKey(d.kms.publicKey);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!agent?.vault || !registryProgram || !runtimeSignerKey) {
       setJobSignerStatus('loading');
       return;
     }
@@ -88,9 +98,7 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
 
         setCurrentJobSigner(jobSigner);
 
-        if (jobSigner === operator) {
-          setJobSignerStatus('not_set');
-        } else if (agent.agentWallet && jobSigner === agent.agentWallet) {
+        if (jobSigner === runtimeSignerKey) {
           setJobSignerStatus('set');
         } else {
           setJobSignerStatus('not_set');
@@ -102,7 +110,7 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
     };
 
     fetchJobSigner();
-  }, [agent?.vault, agent?.agentWallet, registryProgram]);
+  }, [agent?.vault, runtimeSignerKey, registryProgram]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -369,11 +377,11 @@ export default function EditAgentContent({ agentId }: EditAgentContentProps) {
                   {jobSignerStatus === 'not_set' && (
                     <button
                       onClick={async () => {
-                        if (!agent.vault || !agent.agentWallet) return;
+                        if (!agent.vault || !runtimeSignerKey) return;
                         try {
                           const tx = await setJobSigner(
                             new PublicKey(agent.vault),
-                            new PublicKey(agent.agentWallet)
+                            new PublicKey(runtimeSignerKey)
                           );
                           if (tx) {
                             toast('Job signer delegated!', 'success');
