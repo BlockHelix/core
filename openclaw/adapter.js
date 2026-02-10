@@ -59,7 +59,7 @@ function connectGateway() {
         if (!runId) return;
         for (const [id, p] of pending) {
           if (p.runId === runId && msg.payload?.data?.text) {
-            p.chunks.push(msg.payload.data.text);
+            p.lastText = msg.payload.data.text;
           }
         }
         return;
@@ -73,8 +73,8 @@ function connectGateway() {
         }
         if (msg.ok) {
           const result = msg.payload?.result;
-          const text = typeof result === 'string' ? result : result?.text || result?.output || JSON.stringify(result || '');
-          const output = p.chunks.join('') || text || msg.payload?.text || '';
+          const resultText = typeof result === 'string' ? result : result?.text || result?.output || '';
+          const output = resultText || p.lastText || msg.payload?.text || '';
           p.resolve(output);
           pending.delete(msg.id);
         } else {
@@ -119,7 +119,7 @@ function sendAgentMessage(message, sessionId, systemPrompt) {
       resolve: (val) => { clearTimeout(timer); resolve(val); },
       reject: (err) => { clearTimeout(timer); reject(err); },
       runId: null,
-      chunks: [],
+      lastText: null,
     });
 
     const params = {
