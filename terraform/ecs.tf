@@ -188,7 +188,7 @@ resource "aws_ecs_task_definition" "agent" {
     name = "postgres-data"
     efs_volume_configuration {
       file_system_id = aws_efs_file_system.postgres.id
-      root_directory = "/blockhelix-postgres"
+      root_directory = "/"
     }
   }
 
