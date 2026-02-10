@@ -17,12 +17,22 @@ interface OpenClawContainer {
   startedAt: number;
 }
 
+interface HeartbeatConfig {
+  enabled: boolean;
+  interval?: string;
+  model?: string;
+  activeStart?: string;
+  activeEnd?: string;
+  timezone?: string;
+}
+
 interface DeployParams {
   agentId: string;
   systemPrompt: string;
   anthropicApiKey: string;
   model?: string;
   telegramBotToken?: string;
+  heartbeat?: HeartbeatConfig;
 }
 
 const ECS_CLUSTER = process.env.ECS_CLUSTER_NAME || '';
@@ -67,6 +77,14 @@ class ContainerManager {
             { name: 'MODEL', value: params.model || 'claude-sonnet-4-20250514' },
             { name: 'GATEWAY_AUTH_TOKEN', value: crypto.randomBytes(32).toString('hex') },
             ...(params.telegramBotToken ? [{ name: 'TELEGRAM_BOT_TOKEN', value: params.telegramBotToken }] : []),
+            ...(params.heartbeat?.enabled ? [
+              { name: 'HEARTBEAT_ENABLED', value: 'true' },
+              ...(params.heartbeat.interval ? [{ name: 'HEARTBEAT_INTERVAL', value: params.heartbeat.interval }] : []),
+              ...(params.heartbeat.model ? [{ name: 'HEARTBEAT_MODEL', value: params.heartbeat.model }] : []),
+              ...(params.heartbeat.activeStart ? [{ name: 'HEARTBEAT_ACTIVE_START', value: params.heartbeat.activeStart }] : []),
+              ...(params.heartbeat.activeEnd ? [{ name: 'HEARTBEAT_ACTIVE_END', value: params.heartbeat.activeEnd }] : []),
+              ...(params.heartbeat.timezone ? [{ name: 'HEARTBEAT_TIMEZONE', value: params.heartbeat.timezone }] : []),
+            ] : []),
           ],
         }],
       },

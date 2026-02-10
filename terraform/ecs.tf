@@ -269,6 +269,7 @@ resource "aws_ecs_task_definition" "agent" {
         { name = "OPENCLAW_SUBNETS", value = join(",", aws_subnet.private[*].id) },
         { name = "AWS_REGION", value = data.aws_region.current.name },
         { name = "KMS_KEY_ID", value = local.kms_job_signer_id },
+        { name = "ALERT_SNS_TOPIC_ARN", value = aws_sns_topic.alerts.arn },
       ]
 
       secrets = [

@@ -264,7 +264,7 @@ export async function handleUpdateAgentConfig(req: Request, res: Response): Prom
 }
 
 export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
-  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken } = req.body;
+  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken, heartbeat } = req.body;
 
   if (!vault || !name || !systemPrompt || !apiKey) {
     res.status(400).json({
@@ -293,6 +293,14 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       anthropicApiKey: apiKey,
       model,
       telegramBotToken,
+      heartbeat: heartbeat?.enabled ? {
+        enabled: true,
+        interval: heartbeat.interval,
+        model: heartbeat.model,
+        activeStart: heartbeat.activeStart,
+        activeEnd: heartbeat.activeEnd,
+        timezone: heartbeat.timezone,
+      } : undefined,
     });
 
     const fullConfig: AgentConfig = {

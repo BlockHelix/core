@@ -123,7 +123,7 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     if (canSign && operatorPubkey && vaultPubkey) {
       console.log(`[run] Firing background tx: vault=${vaultPubkey.toBase58()}, usdcAmount=${usdcAmount}`);
       Promise.allSettled([
-        usdcAmount > 0 && agentKeypair
+        usdcAmount > 0
           ? routeRevenueToVault(agentKeypair, vaultPubkey, operatorPubkey, usdcAmount, jobTimestamp)
           : Promise.resolve(null),
         recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),

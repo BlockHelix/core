@@ -48,23 +48,30 @@ export interface ReceiptResult {
 }
 
 export async function routeRevenueToVault(
-  agentKeypair: Keypair,
+  agentKeypair: Keypair | null,
   vaultAddress: PublicKey,
   _operatorPubkey: PublicKey,
   amount: number,
   jobId: number
 ): Promise<RevenueResult | null> {
   try {
-    const provider = getProvider(agentKeypair);
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const useKms = isKmsEnabled();
+    const payer = useKms ? getKmsPublicKey()! : agentKeypair!.publicKey;
+
+    if (!payer) {
+      console.log('[revenue] No signer available');
+      return null;
+    }
+
+    const dummyKeypair = agentKeypair || Keypair.generate();
+    const provider = getProvider(dummyKeypair);
     anchor.setProvider(provider);
-    // Use agent keypair as payer - this is where x402 payments land
-    const payer = agentKeypair.publicKey;
 
     const vaultState = vaultAddress;
     const vaultUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, vaultState, true);
     const payerUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, payer);
 
-    const connection = new Connection(RPC_URL, 'confirmed');
     const vaultInfo = await connection.getAccountInfo(vaultState);
     if (!vaultInfo) {
       console.log('[revenue] Vault not initialized, skipping revenue routing');
@@ -80,21 +87,48 @@ export async function routeRevenueToVault(
     const protocolTreasury = vaultAccount.protocolTreasury as PublicKey;
     const protocolUsdcAccount = await getAssociatedTokenAddress(USDC_MINT, protocolTreasury);
 
-    const tx: string = await (vaultProgram.methods as any)
-      .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
-      .accounts({
-        vaultState,
-        payer,
-        vaultUsdcAccount,
-        payerUsdcAccount,
-        protocolUsdcAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .signers([agentKeypair])
-      .rpc();
+    if (useKms) {
+      const instruction = await (vaultProgram.methods as any)
+        .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
+        .accounts({
+          vaultState,
+          payer,
+          vaultUsdcAccount,
+          payerUsdcAccount,
+          protocolUsdcAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .instruction();
 
-    console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${tx}`);
-    return { txSignature: tx, vaultState: vaultState.toBase58() };
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: payer,
+      }).add(instruction);
+
+      const signedTx = await signTransactionWithKms(transaction);
+      const txSig = await connection.sendRawTransaction(signedTx.serialize());
+      await connection.confirmTransaction({ signature: txSig, blockhash, lastValidBlockHeight }, 'confirmed');
+
+      console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${txSig} (KMS)`);
+      return { txSignature: txSig, vaultState: vaultState.toBase58() };
+    } else {
+      const tx: string = await (vaultProgram.methods as any)
+        .receiveRevenue(new anchor.BN(amount), new anchor.BN(jobId))
+        .accounts({
+          vaultState,
+          payer,
+          vaultUsdcAccount,
+          payerUsdcAccount,
+          protocolUsdcAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([agentKeypair!])
+        .rpc();
+
+      console.log(`[revenue] Routed ${amount} micro-USDC, job ${jobId}, tx: ${tx}`);
+      return { txSignature: tx, vaultState: vaultState.toBase58() };
+    }
   } catch (err) {
     console.error('[revenue] Failed:', err instanceof Error ? err.message : err);
     return null;

@@ -172,6 +172,15 @@ export async function getAgentDetail(agentId: string, wallet?: string): Promise<
   return response.json();
 }
 
+export interface HeartbeatParams {
+  enabled: boolean;
+  interval?: string;
+  model?: string;
+  activeStart?: string;
+  activeEnd?: string;
+  timezone?: string;
+}
+
 export interface DeployOpenClawParams {
   agentId: string;
   name: string;
@@ -185,6 +194,7 @@ export interface DeployOpenClawParams {
   ownerWallet?: string;
   telegramBotToken?: string;
   jobSignerPubkey?: string;
+  heartbeat?: HeartbeatParams;
   signMessage: WalletSignFn;
 }
 

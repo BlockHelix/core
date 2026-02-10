@@ -23,6 +23,7 @@ import { eventIndexer } from './services/event-indexer';
 import { agentStorage } from './services/storage';
 import { checkDb } from './services/db';
 import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
+import { balanceMonitor } from './services/balance-monitor';
 import { EmbeddedFacilitatorClient } from './services/embedded-facilitator';
 
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
@@ -100,6 +101,7 @@ export function createApp(): express.Application {
       initDefaultAgents();
       return initKmsSigner();
     })
+    .then(() => balanceMonitor.init())
     .then(() => replayFromChain())
     .then((stats) => {
       lastReplay = stats;

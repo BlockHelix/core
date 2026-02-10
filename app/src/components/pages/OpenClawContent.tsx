@@ -8,7 +8,7 @@ import { useSetJobSigner } from '@/hooks/useSetJobSigner';
 import { useWallets } from '@privy-io/react-auth/solana';
 import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
-import { deployOpenClaw, requestJobSignerKeypair } from '@/lib/runtime';
+import { deployOpenClaw } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
 import PriceInput from '@/components/create/PriceInput';
 import { RUNTIME_URL } from '@/lib/network-config';
@@ -30,6 +30,8 @@ export default function OpenClawContent() {
   const [pricePerCall, setPricePerCall] = useState(0.10);
   const [apiKey, setApiKey] = useState('');
   const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [heartbeatEnabled, setHeartbeatEnabled] = useState(false);
+  const [heartbeatInterval, setHeartbeatInterval] = useState('30m');
   const [deploySuccess, setDeploySuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -88,17 +90,20 @@ export default function OpenClawContent() {
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
       const vaultStr = result.vaultState.toString();
 
-      toast('Preparing job signer...', 'info');
-      const jobSignerPubkey = await requestJobSignerKeypair();
+      toast('Delegating job signer...', 'info');
+      const health = await fetch(`${RUNTIME_URL}/health`).then(r => r.json());
+      if (!health.kms?.publicKey) {
+        throw new Error('Runtime KMS key not available');
+      }
+      const jobSignerPubkey = health.kms.publicKey;
       const jobSigner = new PublicKey(jobSignerPubkey);
       const vaultPubkey = result.vaultState;
 
-      toast('Authorizing job signer on-chain...', 'info');
       const signerTx = await setJobSigner(vaultPubkey, jobSigner);
       if (!signerTx) {
         throw new Error('Failed to set job signer on-chain');
       }
-      toastTx('Job signer set', signerTx);
+      toastTx('Job signer delegated', signerTx);
 
       toast('Starting container...', 'info');
       await deployOpenClaw({
@@ -113,6 +118,7 @@ export default function OpenClawContent() {
         ownerWallet: wallet?.address,
         telegramBotToken: telegramBotToken || undefined,
         jobSignerPubkey,
+        heartbeat: heartbeatEnabled ? { enabled: true, interval: heartbeatInterval } : undefined,
         signMessage: wallet.signMessage.bind(wallet),
       });
       toast('OpenClaw agent deployed in isolated container!', 'success');
@@ -261,6 +267,40 @@ export default function OpenClawContent() {
               <p className="text-xs text-white/30 mt-2 font-mono">
                 Optional. Create a bot via @BotFather on Telegram for private operator access.
               </p>
+            </div>
+
+            <div className="border border-white/10 bg-white/[0.02] p-4 space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={heartbeatEnabled}
+                  onChange={(e) => setHeartbeatEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-orange-500"
+                />
+                <span className="text-[10px] uppercase tracking-widest text-white/50 font-mono">
+                  Enable Heartbeat
+                </span>
+              </label>
+              {heartbeatEnabled && (
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                    Interval
+                  </label>
+                  <select
+                    value={heartbeatInterval}
+                    onChange={(e) => setHeartbeatInterval(e.target.value)}
+                    className="bg-white/5 border border-white/10 px-4 py-2 text-white font-mono text-sm focus:outline-none focus:border-orange-500/50"
+                  >
+                    <option value="15m">Every 15 min</option>
+                    <option value="30m">Every 30 min</option>
+                    <option value="1h">Every hour</option>
+                    <option value="2h">Every 2 hours</option>
+                  </select>
+                  <p className="text-xs text-white/30 mt-2 font-mono">
+                    Agent wakes up periodically to check tasks. Uses Haiku to minimize cost (~$0.01/check).
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>

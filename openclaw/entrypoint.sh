@@ -50,6 +50,30 @@ ANTHROPIC_API_KEY_JSON=$(json_escape "$ANTHROPIC_API_KEY")
 OPENAI_API_KEY_JSON=$(json_escape "$OPENAI_API_KEY")
 GATEWAY_AUTH_JSON=$(json_escape "$GATEWAY_AUTH")
 
+HEARTBEAT_ENABLED="${HEARTBEAT_ENABLED:-false}"
+HEARTBEAT_INTERVAL="${HEARTBEAT_INTERVAL:-30m}"
+HEARTBEAT_MODEL="${HEARTBEAT_MODEL:-anthropic/claude-haiku-4-5-20251001}"
+HEARTBEAT_ACTIVE_START="${HEARTBEAT_ACTIVE_START:-09:00}"
+HEARTBEAT_ACTIVE_END="${HEARTBEAT_ACTIVE_END:-22:00}"
+HEARTBEAT_TIMEZONE="${HEARTBEAT_TIMEZONE:-America/New_York}"
+
+if [ "$HEARTBEAT_ENABLED" = "true" ] && [ ! -f "$WORKSPACE/HEARTBEAT.md" ]; then
+  cat > "$WORKSPACE/HEARTBEAT.md" <<'HBEOF'
+# Heartbeat checklist
+
+## Each check
+- Scan memory for anything time-sensitive or pending
+- If you have pending tasks or follow-ups, work on them
+- If nothing needs attention, respond HEARTBEAT_OK
+
+## Constraints
+- Keep alerts under 2 sentences
+- If nothing needs attention, respond HEARTBEAT_OK
+- Do not repeat old tasks from prior conversations
+HBEOF
+  echo "[entrypoint] Wrote default HEARTBEAT.md"
+fi
+
 TELEGRAM_ENABLED=false
 TELEGRAM_SECTION=""
 TELEGRAM_BINDING=""
@@ -72,6 +96,25 @@ if [ "$TELEGRAM_ENABLED" = "true" ]; then
   CHANNELS_CONTENT="$TELEGRAM_SECTION"
 fi
 
+HEARTBEAT_SECTION=""
+if [ "$HEARTBEAT_ENABLED" = "true" ]; then
+  HEARTBEAT_SECTION=$(cat <<HBCFG
+    "defaults": {
+      "heartbeat": {
+        "every": "$HEARTBEAT_INTERVAL",
+        "target": "none",
+        "model": "$HEARTBEAT_MODEL",
+        "activeHours": {
+          "start": "$HEARTBEAT_ACTIVE_START",
+          "end": "$HEARTBEAT_ACTIVE_END",
+          "timezone": "$HEARTBEAT_TIMEZONE"
+        }
+      }
+    },
+HBCFG
+)
+fi
+
 cat > "$CONFIG_FILE" <<EOF
 {
   "env": {
@@ -79,6 +122,7 @@ cat > "$CONFIG_FILE" <<EOF
     "OPENAI_API_KEY": $OPENAI_API_KEY_JSON
   },
   "agents": {
+    ${HEARTBEAT_SECTION}
     "list": [
       {
         "id": "operator",
@@ -114,6 +158,7 @@ EOF
 
 echo "[entrypoint] Config written to $CONFIG_FILE"
 echo "[entrypoint] Telegram: $TELEGRAM_ENABLED"
+echo "[entrypoint] Heartbeat: $HEARTBEAT_ENABLED (every $HEARTBEAT_INTERVAL, model: $HEARTBEAT_MODEL)"
 echo "[entrypoint] Starting OpenClaw gateway on :$GATEWAY_PORT (model: $MODEL_ID)"
 
 openclaw gateway run --allow-unconfigured --port "$GATEWAY_PORT" --bind "loopback" --auth "token" 2>&1 | tee "$LOG_DIR/gateway.log" &

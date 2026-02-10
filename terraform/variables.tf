@@ -49,3 +49,9 @@ variable "enable_https" {
   type        = bool
   default     = false
 }
+
+variable "alert_email" {
+  description = "Email address for balance alert notifications"
+  type        = string
+  default     = "will@defidata.dev"
+}
