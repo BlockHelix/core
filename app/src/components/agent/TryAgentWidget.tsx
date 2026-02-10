@@ -61,20 +61,73 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
         body: JSON.stringify({
           input: input,
           wallet: publicKey,
+          stream: true,
         }),
       });
-
-      setStatus('running');
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Agent execution failed: ${response.statusText}`);
       }
 
-      const result = await response.json();
-      setOutput(result.response || result.output || JSON.stringify(result, null, 2));
-      setPaymentProof(result.paymentTx || 'confirmed');
-      setStatus('success');
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('ndjson') && response.body) {
+        setStatus('running');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let accumulated = '';
+        let gotDone = false;
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const event = JSON.parse(line);
+                if (event.type === 'delta') {
+                  accumulated += event.text;
+                  setOutput(accumulated);
+                } else if (event.type === 'done') {
+                  accumulated = event.text || accumulated;
+                  setOutput(accumulated);
+                  setPaymentProof('confirmed');
+                  setStatus('success');
+                  gotDone = true;
+                } else if (event.type === 'error') {
+                  throw new Error(event.error || 'Agent error');
+                }
+              } catch (e: any) {
+                if (e instanceof SyntaxError) continue;
+                throw e;
+              }
+            }
+          }
+        } catch (streamErr: any) {
+          if (accumulated) {
+            setOutput(accumulated + '\n\n[Connection lost]');
+          }
+          throw streamErr;
+        }
+
+        if (!gotDone) {
+          setPaymentProof('confirmed');
+          setStatus('success');
+        }
+      } else {
+        setStatus('running');
+        const result = await response.json();
+        setOutput(result.response || result.output || JSON.stringify(result, null, 2));
+        setPaymentProof(result.paymentTx || 'confirmed');
+        setStatus('success');
+      }
     } catch (err: any) {
       console.error('[TryAgent] Error:', err);
       setError(err.message || 'Failed to run agent');

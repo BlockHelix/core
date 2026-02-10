@@ -59,7 +59,15 @@ function connectGateway() {
         if (!runId) return;
         for (const [id, p] of pending) {
           if (p.runId === runId && msg.payload?.data?.text) {
-            p.lastText = msg.payload.data.text;
+            const newText = msg.payload.data.text;
+            if (p.streamRes && !p.streamRes.writableEnded) {
+              const prev = p.lastText || '';
+              const delta = newText.slice(prev.length);
+              if (delta) {
+                p.streamRes.write(JSON.stringify({ type: 'delta', text: delta }) + '\n');
+              }
+            }
+            p.lastText = newText;
           }
         }
         return;
@@ -75,10 +83,19 @@ function connectGateway() {
           const result = msg.payload?.result;
           const resultText = typeof result === 'string' ? result : result?.text || result?.output || '';
           const output = resultText || p.lastText || msg.payload?.text || '';
+          if (p.streamRes && !p.streamRes.writableEnded) {
+            p.streamRes.write(JSON.stringify({ type: 'done', text: output }) + '\n');
+            p.streamRes.end();
+          }
           p.resolve(output);
           pending.delete(msg.id);
         } else {
-          p.reject(new Error(msg.error?.message || JSON.stringify(msg.error) || 'Agent error'));
+          const errMsg = msg.error?.message || JSON.stringify(msg.error) || 'Agent error';
+          if (p.streamRes && !p.streamRes.writableEnded) {
+            p.streamRes.write(JSON.stringify({ type: 'error', error: errMsg }) + '\n');
+            p.streamRes.end();
+          }
+          p.reject(new Error(errMsg));
           pending.delete(msg.id);
         }
         return;
@@ -102,7 +119,7 @@ function connectGateway() {
   });
 }
 
-function sendAgentMessage(message, sessionId, systemPrompt) {
+function sendAgentMessage(message, sessionId, systemPrompt, streamRes) {
   if (!connected || !ws) return Promise.reject(new Error('Gateway not connected'));
 
   const id = String(++reqCounter);
@@ -112,6 +129,10 @@ function sendAgentMessage(message, sessionId, systemPrompt) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(id);
+      if (streamRes && !streamRes.writableEnded) {
+        streamRes.write(JSON.stringify({ type: 'error', error: 'Agent response timeout (120s)' }) + '\n');
+        streamRes.end();
+      }
       reject(new Error('Agent response timeout (120s)'));
     }, 120_000);
 
@@ -120,6 +141,7 @@ function sendAgentMessage(message, sessionId, systemPrompt) {
       reject: (err) => { clearTimeout(timer); reject(err); },
       runId: null,
       lastText: null,
+      streamRes: streamRes || null,
     });
 
     const params = {
@@ -165,7 +187,7 @@ const server = http.createServer(async (req, res) => {
     req.on('data', (chunk) => { body += chunk; });
     req.on('end', async () => {
       try {
-        const { input, context, systemPrompt, sessionId } = JSON.parse(body);
+        const { input, context, systemPrompt, sessionId, stream } = JSON.parse(body);
         if (!input) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'input is required' }));
@@ -177,12 +199,24 @@ const server = http.createServer(async (req, res) => {
           message = `Context:\n${JSON.stringify(context, null, 2)}\n\n${input}`;
         }
 
-        const output = await sendAgentMessage(message, sessionId, systemPrompt);
-        res.end(JSON.stringify({ output }));
+        if (stream) {
+          res.writeHead(200, {
+            'Content-Type': 'application/x-ndjson',
+            'Transfer-Encoding': 'chunked',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          });
+          await sendAgentMessage(message, sessionId, systemPrompt, res);
+        } else {
+          const output = await sendAgentMessage(message, sessionId, systemPrompt);
+          res.end(JSON.stringify({ output }));
+        }
       } catch (err) {
         console.error('[adapter] Error:', err.message);
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: err.message }));
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: err.message }));
+        }
       }
     });
     return;

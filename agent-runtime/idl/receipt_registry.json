@@ -177,7 +177,7 @@
           }
         },
         {
-          "name": "operator",
+          "name": "signer",
           "writable": true,
           "signer": true
         },
@@ -277,6 +277,35 @@
         {
           "name": "_job_id",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_job_signer",
+      "discriminator": [
+        10,
+        220,
+        31,
+        215,
+        124,
+        99,
+        222,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "registry_state",
+          "writable": true
+        },
+        {
+          "name": "operator",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_signer",
+          "type": "pubkey"
         }
       ]
     },
@@ -389,6 +418,19 @@
         148,
         136,
         196
+      ]
+    },
+    {
+      "name": "JobSignerUpdated",
+      "discriminator": [
+        178,
+        229,
+        102,
+        47,
+        105,
+        251,
+        235,
+        226
       ]
     },
     {
@@ -631,6 +673,30 @@
       }
     },
     {
+      "name": "JobSignerUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_signer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
       "name": "JobStatus",
       "type": {
         "kind": "enum",
@@ -719,6 +785,10 @@
             "type": "pubkey"
           },
           {
+            "name": "job_signer",
+            "type": "pubkey"
+          },
+          {
             "name": "job_counter",
             "type": "u64"
           },
@@ -732,6 +802,10 @@
           },
           {
             "name": "total_resolved_against",
+            "type": "u64"
+          },
+          {
+            "name": "active_challenges",
             "type": "u64"
           },
           {

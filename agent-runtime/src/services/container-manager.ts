@@ -294,6 +294,27 @@ class ContainerManager {
     return resp.json() as Promise<{ output: string }>;
   }
 
+  async proxyRequestStream(agentId: string, body: { input: string; stream: true; context?: Record<string, unknown>; systemPrompt?: string }, fallbackIp?: string): Promise<globalThis.Response> {
+    const container = this.containers.get(agentId);
+    const ip = container?.privateIp || fallbackIp;
+    if (!ip) {
+      throw new Error(`No running container for agent ${agentId}`);
+    }
+
+    const resp = await fetch(`http://${ip}:3001/v1/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text().catch(() => 'unknown error');
+      throw new Error(`Container returned ${resp.status}: ${err}`);
+    }
+
+    return resp;
+  }
+
   async stopAgent(agentId: string): Promise<void> {
     const container = this.containers.get(agentId);
     if (!container) {

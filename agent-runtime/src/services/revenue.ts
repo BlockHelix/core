@@ -130,7 +130,9 @@ export async function routeRevenueToVault(
       return { txSignature: tx, vaultState: vaultState.toBase58() };
     }
   } catch (err) {
-    console.error('[revenue] Failed:', err instanceof Error ? err.message : err);
+    const msg = err instanceof Error ? err.message : String(err);
+    const logs = (err as any)?.logs?.join?.('\n');
+    console.error('[revenue] Failed:', msg, logs ? '\nLogs:\n' + logs : '');
     return null;
   }
 }

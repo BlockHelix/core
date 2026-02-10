@@ -47,28 +47,13 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
   eventIndexer.incrementApiCalls(agentId);
   const startTime = Date.now();
 
+  const wantStream = req.body.stream === true && agent.isContainerized;
+
   try {
-    let llmResponse: { output: string; inputTokens?: number; outputTokens?: number };
-
-    if (agent.isContainerized) {
-      const containerResult = await containerManager.proxyRequest(agentId, { input, context, systemPrompt: agent.systemPrompt }, agent.containerIp);
-      llmResponse = { output: containerResult.output, inputTokens: 0, outputTokens: 0 };
-    } else {
-      llmResponse = await runAgent({ agent, input, context });
-    }
-
-    const artifactHash = hashArtifact(JSON.stringify({
-      agentId,
-      input,
-      output: llmResponse.output,
-      timestamp: Date.now(),
-    }));
-
     const paymentTx = req.headers['x-payment-response'] as string
       || req.headers['payment-response'] as string
       || 'x402-settled';
 
-    // Check if payment was in SOL (from x402 settlement)
     const settlementHeader = req.headers['x-payment-settlement'] as string;
     let paymentAsset = 'usdc';
     let paymentAmount = agent.priceUsdcMicro;
@@ -84,11 +69,9 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     }
 
     const useKms = isKmsEnabled();
-    // Try per-agent keypair first, fall back to global AGENT_WALLET_PRIVATE_KEY
     const agentKeypair = useKms ? null : (agentStorage.getKeypair(agentId) || getGlobalAgentKeypair());
     const operatorPubkey = agent.operator ? new PublicKey(agent.operator) : null;
 
-    // If paid in SOL, swap to USDC for vault routing (only if we have a keypair)
     let usdcAmount = agent.priceUsdcMicro;
     if (paymentAsset === 'sol' && agentKeypair) {
       console.log(`[run] SOL payment detected (${paymentAmount} lamports), swapping to USDC...`);
@@ -102,43 +85,130 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
       }
     }
 
-    const jobTimestamp = Date.now();
-
     const canSign = useKms || agentKeypair;
     const vaultPubkey = agent.vault ? new PublicKey(agent.vault) : null;
 
-    const elapsed = Date.now() - startTime;
-    console.log(`[run] LLM done in ${elapsed}ms, tokens: ${llmResponse.inputTokens}+${llmResponse.outputTokens}`);
-
-    const response: RunResponse = {
-      output: llmResponse.output,
-      agentId,
-      jobId: null,
-      receiptTx: null,
-      revenueTx: null,
+    const fireBackgroundTx = (output: string) => {
+      const artifactHash = hashArtifact(JSON.stringify({ agentId, input, output, timestamp: Date.now() }));
+      const jobTimestamp = Date.now();
+      if (canSign && operatorPubkey && vaultPubkey) {
+        console.log(`[run] Firing background tx: vault=${vaultPubkey.toBase58()}, usdcAmount=${usdcAmount}`);
+        Promise.allSettled([
+          usdcAmount > 0
+            ? routeRevenueToVault(agentKeypair, vaultPubkey, operatorPubkey, usdcAmount, jobTimestamp)
+            : Promise.resolve(null),
+          recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
+        ]).then(([revResult, recResult]) => {
+          if (revResult.status === 'rejected') console.error('[run] Revenue routing failed:', revResult.reason);
+          if (recResult.status === 'rejected') console.error('[run] Job recording failed:', recResult.reason);
+          const rev = revResult.status === 'fulfilled' ? revResult.value : null;
+          const rec = recResult.status === 'fulfilled' ? recResult.value : null;
+          console.log(`[run] Background tx done: revenue=${rev?.txSignature ?? 'none'}, receipt=${rec?.txSignature ?? 'none'}`);
+        });
+      }
     };
 
-    res.json(response);
-
-    if (canSign && operatorPubkey && vaultPubkey) {
-      console.log(`[run] Firing background tx: vault=${vaultPubkey.toBase58()}, usdcAmount=${usdcAmount}`);
-      Promise.allSettled([
-        usdcAmount > 0
-          ? routeRevenueToVault(agentKeypair, vaultPubkey, operatorPubkey, usdcAmount, jobTimestamp)
-          : Promise.resolve(null),
-        recordJobOnChain(agentKeypair, vaultPubkey, artifactHash, agent.priceUsdcMicro, paymentTx),
-      ]).then(([revResult, recResult]) => {
-        if (revResult.status === 'rejected') console.error('[run] Revenue routing failed:', revResult.reason);
-        if (recResult.status === 'rejected') console.error('[run] Job recording failed:', recResult.reason);
-        const rev = revResult.status === 'fulfilled' ? revResult.value : null;
-        const rec = recResult.status === 'fulfilled' ? recResult.value : null;
-        console.log(`[run] Background tx done: revenue=${rev?.txSignature ?? 'none'}, receipt=${rec?.txSignature ?? 'none'}`);
+    if (wantStream) {
+      res.writeHead(200, {
+        'Content-Type': 'application/x-ndjson',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       });
+
+      const upstream = await containerManager.proxyRequestStream(
+        agentId,
+        { input, context, systemPrompt: agent.systemPrompt, stream: true },
+        agent.containerIp,
+      );
+
+      let fullOutput = '';
+
+      const reader = upstream.body?.getReader();
+      if (!reader) {
+        res.write(JSON.stringify({ type: 'error', error: 'No stream body from container' }) + '\n');
+        res.end();
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            res.write(line + '\n');
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.type === 'done' && parsed.text) {
+                fullOutput = parsed.text;
+              }
+            } catch { /* non-json line, just forward */ }
+          }
+        }
+
+        if (buffer.trim()) {
+          res.write(buffer + '\n');
+          try {
+            const parsed = JSON.parse(buffer);
+            if (parsed.type === 'done' && parsed.text) fullOutput = parsed.text;
+          } catch {}
+        }
+      } catch (err) {
+        console.error(`[run] Stream read error for agent ${agentId}:`, err);
+        if (!res.writableEnded) {
+          res.write(JSON.stringify({ type: 'error', error: 'Stream interrupted' }) + '\n');
+        }
+      }
+
+      if (!res.writableEnded) res.end();
+
+      const elapsed = Date.now() - startTime;
+      console.log(`[run] Stream done in ${elapsed}ms for agent ${agentId}`);
+      if (fullOutput) fireBackgroundTx(fullOutput);
+    } else {
+      let llmResponse: { output: string; inputTokens?: number; outputTokens?: number };
+
+      if (agent.isContainerized) {
+        const containerResult = await containerManager.proxyRequest(agentId, { input, context, systemPrompt: agent.systemPrompt }, agent.containerIp);
+        llmResponse = { output: containerResult.output, inputTokens: 0, outputTokens: 0 };
+      } else {
+        llmResponse = await runAgent({ agent, input, context });
+      }
+
+      const elapsed = Date.now() - startTime;
+      console.log(`[run] LLM done in ${elapsed}ms, tokens: ${llmResponse.inputTokens}+${llmResponse.outputTokens}`);
+
+      const response: RunResponse = {
+        output: llmResponse.output,
+        agentId,
+        jobId: null,
+        receiptTx: null,
+        revenueTx: null,
+      };
+
+      res.json(response);
+      fireBackgroundTx(llmResponse.output);
     }
   } catch (err) {
     console.error(`[run] Failed for agent ${agentId}:`, err);
     const message = err instanceof Error ? err.message : 'Agent execution failed';
-    res.status(500).json({ error: message });
+    if (wantStream && res.headersSent) {
+      if (!res.writableEnded) {
+        res.write(JSON.stringify({ type: 'error', error: message }) + '\n');
+        res.end();
+      }
+    } else if (!res.headersSent) {
+      res.status(500).json({ error: message });
+    }
   }
 }
 
