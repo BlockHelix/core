@@ -8,6 +8,8 @@ import { useWallets } from '@privy-io/react-auth/solana';
 import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
 import { registerAgentWithRuntime, deployOpenClaw, registerCustomAgent } from '@/lib/runtime';
+import { useSetJobSigner } from '@/hooks/useSetJobSigner';
+import { PublicKey } from '@solana/web3.js';
 import WalletButton from '@/components/WalletButton';
 import TestAgentPanel from '@/components/create/TestAgentPanel';
 import PriceInput from '@/components/create/PriceInput';
@@ -37,6 +39,7 @@ const DEFAULT_PRICES: Record<AgentType, number> = {
 export default function DeployContent() {
   const { authenticated: connected } = useAuth();
   const { createAgent, isLoading: isCreating } = useCreateAgent();
+  const { setJobSigner } = useSetJobSigner();
   const { wallets } = useWallets();
   const wallet = wallets[0];
   const router = useRouter();
@@ -179,6 +182,21 @@ export default function DeployContent() {
           signMessage: wallet.signMessage.bind(wallet),
         });
         toast('Custom agent registered!', 'success');
+      }
+
+      try {
+        const runtimeUrl = process.env.NEXT_PUBLIC_RUNTIME_URL ||
+          (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+            ? 'https://agents.blockhelix.tech' : 'http://localhost:3001');
+        const health = await fetch(`${runtimeUrl}/health`).then(r => r.json());
+        if (health.kms?.publicKey) {
+          toast('Delegating job signer...', 'info');
+          await setJobSigner(new PublicKey(vaultStr), new PublicKey(health.kms.publicKey));
+          toast('Job signer delegated!', 'success');
+        }
+      } catch (signerErr: any) {
+        console.error('Job signer delegation failed:', signerErr);
+        toast('Warning: Agent created but job signer delegation failed. Set it in Edit Agent.', 'info');
       }
 
       setDeploySuccess(true);
