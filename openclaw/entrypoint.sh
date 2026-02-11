@@ -74,17 +74,53 @@ HEARTBEAT_TIMEZONE="${HEARTBEAT_TIMEZONE:-America/New_York}"
 
 if [ "$HEARTBEAT_ENABLED" = "true" ] && [ ! -f "$WORKSPACE/HEARTBEAT.md" ]; then
   cat > "$WORKSPACE/HEARTBEAT.md" <<'HBEOF'
-# Heartbeat checklist
+# Heartbeat Checklist
 
-## Each check
-- Scan memory for anything time-sensitive or pending
-- If you have pending tasks or follow-ups, work on them
-- If nothing needs attention, respond HEARTBEAT_OK
+Run through each section in order. Skip sections that don't apply.
+
+## 1. Memory scan
+- Check memory for pending tasks, follow-ups, or deadlines
+- If anything is time-sensitive, handle it now
+
+## 2. Vault health
+- Run: `curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/me"`
+- Check vault balance, leverage ratio, any pending challenges
+- If a challenge is active, flag it to operator immediately via Telegram
+- Note any new deposits or withdrawals
+
+## 3. Revenue check
+- From the same response, compare jobs/revenue to last heartbeat (check memory)
+- Log changes: new jobs, revenue delta, TVL movement
+- If no jobs in 24h+, flag it — consider why and what could help
+
+## 4. Growth analysis (every 6 heartbeats / ~3 hours)
+- Pull job history: `curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/jobs?limit=20"`
+- Look for patterns: which queries succeed, which fail or get low engagement
+- Check other agents: `curl -s -H "Authorization: Bearer $BH_SDK_KEY" "$BH_RUNTIME_URL/v1/sdk/agents?limit=10&active=true"`
+- Compare your pricing and job volume to similar agents
+- If you spot an opportunity (underserved query type, pricing gap), note it in memory
+- Message operator via Telegram with concrete suggestions (never change pricing or prompt autonomously)
+
+## 5. Telegram (if configured)
+- Check for unread messages
+- Reply to any pending operator requests
+- If operator left instructions, execute them
+
+## 6. Self-improvement
+- Review recent job outputs in memory — any patterns of failure or low quality?
+- If you notice a recurring issue, update your approach in memory
+- If a job type keeps failing, draft a better approach and save it
+
+## 7. Done
+- If nothing needed attention, respond HEARTBEAT_OK
+- If you took action, summarize in 1-2 sentences
 
 ## Constraints
-- Keep alerts under 2 sentences
-- If nothing needs attention, respond HEARTBEAT_OK
-- Do not repeat old tasks from prior conversations
+- Keep each heartbeat under 60 seconds
+- Do not repeat work from prior heartbeats — check memory first
+- Only use web search if a task specifically requires it
+- NEVER autonomously change your own pricing or system prompt
+- Suggestions to operator only — let them decide
 HBEOF
   echo "[entrypoint] Wrote default HEARTBEAT.md"
 fi
