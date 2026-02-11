@@ -311,26 +311,8 @@ CHBEOF
 fi
 
 TELEGRAM_ENABLED=false
-TELEGRAM_SECTION=""
-TELEGRAM_BINDING=""
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
   TELEGRAM_ENABLED=true
-  TELEGRAM_BOT_TOKEN_JSON=$(json_escape "$TELEGRAM_BOT_TOKEN")
-  TELEGRAM_SECTION=$(cat <<TEOF
-    "telegram": {
-      "enabled": true,
-      "botToken": $TELEGRAM_BOT_TOKEN_JSON,
-      "dmPolicy": "open",
-      "allowFrom": ["*"]
-    }
-TEOF
-)
-  TELEGRAM_BINDING=',{"agentId":"operator","match":{"channel":"telegram"}}'
-fi
-
-CHANNELS_CONTENT=""
-if [ "$TELEGRAM_ENABLED" = "true" ]; then
-  CHANNELS_CONTENT="$TELEGRAM_SECTION"
 fi
 
 HEARTBEAT_DEFAULTS=""
@@ -419,11 +401,9 @@ cat > "$CONFIG_FILE" <<EOF
     ]
   },
   "bindings": [
-    {"agentId":"public","match":{"channel":"webchat"}}${TELEGRAM_BINDING}
+    {"agentId":"public","match":{"channel":"webchat"}}
   ],
-  "channels": {
-    ${CHANNELS_CONTENT}
-  },
+  "channels": {},
   "gateway": {
     "mode": "local",
     "port": $GATEWAY_PORT,
@@ -484,11 +464,6 @@ done
 if [ $RETRIES -ge $MAX_RETRIES ]; then
   echo "[entrypoint] ERROR: Gateway failed to become healthy after $MAX_RETRIES attempts"
   exit 1
-fi
-
-if [ "$TELEGRAM_ENABLED" = "true" ]; then
-  echo "[entrypoint] Running doctor --fix to enable Telegram (gateway is now up)..."
-  openclaw doctor --fix 2>&1 || true
 fi
 
 echo "[entrypoint] Starting adapter on port ${PORT:-3001}"

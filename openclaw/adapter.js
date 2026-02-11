@@ -226,6 +226,62 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+// Telegram long-polling bot (bypasses OpenClaw's Telegram plugin)
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+let tgOffset = 0;
+
+async function tgApi(method, body) {
+  const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, opts);
+  return r.json();
+}
+
+async function tgSend(chatId, text) {
+  const MAX = 4096;
+  for (let i = 0; i < text.length; i += MAX) {
+    await tgApi('sendMessage', { chat_id: chatId, text: text.slice(i, i + MAX) });
+  }
+}
+
+async function tgPoll() {
+  if (!TG_TOKEN || !connected) return;
+  try {
+    const data = await tgApi('getUpdates', { offset: tgOffset, timeout: 30, allowed_updates: ['message'] });
+    if (!data.ok || !data.result?.length) return;
+    for (const update of data.result) {
+      tgOffset = update.update_id + 1;
+      const msg = update.message;
+      if (!msg?.text) continue;
+      const chatId = msg.chat.id;
+      const sessionId = `tg-${chatId}`;
+      console.log(`[telegram] Message from ${msg.from?.username || chatId}: ${msg.text.slice(0, 80)}`);
+      try {
+        const output = await sendAgentMessage(msg.text, sessionId);
+        if (output) await tgSend(chatId, output);
+        else await tgSend(chatId, '(no response)');
+      } catch (err) {
+        console.error('[telegram] Agent error:', err.message);
+        await tgSend(chatId, `Error: ${err.message}`).catch(() => {});
+      }
+    }
+  } catch (err) {
+    if (!err.message?.includes('ETIMEDOUT')) console.error('[telegram] Poll error:', err.message);
+  }
+}
+
+async function tgLoop() {
+  if (!TG_TOKEN) return;
+  // Delete any existing webhook so long-polling works
+  await tgApi('deleteWebhook').catch(() => {});
+  const me = await tgApi('getMe').catch(() => null);
+  console.log(`[telegram] Bot started: @${me?.result?.username || 'unknown'}`);
+  while (true) {
+    await tgPoll();
+    await new Promise(r => setTimeout(r, 500));
+  }
+}
+
 async function start() {
   try {
     await connectGateway();
@@ -237,6 +293,8 @@ async function start() {
   server.listen(PORT, () => {
     console.log(`[adapter] OpenClaw WS adapter listening on :${PORT}`);
   });
+
+  tgLoop().catch(err => console.error('[telegram] Fatal:', err.message));
 }
 
 start();
