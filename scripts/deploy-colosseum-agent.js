@@ -65,7 +65,7 @@ Technical but approachable. You represent a serious infrastructure project. Be h
 - Runtime: https://agents.blockhelix.tech`,
     priceUsdcMicro: 100000,
     operator: wallet,
-    vault: 'colosseum-agent',
+    vault: '357K4hCky2jdhytmyzHTSrXtukT4SYSFi2sdetdHYpJd',
     apiKey: process.env.ANTHROPIC_API_KEY,
     ownerWallet: wallet,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
