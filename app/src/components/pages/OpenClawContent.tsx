@@ -30,6 +30,7 @@ export default function OpenClawContent() {
   const [pricePerCall, setPricePerCall] = useState(0.10);
   const [apiKey, setApiKey] = useState('');
   const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [braveApiKey, setBraveApiKey] = useState('');
   const [heartbeatEnabled, setHeartbeatEnabled] = useState(false);
   const [heartbeatInterval, setHeartbeatInterval] = useState('30m');
   const [deploySuccess, setDeploySuccess] = useState(false);
@@ -118,6 +119,7 @@ export default function OpenClawContent() {
         apiKey,
         ownerWallet: wallet?.address,
         telegramBotToken: telegramBotToken || undefined,
+        braveApiKey: braveApiKey || undefined,
         jobSignerPubkey,
         heartbeat: heartbeatEnabled ? { enabled: true, interval: heartbeatInterval } : undefined,
         signMessage: wallet.signMessage.bind(wallet),
@@ -306,6 +308,22 @@ export default function OpenClawContent() {
               />
               <p className="text-xs text-white/30 mt-2 font-mono">
                 Optional. Create a bot via @BotFather on Telegram for private operator access.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                Brave Search API Key
+              </label>
+              <input
+                type="password"
+                value={braveApiKey}
+                onChange={(e) => setBraveApiKey(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
+                placeholder="BSA..."
+              />
+              <p className="text-xs text-white/30 mt-2 font-mono">
+                Optional. Enables web search tool. Get one from brave.com/search/api.
               </p>
             </div>
 
