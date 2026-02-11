@@ -48,6 +48,7 @@ interface DeployParams {
   sdkKey?: string;
   runtimeUrl?: string;
   braveApiKey?: string;
+  colosseumApiKey?: string;
   onProgress?: (phase: DeployPhase) => void;
 }
 
@@ -190,6 +191,7 @@ class ContainerManager {
             ...(params.runtimeUrl ? [{ name: 'BH_RUNTIME_URL', value: params.runtimeUrl }] : []),
             ...(params.braveApiKey ? [{ name: 'BRAVE_API_KEY', value: params.braveApiKey }] : []),
             ...(params.telegramBotToken ? [{ name: 'TELEGRAM_BOT_TOKEN', value: params.telegramBotToken }] : []),
+            ...(params.colosseumApiKey ? [{ name: 'COLOSSEUM_API_KEY', value: params.colosseumApiKey }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },
               ...(params.heartbeat.interval ? [{ name: 'HEARTBEAT_INTERVAL', value: params.heartbeat.interval }] : []),
