@@ -366,7 +366,7 @@ if [ -n "$BRAVE_API_KEY" ]; then
     "enabled": true,
     "headless": true,
     "profiles": {
-      "openclaw": {"cdpPort": 18800}
+      "openclaw": {"cdpPort": 18800, "color": "#ff6600"}
     }
   },
 WSEOF
@@ -377,7 +377,7 @@ else
     "enabled": true,
     "headless": true,
     "profiles": {
-      "openclaw": {"cdpPort": 18800}
+      "openclaw": {"cdpPort": 18800, "color": "#ff6600"}
     }
   },
 WSEOF
