@@ -319,7 +319,7 @@ if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
     "telegram": {
       "enabled": true,
       "botToken": $TELEGRAM_BOT_TOKEN_JSON,
-      "dmPolicy": "allowAll"
+      "dmPolicy": "open"
     }
 TEOF
 )
