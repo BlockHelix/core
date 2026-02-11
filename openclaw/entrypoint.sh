@@ -54,8 +54,6 @@ elif [ "$PROVIDER" = "openai" ]; then
   openclaw models set "$MODEL_ID" 2>/dev/null || true
 fi
 
-openclaw doctor --fix 2>/dev/null || true
-
 GATEWAY_PORT=18789
 GATEWAY_AUTH="${GATEWAY_AUTH_TOKEN:-default-local-token}"
 export OPENCLAW_GATEWAY_TOKEN="$GATEWAY_AUTH"
@@ -486,6 +484,11 @@ done
 if [ $RETRIES -ge $MAX_RETRIES ]; then
   echo "[entrypoint] ERROR: Gateway failed to become healthy after $MAX_RETRIES attempts"
   exit 1
+fi
+
+if [ "$TELEGRAM_ENABLED" = "true" ]; then
+  echo "[entrypoint] Running doctor --fix to enable Telegram (gateway is now up)..."
+  openclaw doctor --fix 2>&1 || true
 fi
 
 echo "[entrypoint] Starting adapter on port ${PORT:-3001}"
