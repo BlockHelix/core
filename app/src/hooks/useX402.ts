@@ -83,7 +83,6 @@ export function useX402() {
       throw new Error(`Unsupported payment scheme: ${paymentOption.scheme}`);
     }
 
-    // x402 requires facilitator as fee payer
     const feePayer = paymentOption.extra?.feePayer;
     if (!feePayer) {
       throw new Error('Payment option missing feePayer');
@@ -94,12 +93,13 @@ export function useX402() {
     const amount = BigInt(paymentOption.amount);
     const mint = new PublicKey(paymentOption.asset);
 
-    const mintInfo = await getMint(connection, mint);
+    const [mintInfo, { blockhash }] = await Promise.all([
+      getMint(connection, mint),
+      connection.getLatestBlockhash('confirmed'),
+    ]);
     const sourceAta = await getAssociatedTokenAddress(mint, payerPubkey);
     const destAta = await getAssociatedTokenAddress(mint, payToPubkey);
 
-    // x402 exact SVM scheme requires exactly 3 instructions:
-    // 1. ComputeLimit, 2. ComputePrice, 3. TransferChecked
     const instructions = [
       ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 }),
       ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
@@ -112,8 +112,6 @@ export function useX402() {
         mintInfo.decimals
       ),
     ];
-
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
 
     // Use VersionedTransaction with v0 message as expected by x402
     const messageV0 = new TransactionMessage({

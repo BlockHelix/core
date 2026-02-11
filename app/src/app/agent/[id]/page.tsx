@@ -5,7 +5,7 @@ const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.block
 async function getAgentData(id: string) {
   try {
     const res = await fetch(`${RUNTIME_URL}/v1/agent/${id}`, {
-      cache: 'no-store',
+      next: { revalidate: 10 },
     });
     if (!res.ok) return null;
     return res.json();
