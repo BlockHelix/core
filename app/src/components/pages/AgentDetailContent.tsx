@@ -11,7 +11,6 @@ import { ReceiptTable } from '@/components/ReceiptTable';
 import { InvestWithdrawForm } from '@/components/InvestWithdrawForm';
 import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
-import { HireAgentForm } from '@/components/agent/HireAgentForm';
 import { useAgentDetailAPI, type APIAgentDetail } from '@/hooks/useAgentAPI';
 import { RUNTIME_URL } from '@/lib/network-config';
 import { findShareMint } from '@/lib/pda';
@@ -57,8 +56,10 @@ export default function AgentDetailContent({ initialData }: Props) {
     window.location.reload();
   }, []);
 
+  const isValidPubkey = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
+
   const vaultPubkey = useMemo(() => {
-    if (!agent?.vault) return null;
+    if (!agent?.vault || !isValidPubkey(agent.vault)) return null;
     try { return new PublicKey(agent.vault); } catch { return null; }
   }, [agent?.vault]);
 
@@ -246,11 +247,6 @@ export default function AgentDetailContent({ initialData }: Props) {
                 <span className="text-emerald-400 font-mono text-xs break-all">{agent.vault}</span>
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] uppercase tracking-widest text-white/40 w-20 font-mono">Endpoint</span>
-              <span className="text-cyan-400 font-mono text-xs break-all">{RUNTIME_URL}/v1/agent/{vaultId}/run</span>
-              <CopyButton value={`${RUNTIME_URL}/v1/agent/${vaultId}/run`} />
-            </div>
           </div>
         </div>
 
@@ -324,10 +320,6 @@ export default function AgentDetailContent({ initialData }: Props) {
             endpointUrl={RUNTIME_URL}
             agentName={agent.name}
           />
-        </div>
-
-        <div className="mb-12">
-          <HireAgentForm agentId={vaultId} endpointUrl={RUNTIME_URL} agentName={agent.name} />
         </div>
 
         {vaultPubkey && (
