@@ -130,11 +130,11 @@ function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt
     const timer = setTimeout(() => {
       pending.delete(id);
       if (streamRes && !streamRes.writableEnded) {
-        streamRes.write(JSON.stringify({ type: 'error', error: 'Agent response timeout (120s)' }) + '\n');
+        streamRes.write(JSON.stringify({ type: 'error', error: 'Agent response timeout (5m)' }) + '\n');
         streamRes.end();
       }
-      reject(new Error('Agent response timeout (120s)'));
-    }, 120_000);
+      reject(new Error('Agent response timeout (5m)'));
+    }, 300_000);
 
     pending.set(id, {
       resolve: (val) => { clearTimeout(timer); resolve(val); },
