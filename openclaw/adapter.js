@@ -119,12 +119,12 @@ function connectGateway() {
   });
 }
 
-function sendAgentMessage(message, sessionId, systemPrompt, streamRes) {
+function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt, streamRes } = {}) {
   if (!connected || !ws) return Promise.reject(new Error('Gateway not connected'));
 
   const id = String(++reqCounter);
   const idempotencyKey = crypto.randomUUID();
-  const sessionKey = `agent:public:webchat:dm:${sessionId || 'default'}`;
+  const sessionKey = `agent:${agentId}:webchat:dm:${sessionId || 'default'}`;
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -146,7 +146,7 @@ function sendAgentMessage(message, sessionId, systemPrompt, streamRes) {
 
     const params = {
       message,
-      agentId: 'public',
+      agentId,
       sessionKey,
       idempotencyKey,
       deliver: false,
@@ -206,9 +206,9 @@ const server = http.createServer(async (req, res) => {
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
           });
-          await sendAgentMessage(message, sessionId, systemPrompt, res);
+          await sendAgentMessage(message, sessionId, { agentId: 'public', systemPrompt, streamRes: res });
         } else {
-          const output = await sendAgentMessage(message, sessionId, systemPrompt);
+          const output = await sendAgentMessage(message, sessionId, { agentId: 'public', systemPrompt });
           res.end(JSON.stringify({ output }));
         }
       } catch (err) {
@@ -228,6 +228,7 @@ const server = http.createServer(async (req, res) => {
 
 // Telegram long-polling bot (bypasses OpenClaw's Telegram plugin)
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const OPERATOR_TG = (process.env.OPERATOR_TELEGRAM || '').toLowerCase();
 let tgOffset = 0;
 
 async function tgApi(method, body) {
@@ -254,10 +255,13 @@ async function tgPoll() {
       const msg = update.message;
       if (!msg?.text) continue;
       const chatId = msg.chat.id;
+      const username = (msg.from?.username || '').toLowerCase();
+      const isOperator = OPERATOR_TG && (username === OPERATOR_TG || String(chatId) === OPERATOR_TG);
+      const role = isOperator ? 'operator' : 'public';
       const sessionId = `tg-${chatId}`;
-      console.log(`[telegram] Message from ${msg.from?.username || chatId}: ${msg.text.slice(0, 80)}`);
+      console.log(`[telegram] ${role} message from @${username || chatId}: ${msg.text.slice(0, 80)}`);
       try {
-        const output = await sendAgentMessage(msg.text, sessionId);
+        const output = await sendAgentMessage(msg.text, sessionId, { agentId: role });
         if (output) await tgSend(chatId, output);
         else await tgSend(chatId, '(no response)');
       } catch (err) {

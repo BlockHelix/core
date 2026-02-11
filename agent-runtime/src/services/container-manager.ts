@@ -44,6 +44,7 @@ interface DeployParams {
   anthropicApiKey: string;
   model?: string;
   telegramBotToken?: string;
+  operatorTelegram?: string;
   heartbeat?: HeartbeatConfig;
   sdkKey?: string;
   runtimeUrl?: string;
@@ -191,6 +192,7 @@ class ContainerManager {
             ...(params.runtimeUrl ? [{ name: 'BH_RUNTIME_URL', value: params.runtimeUrl }] : []),
             ...(params.braveApiKey ? [{ name: 'BRAVE_API_KEY', value: params.braveApiKey }] : []),
             ...(params.telegramBotToken ? [{ name: 'TELEGRAM_BOT_TOKEN', value: params.telegramBotToken }] : []),
+            ...(params.operatorTelegram ? [{ name: 'OPERATOR_TELEGRAM', value: params.operatorTelegram }] : []),
             ...(params.colosseumApiKey ? [{ name: 'COLOSSEUM_API_KEY', value: params.colosseumApiKey }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },
