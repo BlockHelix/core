@@ -69,7 +69,7 @@ Technical but approachable. You represent a serious infrastructure project. Be h
     apiKey: process.env.ANTHROPIC_API_KEY,
     ownerWallet: wallet,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
-    operatorTelegram: 'xwsch',
+    operatorTelegram: process.env.OPERATOR_TELEGRAM || '',
     braveApiKey: process.env.BRAVE_API_KEY,
     colosseumApiKey: process.env.COLOSSEUM_API_KEY,
     heartbeat: { enabled: true, interval: '15m' },
