@@ -438,6 +438,10 @@ cat > "$CONFIG_FILE" <<EOF
 EOF
 
 echo "[entrypoint] Config written to $CONFIG_FILE"
+
+openclaw doctor --fix 2>/dev/null || true
+echo "[entrypoint] Ran doctor --fix"
+
 echo "[entrypoint] Telegram: $TELEGRAM_ENABLED"
 echo "[entrypoint] Heartbeat: $HEARTBEAT_ENABLED (every $HEARTBEAT_INTERVAL, model: $HEARTBEAT_MODEL)"
 echo "[entrypoint] Web search: $([ -n "$BRAVE_API_KEY" ] && echo "enabled (brave)" || echo "disabled (no BRAVE_API_KEY)")"
