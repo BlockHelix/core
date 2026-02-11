@@ -207,7 +207,7 @@ export default function AgentDetailContent({ initialData }: Props) {
   const paused = s?.paused ?? false;
   const agentPrice = agent.priceUsdcMicro / 1_000_000;
 
-  const vaultId = agent.vault || agent.agentId;
+  const agentUrlId = agent.id || agent.vault || agent.agentId;
 
   return (
     <main className="min-h-screen py-20 lg:py-24">
@@ -241,7 +241,7 @@ export default function AgentDetailContent({ initialData }: Props) {
             {agent.operator && <CopyButton value={agent.operator} />}
           </div>
           <div className="space-y-2 text-sm text-white/60">
-            {agent.vault && (
+            {vaultPubkey && (
               <div className="flex items-center gap-3">
                 <span className="text-[10px] uppercase tracking-widest text-white/40 w-20 font-mono">Vault</span>
                 <span className="text-emerald-400 font-mono text-xs break-all">{agent.vault}</span>
@@ -315,7 +315,7 @@ export default function AgentDetailContent({ initialData }: Props) {
 
         <div className="mb-12">
           <TryAgentWidget
-            agentId={vaultId}
+            agentId={agentUrlId}
             price={agentPrice}
             endpointUrl={RUNTIME_URL}
             agentName={agent.name}

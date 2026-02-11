@@ -72,7 +72,8 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     const globalKeypair = getGlobalAgentKeypair();
     const agentKeypair = agentStorage.getKeypair(agentId) || globalKeypair;
     const receiptKeypair = useKms ? null : agentKeypair;
-    const operatorPubkey = agent.operator ? new PublicKey(agent.operator) : null;
+    let operatorPubkey: PublicKey | null = null;
+    try { if (agent.operator) operatorPubkey = new PublicKey(agent.operator); } catch { /* non-pubkey operator */ }
 
     let usdcAmount = agent.priceUsdcMicro;
     if (paymentAsset === 'sol' && agentKeypair) {
@@ -88,7 +89,8 @@ export async function handleRun(req: Request, res: Response): Promise<void> {
     }
 
     const canSign = useKms || agentKeypair;
-    const vaultPubkey = agent.vault ? new PublicKey(agent.vault) : null;
+    let vaultPubkey: PublicKey | null = null;
+    try { if (agent.vault) vaultPubkey = new PublicKey(agent.vault); } catch { /* non-pubkey vault */ }
 
     const fireBackgroundTx = (output: string) => {
       const artifactHash = hashArtifact(JSON.stringify({ agentId, input, output, timestamp: Date.now() }));

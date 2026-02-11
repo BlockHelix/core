@@ -201,7 +201,7 @@ export default function OperatorDashboard() {
                               VAULT
                             </div>
                             <Link
-                              href={`/agent/${agent.vault}`}
+                              href={`/agent/${agent.id || agent.vault}`}
                               className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors duration-300"
                             >
                               View Vault

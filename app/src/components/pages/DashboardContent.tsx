@@ -310,7 +310,7 @@ function DeployedTab({ agents, error }: { agents: AgentSummary[]; error: string 
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-widest text-white/40 mb-1 font-mono">VAULT</div>
-                  <Link href={`/agent/${agent.vault}`} className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors duration-300">
+                  <Link href={`/agent/${agent.id || agent.vault}`} className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors duration-300">
                     View Vault
                   </Link>
                 </div>

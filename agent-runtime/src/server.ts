@@ -36,6 +36,11 @@ const NETWORK = process.env.SOLANA_NETWORK === 'mainnet' ? SOLANA_MAINNET_CAIP2 
 
 let lastReplay: ReplayStats | null = null;
 
+const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+function isValidPubkey(s: string | null | undefined): boolean {
+  return !!s && BASE58_RE.test(s);
+}
+
 function adminRateLimit(maxRequests: number, windowMs: number) {
   const hits = new Map<string, number[]>();
 
@@ -176,24 +181,28 @@ export function createApp(): express.Application {
 
   let agentsListCache: { data: any; ts: number } | null = null;
 
-  app.get('/v1/agents', async (_req, res) => {
+  app.get('/v1/agents', async (req, res) => {
     if (agentsListCache && Date.now() - agentsListCache.ts < DETAIL_CACHE_TTL) {
       res.json(agentsListCache.data);
       return;
     }
 
-    const agents = getAllHostedAgents();
+    const allAgents = getAllHostedAgents();
+    const showAll = req.query.all === 'true';
+    const agents = showAll ? allAgents : allAgents.filter(a => a.isActive);
     const vaults = agents.map(a => a.vault).filter(Boolean) as string[];
     const statsMap = await eventIndexer.getStatsForVaults(vaults);
     const data = {
       agents: agents.map(a => {
         const s = a.vault ? statsMap.get(a.vault) : undefined;
+        const id = a.vault || a.agentId;
         return {
+          id,
           agentId: a.agentId,
           name: a.name,
           operator: a.operator || null,
-          vault: a.vault || null,
-          registry: a.registry || null,
+          vault: isValidPubkey(a.vault) ? a.vault : null,
+          registry: isValidPubkey(a.registry) ? a.registry : null,
           priceUsdcMicro: a.priceUsdcMicro,
           model: a.model,
           isActive: a.isActive,
@@ -229,15 +238,17 @@ export function createApp(): express.Application {
       return;
     }
     const s = agent.vault ? await eventIndexer.getStats(agent.vault, true) : await eventIndexer.getStatsByAgentId(agentId, true);
+    const id = agent.vault || agent.agentId;
     const data = {
+      id,
       agentId: agent.agentId,
       name: agent.name,
       operator: agent.operator || null,
       priceUsdcMicro: agent.priceUsdcMicro,
       model: agent.model,
       isActive: agent.isActive,
-      vault: agent.vault || null,
-      registry: agent.registry || null,
+      vault: isValidPubkey(agent.vault) ? agent.vault : null,
+      registry: isValidPubkey(agent.registry) ? agent.registry : null,
       deployStatus: agent.deployStatus || null,
       deployPhase: agent.deployPhase || null,
       stats: s ? {
@@ -272,6 +283,26 @@ export function createApp(): express.Application {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Replay failed' });
     }
   });
+  app.post('/admin/agents/bulk-deactivate', adminLimit, requireWalletAuth, async (req, res) => {
+    const { keep } = req.body;
+    if (!Array.isArray(keep)) {
+      res.status(400).json({ error: 'keep must be an array of vault/agentId strings to keep active' });
+      return;
+    }
+    const keepSet = new Set(keep as string[]);
+    const all = getAllHostedAgents();
+    let deactivated = 0;
+    for (const agent of all) {
+      const id = agent.vault || agent.agentId;
+      if (!keepSet.has(id) && agent.isActive) {
+        await agentStorage.update(id, { isActive: false });
+        deactivated++;
+      }
+    }
+    agentsListCache = null;
+    res.json({ message: `Deactivated ${deactivated} agents, kept ${keepSet.size}` });
+  });
+
   app.post('/admin/openclaw/deploy', adminLimit, requireWalletAuth, handleDeployOpenClaw);
   app.get('/admin/openclaw/:agentId/deploy-status', handleDeployStatus);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);

@@ -16,6 +16,7 @@ export interface APIAgentStats {
 }
 
 export interface APIAgent {
+  id: string;
   agentId: string;
   name: string;
   operator: string | null;
@@ -37,6 +38,7 @@ export interface APIJobReceipt {
 }
 
 export interface APIAgentDetail extends APIAgent {
+  id: string;
   deployStatus?: string | null;
   deployPhase?: string | null;
   revenueHistory: { date: string; revenue: number }[];

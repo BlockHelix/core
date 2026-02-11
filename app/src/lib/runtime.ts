@@ -96,6 +96,7 @@ export async function checkRuntimeHealth(): Promise<boolean> {
 }
 
 export interface AgentSummary {
+  id?: string;
   agentId: string;
   name: string;
   priceUsdcMicro: number;
