@@ -70,6 +70,7 @@ function connectGateway() {
               }
             }
             p.lastText = newText;
+            if (p.noDataTimer) { clearTimeout(p.noDataTimer); p.noDataTimer = null; }
           }
         }
         return;
@@ -79,8 +80,24 @@ function connectGateway() {
         const p = pending.get(msg.id);
         if (msg.ok && msg.payload?.status === 'accepted') {
           p.runId = msg.payload.runId;
+          p.noDataTimer = setTimeout(() => {
+            if (p.lastText || !pending.has(msg.id)) return;
+            console.log(`[adapter] No data 15s after accept, assuming context overflow`);
+            pending.delete(msg.id);
+            if (p.retryCtx) {
+              const ctx = p.retryCtx;
+              rotateSession(ctx.agentId, ctx.sessionId);
+              sendAgentMessage(ctx.message, ctx.sessionId, {
+                agentId: ctx.agentId, systemPrompt: ctx.systemPrompt,
+                streamRes: ctx.streamRes, _retried: true,
+              }).then(p.resolve).catch(p.reject);
+            } else {
+              p.reject(new Error('Context overflow'));
+            }
+          }, 15_000);
           return;
         }
+        if (p.noDataTimer) { clearTimeout(p.noDataTimer); p.noDataTimer = null; }
         if (msg.ok) {
           const result = msg.payload?.result;
           const resultText = typeof result === 'string' ? result : result?.text || result?.output || '';
@@ -334,7 +351,7 @@ async function tgPoll() {
       const username = (msg.from?.username || '').toLowerCase();
       const isOperator = OPERATOR_TG && (username === OPERATOR_TG || String(chatId) === OPERATOR_TG);
       const role = isOperator ? 'operator' : 'public';
-      const sessionId = `tg-${chatId}-${crypto.randomUUID().slice(0, 8)}`;
+      const sessionId = `tg-${chatId}`;
       console.log(`[telegram] ${role} message from @${username || chatId}: ${msg.text.slice(0, 80)}`);
       // Fire async — don't block the poll loop
       handleTgMessage(chatId, msg.text, sessionId, role).catch(err => {
