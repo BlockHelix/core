@@ -127,18 +127,9 @@ function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt
   const sessionKey = `agent:${agentId}:webchat:dm:${sessionId || 'default'}`;
 
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      pending.delete(id);
-      if (streamRes && !streamRes.writableEnded) {
-        streamRes.write(JSON.stringify({ type: 'error', error: 'Agent response timeout (15m)' }) + '\n');
-        streamRes.end();
-      }
-      reject(new Error('Agent response timeout (15m)'));
-    }, 900_000);
-
     pending.set(id, {
-      resolve: (val) => { clearTimeout(timer); resolve(val); },
-      reject: (err) => { clearTimeout(timer); reject(err); },
+      resolve,
+      reject,
       runId: null,
       lastText: null,
       streamRes: streamRes || null,
