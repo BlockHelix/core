@@ -310,6 +310,74 @@ CHBEOF
   fi
 fi
 
+if [ -n "$BH_SDK_KEY" ] && [ -n "$BH_RUNTIME_URL" ]; then
+  mkdir -p "$WORKSPACE/skills/s3-upload"
+  cat > "$WORKSPACE/skills/s3-upload/SKILL.md" <<'S3SKILLEOF'
+---
+name: s3-upload
+description: Upload files to S3 and get a shareable download URL
+metadata: {"openclaw":{"always":true,"emoji":"S"}}
+---
+
+# S3 File Upload
+
+Upload any file from your workspace to S3 and get a presigned download URL (valid 7 days).
+
+## Usage
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: <mime-type>" \
+  --data-binary @<filepath> \
+  "$BH_RUNTIME_URL/v1/sdk/upload?filename=<name>"
+```
+
+## Examples
+
+Upload a video:
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @/path/to/video.mp4 \
+  "$BH_RUNTIME_URL/v1/sdk/upload?filename=demo.mp4"
+```
+
+Upload an image:
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: image/png" \
+  --data-binary @/path/to/image.png \
+  "$BH_RUNTIME_URL/v1/sdk/upload?filename=screenshot.png"
+```
+
+Upload a document:
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: text/markdown" \
+  --data-binary @/path/to/doc.md \
+  "$BH_RUNTIME_URL/v1/sdk/upload?filename=report.md"
+```
+
+## Response
+```json
+{
+  "url": "https://...presigned download URL (7 day expiry)",
+  "publicUrl": "https://...permanent S3 URL (if bucket is public)",
+  "key": "uploads/<agentId>/uuid.ext",
+  "filename": "demo.mp4",
+  "expiresIn": "7d"
+}
+```
+
+Share the `url` field with users — it's a direct download link.
+S3SKILLEOF
+  echo "[entrypoint] Wrote s3-upload skill"
+fi
+
 TELEGRAM_ENABLED=false
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
   TELEGRAM_ENABLED=true

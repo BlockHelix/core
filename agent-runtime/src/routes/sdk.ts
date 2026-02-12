@@ -1,9 +1,15 @@
-import { Router, Request, Response } from 'express';
+import express, { Router, Request, Response } from 'express';
+import crypto from 'crypto';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { sdkAuth } from '../middleware/sdk-auth';
 import { agentStorage } from '../services/storage';
 import { eventIndexer } from '../services/event-indexer';
 import { getAllHostedAgents } from '../services/agent-config';
 import { pool } from '../services/db';
+
+const s3 = new S3Client({});
+const UPLOAD_BUCKET = process.env.UPLOAD_BUCKET || 'blockhelix-dev-storage';
 
 const router = Router();
 router.use(sdkAuth);
@@ -197,6 +203,31 @@ router.get('/search', async (req: Request, res: Response) => {
   }
 
   res.json({ query: q, agents: matchedAgents, jobs: matchedJobs });
+});
+
+router.post('/upload', express.raw({ type: '*/*', limit: '50mb' }), async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const filename = (req.query.filename as string) || 'file';
+  const contentType = req.headers['content-type'] || 'application/octet-stream';
+  const ext = filename.includes('.') ? filename.split('.').pop() : '';
+  const key = `uploads/${agent.vault || agent.agentId}/${crypto.randomUUID()}${ext ? '.' + ext : ''}`;
+
+  await s3.send(new PutObjectCommand({
+    Bucket: UPLOAD_BUCKET,
+    Key: key,
+    Body: req.body,
+    ContentType: contentType,
+    ContentDisposition: `inline; filename="${filename}"`,
+  }));
+
+  const url = await getSignedUrl(s3, new GetObjectCommand({
+    Bucket: UPLOAD_BUCKET,
+    Key: key,
+  }), { expiresIn: 7 * 24 * 3600 });
+
+  const publicUrl = `https://${UPLOAD_BUCKET}.s3.amazonaws.com/${key}`;
+
+  res.json({ url, publicUrl, key, filename, expiresIn: '7d' });
 });
 
 export default router;
