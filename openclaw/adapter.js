@@ -290,6 +290,26 @@ const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const OPERATOR_TG = (process.env.OPERATOR_TELEGRAM || '').toLowerCase();
 let tgOffset = 0;
 
+const MAX_HISTORY_CHARS = 80_000; // ~20k tokens rolling window
+const chatHistory = new Map(); // chatId -> [{role, text}]
+
+function addHistory(chatId, role, text) {
+  if (!chatHistory.has(chatId)) chatHistory.set(chatId, []);
+  const hist = chatHistory.get(chatId);
+  hist.push({ role, text });
+  let total = hist.reduce((s, m) => s + m.text.length, 0);
+  while (total > MAX_HISTORY_CHARS && hist.length > 2) {
+    total -= hist.shift().text.length;
+  }
+}
+
+function buildContextMessage(chatId, newText) {
+  const hist = chatHistory.get(chatId) || [];
+  if (hist.length === 0) return newText;
+  const lines = hist.map(m => `[${m.role}]: ${m.text}`).join('\n');
+  return `Recent conversation:\n${lines}\n\n[user]: ${newText}`;
+}
+
 async function tgApi(method, body) {
   const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
@@ -304,7 +324,11 @@ async function tgSend(chatId, text) {
   }
 }
 
-async function handleTgMessage(chatId, text, sessionId, agentId) {
+async function handleTgMessage(chatId, text, agentId) {
+  const sessionId = `tg-${chatId}-${crypto.randomUUID().slice(0, 8)}`;
+  const message = buildContextMessage(chatId, text);
+  addHistory(chatId, 'user', text);
+
   let acked = false;
   const ackTimer = setTimeout(async () => {
     acked = true;
@@ -312,29 +336,18 @@ async function handleTgMessage(chatId, text, sessionId, agentId) {
   }, 30_000);
 
   try {
-    const output = await sendAgentMessage(text, sessionId, { agentId, timeout: 30 * 60_000 });
+    const output = await sendAgentMessage(message, sessionId, { agentId, timeout: 30 * 60_000 });
     clearTimeout(ackTimer);
     if (output) {
+      addHistory(chatId, 'assistant', output);
       await tgSend(chatId, output);
     } else if (!acked) {
       await tgSend(chatId, '(no response)');
     }
   } catch (err) {
     clearTimeout(ackTimer);
-    if (isContextOverflow(err.message)) {
-      console.log(`[telegram] Context overflow for ${sessionId}, starting fresh session`);
-      rotateSession(agentId, sessionId);
-      try {
-        const output = await sendAgentMessage(text, sessionId, { agentId, _retried: true, timeout: 30 * 60_000 });
-        if (output) await tgSend(chatId, output);
-      } catch (retryErr) {
-        console.error('[telegram] Retry failed:', retryErr.message);
-        await tgSend(chatId, `Task failed: ${retryErr.message}`).catch(() => {});
-      }
-    } else {
-      console.error('[telegram] Agent error:', err.message);
-      await tgSend(chatId, `Error: ${err.message}`).catch(() => {});
-    }
+    console.error('[telegram] Agent error:', err.message);
+    await tgSend(chatId, `Error: ${err.message}`).catch(() => {});
   }
 }
 
@@ -351,10 +364,8 @@ async function tgPoll() {
       const username = (msg.from?.username || '').toLowerCase();
       const isOperator = OPERATOR_TG && (username === OPERATOR_TG || String(chatId) === OPERATOR_TG);
       const role = isOperator ? 'operator' : 'public';
-      const sessionId = `tg-${chatId}`;
       console.log(`[telegram] ${role} message from @${username || chatId}: ${msg.text.slice(0, 80)}`);
-      // Fire async — don't block the poll loop
-      handleTgMessage(chatId, msg.text, sessionId, role).catch(err => {
+      handleTgMessage(chatId, msg.text, role).catch(err => {
         console.error('[telegram] Unhandled:', err.message);
       });
     }
