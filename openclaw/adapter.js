@@ -12,6 +12,7 @@ let connected = false;
 let reqCounter = 0;
 const pending = new Map();
 const sessionGen = new Map();
+const BOOT_ID = crypto.randomUUID().slice(0, 8);
 
 function connectGateway() {
   return new Promise((resolve, reject) => {
@@ -134,13 +135,13 @@ function connectGateway() {
 }
 
 function getSessionKey(agentId, sessionId) {
-  const base = `agent:${agentId}:webchat:dm:${sessionId || 'default'}`;
+  const base = `agent:${agentId}:webchat:dm:${BOOT_ID}:${sessionId || 'default'}`;
   const gen = sessionGen.get(base) || 0;
   return gen > 0 ? `${base}:g${gen}` : base;
 }
 
 function rotateSession(agentId, sessionId) {
-  const base = `agent:${agentId}:webchat:dm:${sessionId || 'default'}`;
+  const base = `agent:${agentId}:webchat:dm:${BOOT_ID}:${sessionId || 'default'}`;
   const gen = (sessionGen.get(base) || 0) + 1;
   sessionGen.set(base, gen);
   console.log(`[adapter] Rotated session ${base} to generation ${gen}`);
@@ -163,11 +164,24 @@ function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt
   const sessionKey = getSessionKey(agentId, sessionId);
 
   return new Promise((resolve, reject) => {
+    const staleTimer = setTimeout(() => {
+      const p = pending.get(id);
+      if (!p) return;
+      console.log(`[adapter] No response after 5m for req ${id}, clearing`);
+      pending.delete(id);
+      if (p.streamRes && !p.streamRes.writableEnded) {
+        p.streamRes.write(JSON.stringify({ type: 'error', error: 'Agent did not respond' }) + '\n');
+        p.streamRes.end();
+      }
+      reject(new Error('Agent did not respond'));
+    }, 300_000);
+
     pending.set(id, {
-      resolve,
-      reject,
+      resolve: (v) => { clearTimeout(staleTimer); resolve(v); },
+      reject: (e) => { clearTimeout(staleTimer); reject(e); },
       runId: null,
       lastText: null,
+      lastEvent: Date.now(),
       streamRes: streamRes || null,
       retryCtx: _retried ? null : { message, sessionId, agentId, systemPrompt, streamRes },
     });
