@@ -436,6 +436,86 @@ VEOSKILLEOF
   echo "[entrypoint] Wrote veo-video skill"
 fi
 
+if [ -n "$RUNWAY_API_KEY" ]; then
+  mkdir -p "$WORKSPACE/skills/runway-video"
+  cat > "$WORKSPACE/skills/runway-video/SKILL.md" <<'RUNWAYEOF'
+---
+name: runway-video
+description: Generate videos with Runway Gen-3 API (async pattern)
+metadata: {"openclaw":{"always":true,"emoji":"R"}}
+---
+
+# Runway Video Generation (Async)
+
+Runway jobs take 1-5 minutes. NEVER wait synchronously. Always use the async pattern.
+
+## Step 1: Start generation
+
+```bash
+curl -s -X POST "https://api.dev.runwayml.com/v1/image_to_video" \
+  -H "Authorization: Bearer $RUNWAY_API_KEY" \
+  -H "X-Runway-Version: 2024-11-06" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gen4_turbo",
+    "promptImage": "https://url-to-image.jpg",
+    "promptText": "camera slowly zooms in, cinematic lighting",
+    "duration": 10,
+    "ratio": "1280:768"
+  }'
+```
+
+For text-only (no input image):
+```bash
+curl -s -X POST "https://api.dev.runwayml.com/v1/text_to_video" \
+  -H "Authorization: Bearer $RUNWAY_API_KEY" \
+  -H "X-Runway-Version: 2024-11-06" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gen4_turbo",
+    "promptText": "your prompt here",
+    "duration": 10,
+    "ratio": "1280:768"
+  }'
+```
+
+Returns: `{"id": "task-id-xxx"}` — save this task ID to memory.
+
+## Step 2: Check status (later — next heartbeat or next message)
+
+```bash
+curl -s "https://api.dev.runwayml.com/v1/tasks/TASK_ID" \
+  -H "Authorization: Bearer $RUNWAY_API_KEY" \
+  -H "X-Runway-Version: 2024-11-06"
+```
+
+- `status: "PENDING"` or `"RUNNING"` → still generating, check later
+- `status: "SUCCEEDED"` → download from `output[0]`
+- `status: "FAILED"` → note error, maybe retry once with different prompt
+
+## Step 3: Download and upload to S3
+
+```bash
+curl -s -o video.mp4 "<output_url>"
+curl -s -X POST \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @video.mp4 \
+  "$BH_RUNTIME_URL/v1/sdk/upload?filename=video.mp4"
+```
+
+## Rules
+
+1. **NEVER** loop waiting for completion — return immediately after starting
+2. Save all task IDs to memory with timestamp and prompt
+3. On every heartbeat: check pending tasks, download completed ones
+4. Only start NEW generations if no pending tasks for same prompt
+5. Max 2 retries per prompt
+6. Prefer Runway over Veo if Veo quota is exhausted
+RUNWAYEOF
+  echo "[entrypoint] Wrote runway-video skill"
+fi
+
 TELEGRAM_ENABLED=false
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
   TELEGRAM_ENABLED=true

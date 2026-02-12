@@ -52,6 +52,7 @@ interface DeployParams {
   colosseumApiKey?: string;
   kimiApiKey?: string;
   veoApiKey?: string;
+  runwayApiKey?: string;
   onProgress?: (phase: DeployPhase) => void;
 }
 
@@ -198,6 +199,7 @@ class ContainerManager {
             ...(params.colosseumApiKey ? [{ name: 'COLOSSEUM_API_KEY', value: params.colosseumApiKey }] : []),
             ...(params.kimiApiKey ? [{ name: 'KIMI_API_KEY', value: params.kimiApiKey }] : []),
             ...(params.veoApiKey ? [{ name: 'VEO_API_KEY', value: params.veoApiKey }] : []),
+            ...(params.runwayApiKey ? [{ name: 'RUNWAY_API_KEY', value: params.runwayApiKey }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },
               ...(params.heartbeat.interval ? [{ name: 'HEARTBEAT_INTERVAL', value: params.heartbeat.interval }] : []),

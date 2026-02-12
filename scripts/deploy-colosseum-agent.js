@@ -74,6 +74,7 @@ Technical but approachable. You represent a serious infrastructure project. Be h
     colosseumApiKey: process.env.COLOSSEUM_API_KEY,
     kimiApiKey: process.env.KIMI_API_KEY,
     veoApiKey: process.env.VEO_API_KEY,
+    runwayApiKey: process.env.RUNWAY_API_KEY,
     heartbeat: { enabled: true, interval: '15m' },
     wallet,
     signature,
