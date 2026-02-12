@@ -11,6 +11,7 @@ let ws = null;
 let connected = false;
 let reqCounter = 0;
 const pending = new Map();
+const sessionGen = new Map();
 
 function connectGateway() {
   return new Promise((resolve, reject) => {
@@ -91,6 +92,19 @@ function connectGateway() {
           pending.delete(msg.id);
         } else {
           const errMsg = msg.error?.message || JSON.stringify(msg.error) || 'Agent error';
+          if (isContextOverflow(errMsg) && p.retryCtx) {
+            console.log(`[adapter] Context overflow detected, rotating session and retrying`);
+            const ctx = p.retryCtx;
+            pending.delete(msg.id);
+            rotateSession(ctx.agentId, ctx.sessionId);
+            sendAgentMessage(ctx.message, ctx.sessionId, {
+              agentId: ctx.agentId,
+              systemPrompt: ctx.systemPrompt,
+              streamRes: ctx.streamRes,
+              _retried: true,
+            }).then(p.resolve).catch(p.reject);
+            return;
+          }
           if (p.streamRes && !p.streamRes.writableEnded) {
             p.streamRes.write(JSON.stringify({ type: 'error', error: errMsg }) + '\n');
             p.streamRes.end();
@@ -119,12 +133,34 @@ function connectGateway() {
   });
 }
 
-function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt, streamRes } = {}) {
+function getSessionKey(agentId, sessionId) {
+  const base = `agent:${agentId}:webchat:dm:${sessionId || 'default'}`;
+  const gen = sessionGen.get(base) || 0;
+  return gen > 0 ? `${base}:g${gen}` : base;
+}
+
+function rotateSession(agentId, sessionId) {
+  const base = `agent:${agentId}:webchat:dm:${sessionId || 'default'}`;
+  const gen = (sessionGen.get(base) || 0) + 1;
+  sessionGen.set(base, gen);
+  console.log(`[adapter] Rotated session ${base} to generation ${gen}`);
+  return `${base}:g${gen}`;
+}
+
+function isContextOverflow(errMsg) {
+  return errMsg && (
+    errMsg.includes('exceed context limit') ||
+    errMsg.includes('context_length_exceeded') ||
+    errMsg.includes('max_tokens')
+  );
+}
+
+function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt, streamRes, _retried = false } = {}) {
   if (!connected || !ws) return Promise.reject(new Error('Gateway not connected'));
 
   const id = String(++reqCounter);
   const idempotencyKey = crypto.randomUUID();
-  const sessionKey = `agent:${agentId}:webchat:dm:${sessionId || 'default'}`;
+  const sessionKey = getSessionKey(agentId, sessionId);
 
   return new Promise((resolve, reject) => {
     pending.set(id, {
@@ -133,6 +169,7 @@ function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt
       runId: null,
       lastText: null,
       streamRes: streamRes || null,
+      retryCtx: _retried ? null : { message, sessionId, agentId, systemPrompt, streamRes },
     });
 
     const params = {
@@ -256,8 +293,21 @@ async function tgPoll() {
         if (output) await tgSend(chatId, output);
         else await tgSend(chatId, '(no response)');
       } catch (err) {
-        console.error('[telegram] Agent error:', err.message);
-        await tgSend(chatId, `Error: ${err.message}`).catch(() => {});
+        if (isContextOverflow(err.message)) {
+          console.log(`[telegram] Context overflow for ${sessionId}, starting fresh session`);
+          rotateSession(role, sessionId);
+          try {
+            const output = await sendAgentMessage(msg.text, sessionId, { agentId: role, _retried: true });
+            if (output) await tgSend(chatId, output);
+            else await tgSend(chatId, '(no response)');
+          } catch (retryErr) {
+            console.error('[telegram] Retry failed:', retryErr.message);
+            await tgSend(chatId, `Error: ${retryErr.message}`).catch(() => {});
+          }
+        } else {
+          console.error('[telegram] Agent error:', err.message);
+          await tgSend(chatId, `Error: ${err.message}`).catch(() => {});
+        }
       }
     }
   } catch (err) {
