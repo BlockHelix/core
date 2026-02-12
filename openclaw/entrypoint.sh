@@ -366,14 +366,13 @@ curl -s -X POST \
 ```json
 {
   "url": "https://...presigned download URL (7 day expiry)",
-  "publicUrl": "https://...permanent S3 URL (if bucket is public)",
   "key": "uploads/<agentId>/uuid.ext",
   "filename": "demo.mp4",
   "expiresIn": "7d"
 }
 ```
 
-Share the `url` field with users — it's a direct download link.
+IMPORTANT: Always share the `url` field (presigned URL). NEVER share `publicUrl` — the bucket is private and it won't work.
 S3SKILLEOF
   echo "[entrypoint] Wrote s3-upload skill"
 fi
