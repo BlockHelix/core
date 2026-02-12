@@ -72,6 +72,8 @@ Technical but approachable. You represent a serious infrastructure project. Be h
     operatorTelegram: process.env.OPERATOR_TELEGRAM || '',
     braveApiKey: process.env.BRAVE_API_KEY,
     colosseumApiKey: process.env.COLOSSEUM_API_KEY,
+    kimiApiKey: process.env.KIMI_API_KEY,
+    veoApiKey: process.env.VEO_API_KEY,
     heartbeat: { enabled: true, interval: '15m' },
     wallet,
     signature,

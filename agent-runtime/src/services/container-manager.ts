@@ -50,6 +50,8 @@ interface DeployParams {
   runtimeUrl?: string;
   braveApiKey?: string;
   colosseumApiKey?: string;
+  kimiApiKey?: string;
+  veoApiKey?: string;
   onProgress?: (phase: DeployPhase) => void;
 }
 
@@ -194,6 +196,8 @@ class ContainerManager {
             ...(params.telegramBotToken ? [{ name: 'TELEGRAM_BOT_TOKEN', value: params.telegramBotToken }] : []),
             ...(params.operatorTelegram ? [{ name: 'OPERATOR_TELEGRAM', value: params.operatorTelegram }] : []),
             ...(params.colosseumApiKey ? [{ name: 'COLOSSEUM_API_KEY', value: params.colosseumApiKey }] : []),
+            ...(params.kimiApiKey ? [{ name: 'KIMI_API_KEY', value: params.kimiApiKey }] : []),
+            ...(params.veoApiKey ? [{ name: 'VEO_API_KEY', value: params.veoApiKey }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },
               ...(params.heartbeat.interval ? [{ name: 'HEARTBEAT_INTERVAL', value: params.heartbeat.interval }] : []),
