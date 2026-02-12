@@ -46,6 +46,10 @@ if [ "$PROVIDER" = "anthropic" ]; then
   fi
   OPENCLAW_AUTO_UPDATE=false openclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY" --non-interactive 2>/dev/null || true
   openclaw models set "$MODEL_ID" 2>/dev/null || true
+  # Force model in all OpenClaw state files (EFS persists old Opus setting)
+  for sf in "$STATE_DIR/settings.json" "$STATE_DIR/.openclaw/settings.json" "$HOME/.openclaw/settings.json" "$HOME/.config/openclaw/settings.json"; do
+    [ -f "$sf" ] && node -e "const f=require('fs');try{const c=JSON.parse(f.readFileSync('$sf'));c.model='$MODEL_ID';if(c.models)c.models.default='$MODEL_ID';f.writeFileSync('$sf',JSON.stringify(c,null,2));console.log('[entrypoint] Forced model in '+('$sf'))}catch{}" || true
+  done
 elif [ "$PROVIDER" = "openai" ]; then
   if [ -z "$OPENAI_API_KEY" ]; then
     echo "[entrypoint] ERROR: OPENAI_API_KEY is required for model $MODEL_ID"
