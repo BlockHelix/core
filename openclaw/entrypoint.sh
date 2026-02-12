@@ -378,6 +378,64 @@ S3SKILLEOF
   echo "[entrypoint] Wrote s3-upload skill"
 fi
 
+if [ -n "$VEO_API_KEY" ]; then
+  mkdir -p "$WORKSPACE/skills/veo-video"
+  cat > "$WORKSPACE/skills/veo-video/SKILL.md" <<'VEOSKILLEOF'
+---
+name: veo-video
+description: Generate videos with Google Veo API (async pattern)
+metadata: {"openclaw":{"always":true,"emoji":"V"}}
+---
+
+# Veo Video Generation (Async)
+
+Veo jobs take minutes to complete. NEVER wait synchronously. Always use the async pattern.
+
+## Step 1: Start generation
+
+```bash
+curl -s -X POST \
+  "https://generativelanguage.googleapis.com/v1beta/models/veo-2.0-generate-001:predictLongRunning?key=$VEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instances": [{"prompt": "your prompt here"}],
+    "parameters": {"sampleCount": 1, "durationSeconds": 6, "aspectRatio": "16:9"}
+  }'
+```
+
+Returns: `{"name": "operations/xxx"}` — save this operation name to memory.
+
+## Step 2: Check status (later — next heartbeat or next message)
+
+```bash
+curl -s "https://generativelanguage.googleapis.com/v1beta/${OPERATION_NAME}?key=$VEO_API_KEY"
+```
+
+- `done: false` → still generating, check again later
+- `done: true` → download the video from `response.generatedSamples[0].video.uri`
+
+## Step 3: Download and upload to S3
+
+```bash
+curl -s -o video.mp4 "<video_uri>"
+curl -s -X POST \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @video.mp4 \
+  "$BH_RUNTIME_URL/v1/sdk/upload?filename=video.mp4"
+```
+
+## Rules
+
+1. **NEVER** loop waiting for completion — return immediately after starting
+2. Save all operation names to memory with timestamp and prompt used
+3. On every heartbeat: check pending operations, download completed ones
+4. Only start NEW generations if no pending operations exist for the same prompt
+5. If an operation fails, note it in memory and don't retry the same prompt more than twice
+VEOSKILLEOF
+  echo "[entrypoint] Wrote veo-video skill"
+fi
+
 TELEGRAM_ENABLED=false
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
   TELEGRAM_ENABLED=true
