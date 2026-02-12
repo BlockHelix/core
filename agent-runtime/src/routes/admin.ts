@@ -321,7 +321,9 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       },
     });
 
-    const runtimeUrl = process.env.RUNTIME_URL || `http://${req.headers.host}`;
+    const port = process.env.PORT || '3002';
+    const localIp = req.socket.localAddress?.replace('::ffff:', '') || '127.0.0.1';
+    const runtimeUrl = process.env.RUNTIME_URL || `http://${localIp}:${port}`;
 
     containerManager.deployAgent({
       agentId: agentId || vault,
