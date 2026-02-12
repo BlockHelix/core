@@ -486,6 +486,7 @@ cat > "$CONFIG_FILE" <<EOF
 }
 EOF
 
+node -e "const f=require('fs'),p='$CONFIG_FILE';try{const c=JSON.parse(f.readFileSync(p));c.model='$MODEL_ID';f.writeFileSync(p,JSON.stringify(c,null,2))}catch{}"
 echo "[entrypoint] Config written to $CONFIG_FILE"
 echo "[entrypoint] Telegram: $TELEGRAM_ENABLED"
 echo "[entrypoint] Heartbeat: $HEARTBEAT_ENABLED (every $HEARTBEAT_INTERVAL, model: $HEARTBEAT_MODEL)"
