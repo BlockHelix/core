@@ -54,6 +54,7 @@ router.get('/agents', async (_req: Request, res: Response) => {
   let agents = getAllHostedAgents();
   if (activeFilter === 'true') agents = agents.filter(a => a.isActive);
   else if (activeFilter === 'false') agents = agents.filter(a => !a.isActive);
+  agents = agents.filter(a => a.vault && a.name);
 
   const total = agents.length;
   const page = agents.slice(offset, offset + limit);

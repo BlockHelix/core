@@ -334,7 +334,7 @@ async function tgPoll() {
       const username = (msg.from?.username || '').toLowerCase();
       const isOperator = OPERATOR_TG && (username === OPERATOR_TG || String(chatId) === OPERATOR_TG);
       const role = isOperator ? 'operator' : 'public';
-      const sessionId = `tg-${chatId}`;
+      const sessionId = `tg-${chatId}-${crypto.randomUUID().slice(0, 8)}`;
       console.log(`[telegram] ${role} message from @${username || chatId}: ${msg.text.slice(0, 80)}`);
       // Fire async — don't block the poll loop
       handleTgMessage(chatId, msg.text, sessionId, role).catch(err => {
