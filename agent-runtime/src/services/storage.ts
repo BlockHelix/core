@@ -153,7 +153,7 @@ class AgentStorage {
            owner_wallet = EXCLUDED.owner_wallet,
            is_containerized = EXCLUDED.is_containerized,
            container_ip = EXCLUDED.container_ip,
-           sdk_key = COALESCE(agents.sdk_key, EXCLUDED.sdk_key),
+           sdk_key = EXCLUDED.sdk_key,
            updated_at = now()`,
         [
           agent.vault, agent.agentId || null, agent.name, agent.systemPrompt,
