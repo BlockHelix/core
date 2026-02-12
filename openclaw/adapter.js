@@ -156,7 +156,7 @@ function isContextOverflow(errMsg) {
   );
 }
 
-function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt, streamRes, _retried = false } = {}) {
+function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt, streamRes, _retried = false, timeout = 300_000 } = {}) {
   if (!connected || !ws) return Promise.reject(new Error('Gateway not connected'));
 
   const id = String(++reqCounter);
@@ -167,14 +167,14 @@ function sendAgentMessage(message, sessionId, { agentId = 'public', systemPrompt
     const staleTimer = setTimeout(() => {
       const p = pending.get(id);
       if (!p) return;
-      console.log(`[adapter] No response after 5m for req ${id}, clearing`);
+      console.log(`[adapter] No response after ${timeout/1000}s for req ${id}, clearing`);
       pending.delete(id);
       if (p.streamRes && !p.streamRes.writableEnded) {
         p.streamRes.write(JSON.stringify({ type: 'error', error: 'Agent did not respond' }) + '\n');
         p.streamRes.end();
       }
       reject(new Error('Agent did not respond'));
-    }, 300_000);
+    }, timeout);
 
     pending.set(id, {
       resolve: (v) => { clearTimeout(staleTimer); resolve(v); },
@@ -287,6 +287,40 @@ async function tgSend(chatId, text) {
   }
 }
 
+async function handleTgMessage(chatId, text, sessionId, agentId) {
+  let acked = false;
+  const ackTimer = setTimeout(async () => {
+    acked = true;
+    await tgSend(chatId, 'Working on it...').catch(() => {});
+  }, 30_000);
+
+  try {
+    const output = await sendAgentMessage(text, sessionId, { agentId, timeout: 30 * 60_000 });
+    clearTimeout(ackTimer);
+    if (output) {
+      await tgSend(chatId, output);
+    } else if (!acked) {
+      await tgSend(chatId, '(no response)');
+    }
+  } catch (err) {
+    clearTimeout(ackTimer);
+    if (isContextOverflow(err.message)) {
+      console.log(`[telegram] Context overflow for ${sessionId}, starting fresh session`);
+      rotateSession(agentId, sessionId);
+      try {
+        const output = await sendAgentMessage(text, sessionId, { agentId, _retried: true, timeout: 30 * 60_000 });
+        if (output) await tgSend(chatId, output);
+      } catch (retryErr) {
+        console.error('[telegram] Retry failed:', retryErr.message);
+        await tgSend(chatId, `Task failed: ${retryErr.message}`).catch(() => {});
+      }
+    } else {
+      console.error('[telegram] Agent error:', err.message);
+      await tgSend(chatId, `Error: ${err.message}`).catch(() => {});
+    }
+  }
+}
+
 async function tgPoll() {
   if (!TG_TOKEN || !connected) return;
   try {
@@ -302,27 +336,10 @@ async function tgPoll() {
       const role = isOperator ? 'operator' : 'public';
       const sessionId = `tg-${chatId}`;
       console.log(`[telegram] ${role} message from @${username || chatId}: ${msg.text.slice(0, 80)}`);
-      try {
-        const output = await sendAgentMessage(msg.text, sessionId, { agentId: role });
-        if (output) await tgSend(chatId, output);
-        else await tgSend(chatId, '(no response)');
-      } catch (err) {
-        if (isContextOverflow(err.message)) {
-          console.log(`[telegram] Context overflow for ${sessionId}, starting fresh session`);
-          rotateSession(role, sessionId);
-          try {
-            const output = await sendAgentMessage(msg.text, sessionId, { agentId: role, _retried: true });
-            if (output) await tgSend(chatId, output);
-            else await tgSend(chatId, '(no response)');
-          } catch (retryErr) {
-            console.error('[telegram] Retry failed:', retryErr.message);
-            await tgSend(chatId, `Error: ${retryErr.message}`).catch(() => {});
-          }
-        } else {
-          console.error('[telegram] Agent error:', err.message);
-          await tgSend(chatId, `Error: ${err.message}`).catch(() => {});
-        }
-      }
+      // Fire async — don't block the poll loop
+      handleTgMessage(chatId, msg.text, sessionId, role).catch(err => {
+        console.error('[telegram] Unhandled:', err.message);
+      });
     }
   } catch (err) {
     if (!err.message?.includes('ETIMEDOUT')) console.error('[telegram] Poll error:', err.message);
