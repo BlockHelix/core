@@ -676,4 +676,22 @@ if [ $RETRIES -ge $MAX_RETRIES ]; then
 fi
 
 echo "[entrypoint] Starting adapter on port ${PORT:-3001}"
-exec node adapter.js
+node adapter.js &
+ADAPTER_PID=$!
+
+# Watchdog: if either process dies, kill the other and exit so ECS restarts
+echo "[entrypoint] Watchdog active (gateway=$GATEWAY_PID adapter=$ADAPTER_PID)"
+while true; do
+  if ! kill -0 $GATEWAY_PID 2>/dev/null; then
+    echo "[entrypoint] FATAL: Gateway process died, exiting container"
+    tail -n 50 "$LOG_DIR/gateway.log" 2>/dev/null || true
+    kill $ADAPTER_PID 2>/dev/null
+    exit 1
+  fi
+  if ! kill -0 $ADAPTER_PID 2>/dev/null; then
+    echo "[entrypoint] FATAL: Adapter process died, exiting container"
+    kill $GATEWAY_PID 2>/dev/null
+    exit 1
+  fi
+  sleep 10
+done
