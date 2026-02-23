@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-RUN npm install -g openclaw@latest
+RUN npm install -g openclaw@2026.2.12
 
 RUN mkdir -p /app/node_modules && npm install --prefix /app ws
 
