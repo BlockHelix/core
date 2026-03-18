@@ -178,7 +178,7 @@ class ContainerManager {
         awsvpcConfiguration: {
           subnets: SUBNETS,
           securityGroups: [SECURITY_GROUP],
-          assignPublicIp: 'DISABLED',
+          assignPublicIp: 'ENABLED',
         },
       },
       overrides: {
