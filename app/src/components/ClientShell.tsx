@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { initPosthog } from '@/lib/posthog';
 
 const Providers = dynamic(() => import('@/components/Providers'), { ssr: false });
 
@@ -23,6 +24,8 @@ function needsWallet(pathname: string): boolean {
 export default function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
   const walletEnabled = useMemo(() => needsWallet(pathname), [pathname]);
+
+  useEffect(() => { initPosthog(); }, []);
 
   const content = (
     <>
