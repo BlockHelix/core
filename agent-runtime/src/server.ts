@@ -4,6 +4,7 @@ import { x402ResourceServer, paymentMiddleware } from '@x402/express';
 import { HTTPFacilitatorClient } from '@x402/core/server';
 import type { RoutesConfig } from '@x402/core/server';
 import { ExactSvmScheme } from '@x402/svm/exact/server';
+import { mppPaymentMiddleware, isMppRequest, isX402Request } from './services/mpp-payment';
 import { handleRun } from './routes/run';
 import {
   handleRegisterAgent,
@@ -339,7 +340,14 @@ export function createApp(): express.Application {
     next();
   });
 
-  app.use(paymentMiddleware(staticRoutes, resourceServer));
+  // MPP payment handler — catches requests with Authorization: Payment header
+  app.use(mppPaymentMiddleware());
+
+  // x402 payment handler — catches requests with payment-signature/x-payment headers
+  app.use((req, res, next) => {
+    if (isMppRequest(req) || (req as any).mppPayment) return next();
+    return paymentMiddleware(staticRoutes, resourceServer)(req, res, next);
+  });
 
   app.post('/v1/agent/:agentId/run', handleRun);
 

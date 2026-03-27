@@ -19,6 +19,7 @@
     "@aws-sdk/s3-request-presigner": "^3.988.0",
     "@coral-xyz/anchor": "^0.30.1",
     "@jup-ag/api": "^6.0.48",
+    "@solana/mpp": "^0.1.1",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.95.8",
     "@types/bs58": "^4.0.4",
@@ -29,6 +30,7 @@
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "mppx": "^0.4.11",
     "pg": "^8.13.1",
     "solana-kms-signer": "^1.0.5",
     "tweetnacl": "^1.0.3"
