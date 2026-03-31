@@ -13,11 +13,15 @@ export function initPosthog() {
     autocapture: true,
     capture_pageview: true,
     capture_pageleave: true,
+    capture_performance: true,
     enable_heatmaps: true,
     enable_recording_console_log: true,
     session_recording: {
       recordCrossOriginIframes: true,
+      maskAllInputs: false,
+      maskInputOptions: { password: true },
     },
+    property_denylist: [],
     loaded: (ph) => {
       if (process.env.NODE_ENV === 'development') ph.debug();
     },

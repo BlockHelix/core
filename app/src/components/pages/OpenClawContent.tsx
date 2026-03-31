@@ -13,6 +13,7 @@ import WalletButton from '@/components/WalletButton';
 import PriceInput from '@/components/create/PriceInput';
 import { RUNTIME_URL } from '@/lib/network-config';
 import { PublicKey } from '@solana/web3.js';
+import { posthog } from '@/lib/posthog';
 
 const EXPECTED_NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
 
@@ -70,9 +71,11 @@ export default function OpenClawContent() {
 
     if (!connected) {
       toast('Please connect your wallet to deploy an agent', 'error');
+      posthog?.capture('deploy_blocked_no_wallet');
       return;
     }
 
+    posthog?.capture('deploy_started', { name, hasApiKey: !!apiKey, hasTelegram: !!telegramBotToken, pricePerCall, heartbeatEnabled });
     setDeployError(null);
     setDeployStep(0);
 
@@ -127,10 +130,12 @@ export default function OpenClawContent() {
 
       setDeployStep(3);
       setDeploySuccess(true);
+      posthog?.capture('deploy_success', { name, vault: vaultStr, pricePerCall, hasTelegram: !!telegramBotToken });
       setTimeout(() => router.push(`/agent/${vaultStr}`), 1500);
 
     } catch (error: any) {
       console.error('Deploy error:', error);
+      posthog?.capture('deploy_failed', { error: error.message, step: deployStep });
       setDeployError(error.message || 'Deployment failed');
     }
   };

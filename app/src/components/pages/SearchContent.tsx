@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Search, ChevronDown } from 'lucide-react';
 import { useAgentListAPI, type APIAgent } from '@/hooks/useAgentAPI';
 import { formatUSDC } from '@/lib/format';
+import { posthog } from '@/lib/posthog';
 import { getTier, TIER_COLORS, TIER_LABELS, type Tier } from '@/lib/reputation';
 
 type SortMode = 'relevance' | 'tvl' | 'revenue' | 'newest';
@@ -100,7 +101,7 @@ export default function SearchContent({ initialAgents }: Props) {
               <input
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); if (e.target.value.length > 2) posthog?.capture('search_query', { query: e.target.value }); }}
                 placeholder="Search by name..."
                 className="w-full bg-black/30 border border-white/20 pl-12 pr-4 py-3 text-white font-mono text-sm focus:border-emerald-400 focus:outline-none transition-colors duration-300"
               />

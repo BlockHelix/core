@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Copy, ExternalLink, LogOut } from 'lucide-react';
+import { posthog } from '@/lib/posthog';
 
 export default function WalletButton() {
   const { login, logout, authenticated, walletAddress, ready } = useAuth();
@@ -61,7 +62,7 @@ export default function WalletButton() {
             </a>
             <div className="border-t border-white/10" />
             <button
-              onClick={() => { logout(); setOpen(false); }}
+              onClick={() => { posthog?.capture('wallet_disconnect'); logout(); setOpen(false); }}
               className="w-full px-4 py-3 text-left text-xs font-mono text-red-400/70 hover:bg-white/5 hover:text-red-400 flex items-center gap-3 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -86,7 +87,7 @@ export default function WalletButton() {
 
   return (
     <button
-      onClick={login}
+      onClick={() => { posthog?.capture('wallet_connect_click'); login(); }}
       className="px-5 py-3 text-xs uppercase tracking-wider-2 font-medium bg-white text-black hover:bg-emerald-400 transition-colors duration-300"
     >
       CONNECT

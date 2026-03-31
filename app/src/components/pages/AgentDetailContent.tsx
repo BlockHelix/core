@@ -13,6 +13,7 @@ import { TryAgentWidget } from '@/components/agent/TryAgentWidget';
 import { cn } from '@/lib/cn';
 import { useAgentDetailAPI, type APIAgentDetail } from '@/hooks/useAgentAPI';
 import { RUNTIME_URL } from '@/lib/network-config';
+import { posthog } from '@/lib/posthog';
 import { findShareMint } from '@/lib/pda';
 import { getDeployStatus, type DeployStatusResponse } from '@/lib/runtime';
 
@@ -67,6 +68,12 @@ export default function AgentDetailContent({ initialData }: Props) {
     if (!vaultPubkey) return null;
     try { return findShareMint(vaultPubkey)[0]; } catch { return null; }
   }, [vaultPubkey]);
+
+  useEffect(() => {
+    if (agent) {
+      posthog?.capture('agent_detail_view', { agentId: agentIdStr, name: agent.name, tvl: agent.stats?.tvl, revenue: agent.stats?.totalRevenue });
+    }
+  }, [agentIdStr, agent]);
 
   if (error) {
     return (
