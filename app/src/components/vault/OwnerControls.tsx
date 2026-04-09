@@ -14,9 +14,11 @@ interface Props {
 type Panel = 'none' | 'claim' | 'add-key';
 
 export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
-  const { authenticated, login } = useAuth();
+  const { authenticated, walletAddress, login } = useAuth();
+  // useWallets is only used to get a signer; the canonical address for the
+  // access check comes from useAuth to stay aligned with WalletPip.
   const { wallets } = useWallets();
-  const wallet = wallets[0];
+  const signerWallet = wallets[0];
 
   const [access, setAccess] = useState<VaultAccess | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,7 +32,7 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
     async function check() {
       setLoading(true);
       try {
-        const a = await getVaultAccess(agentId, wallet?.address);
+        const a = await getVaultAccess(agentId, walletAddress || undefined);
         if (!cancelled) setAccess(a);
       } catch {
         if (!cancelled) setAccess(null);
@@ -40,19 +42,22 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
     }
     check();
     return () => { cancelled = true; };
-  }, [agentId, wallet?.address]);
+  }, [agentId, walletAddress]);
 
   const handleClaim = async () => {
-    if (!wallet) {
+    if (!walletAddress) {
       await login();
+      return;
+    }
+    if (!signerWallet) {
+      toast('wallet signer not ready — try reconnecting', 'error');
       return;
     }
     setBusy(true);
     try {
-      const result = await claimVault(agentId, wallet.address, wallet.signMessage.bind(wallet));
+      const result = await claimVault(agentId, walletAddress, signerWallet.signMessage.bind(signerWallet));
       toastTx('vault claimed — NFT minted', result.txSignature);
-      // refresh access
-      const a = await getVaultAccess(agentId, wallet.address);
+      const a = await getVaultAccess(agentId, walletAddress);
       setAccess(a);
       setPanel('none');
       onOwnershipChanged?.();
@@ -64,15 +69,19 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
   };
 
   const handleSetKey = async () => {
-    if (!wallet || !keyInput.startsWith('sk-ant-')) {
+    if (!walletAddress || !keyInput.startsWith('sk-ant-')) {
       toast('need a valid Anthropic key', 'error');
+      return;
+    }
+    if (!signerWallet) {
+      toast('wallet signer not ready — try reconnecting', 'error');
       return;
     }
     setBusy(true);
     try {
-      await setHolderKey(agentId, wallet.address, keyInput, wallet.signMessage.bind(wallet));
+      await setHolderKey(agentId, walletAddress, keyInput, signerWallet.signMessage.bind(signerWallet));
       toast('key saved — unlimited chat unlocked', 'success');
-      const a = await getVaultAccess(agentId, wallet.address);
+      const a = await getVaultAccess(agentId, walletAddress);
       setAccess(a);
       setPanel('none');
       setKeyInput('');
@@ -85,7 +94,7 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
 
   // Not connected — WalletPip in the corner handles the connect prompt.
   // Nothing to render here unless they're the owner.
-  if (!authenticated || !wallet) {
+  if (!authenticated || !walletAddress) {
     return null;
   }
 
