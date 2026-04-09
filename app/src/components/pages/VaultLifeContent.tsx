@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import MoodOrb from '@/components/vault/MoodOrb';
+import OwnerControls from '@/components/vault/OwnerControls';
 import { explainVault } from '@/lib/vault-state';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
@@ -136,9 +137,11 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
           </button>
         )}
 
+        <OwnerControls agentId={agentId} onOwnershipChanged={refresh} />
+
         <button
           onClick={() => setShowDetails((s) => !s)}
-          className="mt-16 text-[11px] uppercase tracking-widest text-white/20 hover:text-white/50 transition-colors"
+          className="mt-12 text-[11px] uppercase tracking-widest text-white/20 hover:text-white/50 transition-colors"
         >
           {showDetails ? 'hide details' : 'details'}
         </button>

@@ -9,6 +9,82 @@ async function signAdminAuth(walletSign: WalletSignFn): Promise<{ signature: str
   return { signature: bs58.encode(result.signature), signedAt };
 }
 
+async function signKeyedMessage(
+  walletSign: WalletSignFn,
+  prefix: string,
+  agentId: string,
+): Promise<{ signature: string; signedAt: number }> {
+  const signedAt = Date.now();
+  const message = `${prefix}:${agentId}:${signedAt}`;
+  const encoded = new TextEncoder().encode(message);
+  const result = await walletSign({ message: encoded });
+  const bs58 = (await import('bs58')).default;
+  return { signature: bs58.encode(result.signature), signedAt };
+}
+
+export interface VaultAccess {
+  tier: 'owner' | 'public';
+  canEdit: boolean;
+  needsKey: boolean;
+  mint: string | null;
+  holder: string | null;
+  reason?: string;
+}
+
+export async function getVaultAccess(agentId: string, wallet?: string): Promise<VaultAccess> {
+  if (!RUNTIME_URL) throw new Error('Runtime URL not configured');
+  const url = wallet
+    ? `${RUNTIME_URL}/v1/vaults/${agentId}/access?wallet=${encodeURIComponent(wallet)}`
+    : `${RUNTIME_URL}/v1/vaults/${agentId}/access`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`access check failed: ${res.status}`);
+  return res.json();
+}
+
+export async function claimVault(
+  agentId: string,
+  wallet: string,
+  signMessage: WalletSignFn,
+): Promise<{ ok: boolean; mint: string; metadataUri: string; imageUri: string; txSignature: string }> {
+  if (!RUNTIME_URL) throw new Error('Runtime URL not configured');
+  const auth = await signKeyedMessage(signMessage, 'BlockHelix-claim-vault', agentId);
+  const res = await fetch(`${RUNTIME_URL}/v1/vaults/${agentId}/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wallet, signature: auth.signature, signedAt: auth.signedAt }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `claim failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function setHolderKey(
+  agentId: string,
+  wallet: string,
+  anthropicKey: string,
+  signMessage: WalletSignFn,
+): Promise<{ ok: boolean }> {
+  if (!RUNTIME_URL) throw new Error('Runtime URL not configured');
+  const auth = await signKeyedMessage(signMessage, 'BlockHelix-holder-key', agentId);
+  const res = await fetch(`${RUNTIME_URL}/v1/vaults/${agentId}/holder-key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      wallet,
+      anthropicKey,
+      signature: auth.signature,
+      signedAt: auth.signedAt,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `set key failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export interface RegisterAgentParams {
   agentId: string;
   name: string;

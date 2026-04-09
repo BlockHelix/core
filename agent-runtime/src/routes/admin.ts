@@ -508,6 +508,74 @@ export async function handleUpdateIdentity(req: Request, res: Response): Promise
   }
 }
 
+// Claim an unminted legacy vault. The wallet claiming must match the vault's
+// stored operator and sign a fresh message. On success, mints the NFT to that
+// wallet. Idempotent-ish: refuses if a mint already exists.
+export async function handleClaimVault(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const { wallet, signature, signedAt } = req.body || {};
+
+  if (!wallet || !signature || !signedAt) {
+    res.status(400).json({ error: 'wallet, signature, signedAt required' });
+    return;
+  }
+  const timestamp = typeof signedAt === 'number' ? signedAt : parseInt(signedAt, 10);
+  if (!isMessageRecent(timestamp, 120_000)) {
+    res.status(401).json({ error: 'Signature expired' });
+    return;
+  }
+  const message = `BlockHelix-claim-vault:${agentId}:${timestamp}`;
+  const isValid = verifyWalletSignature({ message, signature, publicKey: wallet });
+  if (!isValid) {
+    res.status(401).json({ error: 'Invalid wallet signature' });
+    return;
+  }
+
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Vault not found' });
+    return;
+  }
+  if (agent.vaultNftMint) {
+    res.status(409).json({ error: 'Vault already minted', mint: agent.vaultNftMint });
+    return;
+  }
+  // Gate on ownerWallet first (the user who deployed it), fall back to operator.
+  // For legacy vaults where ownerWallet wasn't set, operator IS the right check.
+  const allowedClaimer = (agent.ownerWallet && agent.ownerWallet !== '')
+    ? agent.ownerWallet
+    : agent.operator;
+  if (!allowedClaimer || allowedClaimer !== wallet) {
+    res.status(403).json({
+      error: 'Only the original operator can claim this vault',
+      expected: allowedClaimer,
+    });
+    return;
+  }
+
+  try {
+    const liveUrl = `https://blockhelix.tech/v/${agent.vault}`;
+    const result = await mintVaultNft({
+      vault: agent.vault,
+      name: agent.name,
+      archetype: agent.archetype,
+      ownerPubkey: wallet,
+      liveUrl,
+    });
+    await agentStorage.update(agent.vault, { vaultNftMint: result.mint });
+    res.json({
+      ok: true,
+      mint: result.mint,
+      metadataUri: result.metadataUri,
+      imageUri: result.imageUri,
+      txSignature: result.txSignature,
+    });
+  } catch (err) {
+    console.error('[claim] mint failed:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Claim failed' });
+  }
+}
+
 // Holders register their own Anthropic key so their chats run on their dime.
 // Requires a fresh wallet signature — no replay protection beyond the 2-min window.
 export async function handleSetHolderKey(req: Request, res: Response): Promise<void> {

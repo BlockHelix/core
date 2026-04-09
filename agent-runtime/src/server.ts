@@ -17,6 +17,7 @@ import {
   handleOpsSummary,
   handleLife,
   handleAccess,
+  handleClaimVault,
   handleSetHolderKey,
   handleUpdateIdentity,
   handleTaskControl,
@@ -316,6 +317,7 @@ export function createApp(): express.Application {
   app.get('/admin/openclaw/:agentId/life', handleLife);
   app.get('/v1/vaults/:agentId/life', handleLife);
   app.get('/v1/vaults/:agentId/access', handleAccess);
+  app.post('/v1/vaults/:agentId/claim', handleClaimVault);
   app.post('/v1/vaults/:agentId/holder-key', handleSetHolderKey);
   app.post('/admin/openclaw/:agentId/identity', handleUpdateIdentity);
   app.post('/admin/openclaw/:agentId/task-control', handleTaskControl);
