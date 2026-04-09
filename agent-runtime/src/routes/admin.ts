@@ -14,6 +14,7 @@ import {
   setTaskStatus as setAgentTaskStatus,
 } from '../services/spend-ledger';
 import { getVaultState } from '../services/mood-state';
+import { mintVaultNft, getVaultNftHolder, isValidSolanaPubkey } from '../services/vault-nft';
 import type { AgentConfig } from '../types';
 
 export function requireWalletAuth(req: Request, res: Response, next: NextFunction): void {
@@ -350,6 +351,33 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       },
     });
 
+    // Mint the vault's NFT in the background. The NFT is the "deed" that
+    // represents ownership — it lands directly in the ownerWallet. We don't
+    // block the response on this; if it fails, vault_nft_mint stays null and
+    // we can retry later.
+    const nftOwner = ownerWallet || operator;
+    if (nftOwner && isValidSolanaPubkey(nftOwner)) {
+      const liveUrl = `https://blockhelix.tech/v/${vault}`;
+      mintVaultNft({
+        vault,
+        name,
+        archetype,
+        ownerPubkey: nftOwner,
+        liveUrl,
+      })
+        .then(async (result) => {
+          console.log(`[nft] Minted ${result.mint} for vault ${vault} -> ${nftOwner}`);
+          await agentStorage.update(vault, { vaultNftMint: result.mint }).catch((err) => {
+            console.error('[nft] Failed to persist mint address:', err);
+          });
+        })
+        .catch((err) => {
+          console.error(`[nft] Mint failed for vault ${vault}:`, err);
+        });
+    } else {
+      console.warn(`[nft] Skipping mint for ${vault}: invalid owner ${nftOwner}`);
+    }
+
     const runtimeUrl = process.env.RUNTIME_URL || `https://${req.headers.host}`;
 
     containerManager.deployAgent({
@@ -477,6 +505,124 @@ export async function handleUpdateIdentity(req: Request, res: Response): Promise
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
+  }
+}
+
+// Holders register their own Anthropic key so their chats run on their dime.
+// Requires a fresh wallet signature — no replay protection beyond the 2-min window.
+export async function handleSetHolderKey(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const { wallet, signature, signedAt, anthropicKey } = req.body || {};
+
+  if (!wallet || !signature || !signedAt || !anthropicKey) {
+    res.status(400).json({ error: 'wallet, signature, signedAt, anthropicKey required' });
+    return;
+  }
+  if (typeof anthropicKey !== 'string' || !anthropicKey.startsWith('sk-ant-')) {
+    res.status(400).json({ error: 'anthropicKey must be a valid key (sk-ant-...)' });
+    return;
+  }
+  const timestamp = typeof signedAt === 'number' ? signedAt : parseInt(signedAt, 10);
+  if (!isMessageRecent(timestamp, 120_000)) {
+    res.status(401).json({ error: 'Signature expired' });
+    return;
+  }
+  const message = `BlockHelix-holder-key:${agentId}:${timestamp}`;
+  const isValid = verifyWalletSignature({ message, signature, publicKey: wallet });
+  if (!isValid) {
+    res.status(401).json({ error: 'Invalid wallet signature' });
+    return;
+  }
+
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Vault not found' });
+    return;
+  }
+  if (!agent.vaultNftMint) {
+    res.status(400).json({ error: 'Vault has no NFT — ownership cannot be verified' });
+    return;
+  }
+
+  try {
+    const holder = await getVaultNftHolder(agent.vaultNftMint);
+    if (holder !== wallet) {
+      res.status(403).json({ error: 'Signer does not hold the vault NFT' });
+      return;
+    }
+    await agentStorage.setHolderKey(agent.vault, wallet, anthropicKey);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[holder-key] set failed:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
+  }
+}
+
+// Access resolution — checks whether a wallet holds the vault NFT.
+// Returns tier + whether they need to add an Anthropic key to chat unlimited.
+export async function handleAccess(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const wallet = (req.query.wallet as string) || '';
+
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Vault not found' });
+    return;
+  }
+
+  // No NFT minted yet (legacy vaults) — default to public tier
+  if (!agent.vaultNftMint) {
+    res.json({
+      tier: 'public',
+      canEdit: false,
+      needsKey: false,
+      mint: null,
+      holder: null,
+      reason: 'vault has no NFT minted',
+    });
+    return;
+  }
+
+  // No wallet passed → public tier
+  if (!wallet || !isValidSolanaPubkey(wallet)) {
+    res.json({
+      tier: 'public',
+      canEdit: false,
+      needsKey: false,
+      mint: agent.vaultNftMint,
+      holder: null,
+    });
+    return;
+  }
+
+  try {
+    const holder = await getVaultNftHolder(agent.vaultNftMint);
+    const isHolder = holder === wallet;
+
+    if (!isHolder) {
+      res.json({
+        tier: 'public',
+        canEdit: false,
+        needsKey: false,
+        mint: agent.vaultNftMint,
+        holder,
+      });
+      return;
+    }
+
+    // Holder — check if they've registered their own Anthropic key
+    const hasKey = await agentStorage.hasHolderKey(agent.vault, wallet);
+
+    res.json({
+      tier: 'owner',
+      canEdit: true,
+      needsKey: !hasKey,
+      mint: agent.vaultNftMint,
+      holder,
+    });
+  } catch (err) {
+    console.error('[access] check failed:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Access check failed' });
   }
 }
 

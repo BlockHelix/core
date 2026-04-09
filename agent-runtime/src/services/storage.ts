@@ -66,6 +66,18 @@ CREATE TABLE IF NOT EXISTS agent_approvals (
 );
 CREATE INDEX IF NOT EXISTS idx_agent_approvals_vault ON agent_approvals(vault);
 CREATE INDEX IF NOT EXISTS idx_agent_approvals_status ON agent_approvals(status);
+
+-- Per-holder Anthropic API keys. When the NFT transfers, the new holder
+-- adds their own key here and their compute bill is on them.
+CREATE TABLE IF NOT EXISTS holder_keys (
+  vault TEXT NOT NULL,
+  holder_pubkey TEXT NOT NULL,
+  anthropic_key_encrypted TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (vault, holder_pubkey)
+);
+CREATE INDEX IF NOT EXISTS idx_holder_keys_vault ON holder_keys(vault);
 `;
 
 function rowToStored(row: any): StoredAgent {
@@ -100,6 +112,7 @@ function rowToStored(row: any): StoredAgent {
     purposeMd: row.purpose_md || undefined,
     memoryMd: row.memory_md || undefined,
     archetype: row.archetype || undefined,
+    vaultNftMint: row.vault_nft_mint || undefined,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   };
@@ -138,6 +151,8 @@ class AgentStorage {
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS purpose_md TEXT');
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS memory_md TEXT');
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS archetype TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS vault_nft_mint TEXT');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_agents_vault_nft_mint ON agents(vault_nft_mint)');
     await this.loadCache();
     await this.backfillSdkKeys();
     this.initialized = true;
@@ -280,6 +295,7 @@ class AgentStorage {
         purposeMd: 'purpose_md',
         memoryMd: 'memory_md',
         archetype: 'archetype',
+        vaultNftMint: 'vault_nft_mint',
       };
       for (const [key, col] of Object.entries(map)) {
         if ((updates as any)[key] !== undefined) {
@@ -382,6 +398,52 @@ class AgentStorage {
       await pool.query('DELETE FROM agents WHERE vault = $1', [agent.vault]);
     }
     return true;
+  }
+
+  // --- Holder keys: per-wallet Anthropic keys. Each NFT holder brings their own.
+  async setHolderKey(vault: string, holderPubkey: string, anthropicKey: string): Promise<void> {
+    if (!pool) return;
+    const encrypted = encrypt(anthropicKey);
+    await pool.query(
+      `INSERT INTO holder_keys (vault, holder_pubkey, anthropic_key_encrypted)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (vault, holder_pubkey) DO UPDATE SET
+         anthropic_key_encrypted = EXCLUDED.anthropic_key_encrypted,
+         updated_at = now()`,
+      [vault, holderPubkey, encrypted],
+    );
+  }
+
+  async getHolderKey(vault: string, holderPubkey: string): Promise<string | null> {
+    if (!pool) return null;
+    const { rows } = await pool.query(
+      `SELECT anthropic_key_encrypted FROM holder_keys WHERE vault = $1 AND holder_pubkey = $2`,
+      [vault, holderPubkey],
+    );
+    if (rows.length === 0) return null;
+    const enc = rows[0].anthropic_key_encrypted;
+    try {
+      return isEncrypted(enc) ? decrypt(enc) : enc;
+    } catch {
+      return null;
+    }
+  }
+
+  async hasHolderKey(vault: string, holderPubkey: string): Promise<boolean> {
+    if (!pool) return false;
+    const { rowCount } = await pool.query(
+      `SELECT 1 FROM holder_keys WHERE vault = $1 AND holder_pubkey = $2`,
+      [vault, holderPubkey],
+    );
+    return (rowCount || 0) > 0;
+  }
+
+  async removeHolderKey(vault: string, holderPubkey: string): Promise<void> {
+    if (!pool) return;
+    await pool.query(
+      `DELETE FROM holder_keys WHERE vault = $1 AND holder_pubkey = $2`,
+      [vault, holderPubkey],
+    );
   }
 }
 

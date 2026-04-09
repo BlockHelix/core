@@ -27,6 +27,7 @@ export interface AgentConfig {
   purposeMd?: string;
   memoryMd?: string;
   archetype?: 'scout' | 'critic' | 'trader' | 'oracle' | 'custom';
+  vaultNftMint?: string;
 }
 
 export interface RunRequest {
