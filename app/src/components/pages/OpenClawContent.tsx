@@ -53,9 +53,6 @@ export default function OpenClawContent() {
     if (!apiKey || !apiKey.startsWith('sk-ant-')) {
       newErrors.apiKey = 'Valid Anthropic API key required (starts with sk-ant-)';
     }
-    if (budgetUsdc < 1) {
-      newErrors.budgetUsdc = 'Budget must be at least $1';
-    }
     if (!operatorTelegram || operatorTelegram.length < 3) {
       newErrors.operatorTelegram = 'Telegram username required for approvals';
     }
@@ -268,25 +265,6 @@ export default function OpenClawContent() {
             {errors.systemPrompt && <p className="text-xs text-red-400 mt-1">{errors.systemPrompt}</p>}
           </div>
 
-          {/* Budget */}
-          <div>
-            <label className="block text-xs text-white/60 mb-2">
-              Budget (USDC)
-            </label>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={budgetUsdc}
-              onChange={(e) => setBudgetUsdc(parseFloat(e.target.value) || 0)}
-              className={inputCls + " font-mono"}
-              placeholder="20"
-            />
-            <p className="text-xs text-white/40 mt-2">
-              Hard cap. You&apos;ll fund the agent&apos;s wallet with this amount after deploy.
-            </p>
-          </div>
-
           {/* Telegram */}
           <div>
             <label className="block text-xs text-white/60 mb-2">
@@ -393,7 +371,7 @@ export default function OpenClawContent() {
             disabled={isCreating || deployStep >= 0}
             className="w-full py-4 bg-emerald-400 text-black text-sm font-bold hover:bg-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isCreating ? 'Deploying…' : `Launch agent with $${budgetUsdc} budget`}
+            {isCreating ? 'Deploying…' : 'Launch agent'}
           </button>
         </div>
       </div>
