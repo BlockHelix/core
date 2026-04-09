@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { agentStorage } from '../services/storage';
 import { getVaultNftHolder, isValidSolanaPubkey } from '../services/vault-nft';
+import { verifyWalletSignature } from '../services/wallet-verify';
 
 /**
  * Chat with a vault. v1 scope:
@@ -105,7 +106,7 @@ function sse(res: Response, event: string, data: unknown) {
 
 export async function handleVaultChat(req: Request, res: Response): Promise<void> {
   const { agentId } = req.params;
-  const { message, wallet, history } = req.body || {};
+  const { message, wallet, history, sessionSignature, sessionExpAt } = req.body || {};
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     res.status(400).json({ error: 'message required' });
@@ -122,15 +123,37 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
     return;
   }
 
-  // Resolve which API key to use.
+  // Resolve which API key to use. To trust the `wallet` claim, we need a
+  // valid session signature — a message the owner signed when they opened
+  // the chat, good for up to an hour. Without it, we fall back to public.
   let anthropicKey: string | null = null;
   let tier: 'holder' | 'public' = 'public';
-  if (wallet && typeof wallet === 'string' && isValidSolanaPubkey(wallet)) {
+  let verifiedWallet: string | null = null;
+  if (
+    wallet &&
+    typeof wallet === 'string' &&
+    isValidSolanaPubkey(wallet) &&
+    typeof sessionSignature === 'string' &&
+    typeof sessionExpAt === 'number'
+  ) {
+    const now = Date.now();
+    // Accept sessions up to 1 hour in the future, reject expired ones.
+    if (sessionExpAt > now && sessionExpAt - now < 60 * 60 * 1000 + 5000) {
+      const sessionMessage = `BlockHelix-chat:${agentId}:${sessionExpAt}`;
+      const ok = verifyWalletSignature({
+        message: sessionMessage,
+        signature: sessionSignature,
+        publicKey: wallet,
+      });
+      if (ok) verifiedWallet = wallet;
+    }
+  }
+  if (verifiedWallet) {
     if (agent.vaultNftMint) {
       try {
         const holder = await getVaultNftHolder(agent.vaultNftMint);
-        if (holder === wallet) {
-          const key = await agentStorage.getHolderKey(agent.vault, wallet);
+        if (holder === verifiedWallet) {
+          const key = await agentStorage.getHolderKey(agent.vault, verifiedWallet);
           if (key) {
             anthropicKey = key;
             tier = 'holder';
@@ -153,7 +176,10 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
     return;
   }
 
-  const systemPrompt = buildVaultSystemPrompt(agent, { tier, wallet });
+  const systemPrompt = buildVaultSystemPrompt(agent, {
+    tier,
+    wallet: verifiedWallet || undefined,
+  });
 
   // Build message history — accept up to 20 prior turns from the client.
   // The client is untrusted here; we only use it to preserve context in the

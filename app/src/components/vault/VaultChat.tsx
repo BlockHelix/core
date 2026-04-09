@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useWallets } from '@privy-io/react-auth/solana';
+import { toast } from '@/lib/toast';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
 
@@ -19,16 +21,55 @@ interface Msg {
 
 export default function VaultChat({ agentId, vaultName, open, onClose }: Props) {
   const { walletAddress } = useAuth();
+  const { wallets } = useWallets();
+  const signerWallet = wallets[0];
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [tier, setTier] = useState<'holder' | 'public' | null>(null);
+  const [session, setSession] = useState<{ signature: string; expAt: number; wallet: string } | null>(null);
+  const [signingSession, setSigningSession] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
+
+  // Sign a 1-hour chat session when the drawer opens with a connected wallet.
+  // This is what proves to the server that the caller owns the wallet they
+  // claim, so the vault can unlock the holder voice + holder API key.
+  useEffect(() => {
+    if (!open || !walletAddress || !signerWallet) return;
+    if (session && session.wallet === walletAddress && session.expAt > Date.now() + 60_000) return;
+
+    let cancelled = false;
+    (async () => {
+      setSigningSession(true);
+      try {
+        const expAt = Date.now() + 60 * 60 * 1000;
+        const message = `BlockHelix-chat:${agentId}:${expAt}`;
+        const encoded = new TextEncoder().encode(message);
+        const result = await signerWallet.signMessage({ message: encoded });
+        const bs58 = (await import('bs58')).default;
+        const raw: unknown = (result as any)?.signature ?? result;
+        let sigBytes: Uint8Array;
+        if (raw instanceof Uint8Array) sigBytes = raw;
+        else if (Array.isArray(raw)) sigBytes = Uint8Array.from(raw);
+        else if (typeof raw === 'string') {
+          try { sigBytes = bs58.decode(raw); }
+          catch { sigBytes = Uint8Array.from(Buffer.from(raw, 'base64')); }
+        } else throw new Error('unexpected signature shape');
+        if (cancelled) return;
+        setSession({ signature: bs58.encode(sigBytes), expAt, wallet: walletAddress });
+      } catch (err: any) {
+        if (!cancelled) toast(err?.message || 'failed to sign chat session', 'error');
+      } finally {
+        if (!cancelled) setSigningSession(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, walletAddress, signerWallet, agentId, session]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -50,7 +91,17 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
       const res = await fetch(`${RUNTIME_URL}/v1/vaults/${agentId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, wallet: walletAddress || undefined, history }),
+        body: JSON.stringify({
+          message: text,
+          history,
+          ...(session && session.wallet === walletAddress && session.expAt > Date.now()
+            ? {
+                wallet: session.wallet,
+                sessionSignature: session.signature,
+                sessionExpAt: session.expAt,
+              }
+            : {}),
+        }),
       });
 
       if (!res.ok || !res.body) {
@@ -125,7 +176,9 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 space-y-4">
           {messages.length === 0 && (
-            <div className="text-center text-white/20 text-xs mt-10">say hello.</div>
+            <div className="text-center text-white/20 text-xs mt-10">
+              {signingSession ? 'signing chat session…' : 'say hello.'}
+            </div>
           )}
           {messages.map((m, i) => (
             <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
