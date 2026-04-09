@@ -458,6 +458,28 @@ export async function handleOpsSummary(req: Request, res: Response): Promise<voi
   }
 }
 
+// Update identity files for an existing vault (no wallet auth for M0 — tighten later)
+export async function handleUpdateIdentity(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const { birthMd, purposeMd, memoryMd, archetype } = req.body || {};
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Vault not found' });
+    return;
+  }
+  try {
+    await agentStorage.update(agent.vault, {
+      birthMd: birthMd !== undefined ? birthMd : agent.birthMd,
+      purposeMd: purposeMd !== undefined ? purposeMd : agent.purposeMd,
+      memoryMd: memoryMd !== undefined ? memoryMd : agent.memoryMd,
+      archetype: archetype !== undefined ? archetype : agent.archetype,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
+  }
+}
+
 // Public life endpoint — returns identity + mood + recent activity for the public vault page
 export async function handleLife(req: Request, res: Response): Promise<void> {
   const { agentId } = req.params;
