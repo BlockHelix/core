@@ -15,19 +15,28 @@ const WALLET_PATH_PREFIXES = [
   '/openclaw',
   '/agent',
   '/jobs',
+  '/v',
 ];
 
 function needsWallet(pathname: string): boolean {
   return WALLET_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+function isChromeless(pathname: string): boolean {
+  // Calm tech vault pages render fullscreen with no header/footer/banner
+  return pathname.startsWith('/v/');
+}
+
 export default function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
   const walletEnabled = useMemo(() => needsWallet(pathname), [pathname]);
+  const chromeless = isChromeless(pathname);
 
   useEffect(() => { initPosthog(); }, []);
 
-  const content = (
+  const content = chromeless ? (
+    <>{children}</>
+  ) : (
     <>
       <Header showWallet={walletEnabled} />
       <div className="fixed top-14 left-0 right-0 z-40 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500">
