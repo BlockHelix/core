@@ -493,6 +493,9 @@ export async function handleLife(req: Request, res: Response): Promise<void> {
       getVaultState(agent.vault),
       listAgentSpends(agent.vault, 10),
     ]);
+    // Public response: NEVER leak the vault's internal identity (BIRTH/PURPOSE/MEMORY).
+    // Those are the agent's "NPC script" — they live inside the vault and shape behavior.
+    // Visitors see what the vault DOES, not its source code.
     res.json({
       vault: {
         id: agent.vault,
@@ -501,13 +504,7 @@ export async function handleLife(req: Request, res: Response): Promise<void> {
         agentWallet: agent.agentWallet || null,
         archetype: agent.archetype || null,
         operator: agent.operator || null,
-        operatorTelegram: agent.operatorTelegram || null,
         taskStatus: agent.taskStatus || 'running',
-      },
-      identity: {
-        birth: agent.birthMd || null,
-        purpose: agent.purposeMd || agent.taskDescription || agent.systemPrompt || null,
-        memory: agent.memoryMd || null,
       },
       state,
       recentActivity: spends.map((s) => ({

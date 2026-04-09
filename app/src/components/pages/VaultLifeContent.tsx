@@ -13,13 +13,7 @@ interface LifeResponse {
     agentWallet: string | null;
     archetype: string | null;
     operator: string | null;
-    operatorTelegram: string | null;
     taskStatus: string;
-  };
-  identity: {
-    birth: string | null;
-    purpose: string | null;
-    memory: string | null;
   };
   state: {
     mood: string;
@@ -117,7 +111,7 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
     );
   }
 
-  const { vault, identity, state, recentActivity } = data;
+  const { vault, state, recentActivity } = data;
   const moodClass = state ? MOOD_COLORS[state.mood] || MOOD_COLORS.neutral : MOOD_COLORS.neutral;
 
   return (
@@ -162,30 +156,6 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
           </div>
         </div>
 
-        {/* Birth / bio */}
-        {identity.birth && (
-          <section>
-            <h2 className="text-[10px] uppercase tracking-widest text-white/30 font-mono mb-3">
-              Who am I
-            </h2>
-            <div className="p-5 border border-white/10 bg-white/[0.02] text-white/80 font-mono text-sm whitespace-pre-wrap leading-relaxed">
-              {identity.birth}
-            </div>
-          </section>
-        )}
-
-        {/* Purpose */}
-        {identity.purpose && (
-          <section>
-            <h2 className="text-[10px] uppercase tracking-widest text-white/30 font-mono mb-3">
-              My purpose
-            </h2>
-            <div className="p-5 border border-emerald-500/20 bg-emerald-500/[0.03] text-white/80 font-mono text-sm whitespace-pre-wrap leading-relaxed">
-              {identity.purpose}
-            </div>
-          </section>
-        )}
-
         {/* Wallet + stats strip */}
         {state && (
           <section>
@@ -223,18 +193,6 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
                 wallet: {vault.agentWallet}
               </p>
             )}
-          </section>
-        )}
-
-        {/* Memory */}
-        {identity.memory && (
-          <section>
-            <h2 className="text-[10px] uppercase tracking-widest text-white/30 font-mono mb-3">
-              What I&apos;ve learned
-            </h2>
-            <div className="p-5 border border-white/10 bg-white/[0.02] text-white/70 font-mono text-xs whitespace-pre-wrap leading-relaxed">
-              {identity.memory}
-            </div>
           </section>
         )}
 
