@@ -9,6 +9,7 @@ import { formatUSDC, formatShares } from '@/lib/format';
 import { toast, toastTx } from '@/lib/toast';
 import { RPC_URL } from '@/lib/anchor';
 import { ExternalLink } from 'lucide-react';
+import { posthog } from '@/lib/posthog';
 
 const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 
@@ -67,6 +68,7 @@ export function InvestWithdrawForm({
   const estimatedUsdc = withdrawAmount ? parseFloat(withdrawAmount) * sharePrice : 0;
 
   const handleDeposit = async () => {
+    posthog?.capture('vault_deposit_attempt', { vault: vaultPubkey?.toBase58(), amount: depositAmount });
     if (!vaultPubkey || !shareMint) {
       toast('Vault not available', 'error');
       return;
@@ -93,6 +95,7 @@ export function InvestWithdrawForm({
   };
 
   const handleWithdraw = async () => {
+    posthog?.capture('vault_withdraw_attempt', { vault: vaultPubkey?.toBase58(), amount: withdrawAmount });
     if (!vaultPubkey || !shareMint) {
       toast('Vault not available', 'error');
       return;

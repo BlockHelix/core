@@ -7,6 +7,7 @@ import { formatUSDC } from '@/lib/format';
 import { explorerTxUrl } from '@/lib/explorer';
 import { cn } from '@/lib/cn';
 import { useX402 } from '@/hooks/useX402';
+import { posthog } from '@/lib/posthog';
 
 interface TryAgentWidgetProps {
   agentId: string;
@@ -37,8 +38,11 @@ export function TryAgentWidget({ agentId, price, endpointUrl, agentName }: TryAg
       return;
     }
 
+    posthog?.capture('agent_try', { agentId, agentName, price });
+
     if (!isReady) {
       setError('Wallet not ready for payments');
+      posthog?.capture('agent_try_blocked_no_wallet', { agentId });
       return;
     }
 

@@ -37,6 +37,35 @@ CREATE TABLE IF NOT EXISTS agents (
 );
 CREATE INDEX IF NOT EXISTS idx_agents_owner ON agents(owner_wallet);
 CREATE INDEX IF NOT EXISTS idx_agents_agent_id ON agents(agent_id);
+
+CREATE TABLE IF NOT EXISTS agent_spends (
+  id BIGSERIAL PRIMARY KEY,
+  vault TEXT NOT NULL,
+  amount_micro BIGINT NOT NULL,
+  recipient TEXT,
+  reason TEXT,
+  tx_signature TEXT,
+  approval_id BIGINT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_agent_spends_vault ON agent_spends(vault);
+CREATE INDEX IF NOT EXISTS idx_agent_spends_created ON agent_spends(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS agent_approvals (
+  id BIGSERIAL PRIMARY KEY,
+  vault TEXT NOT NULL,
+  amount_micro BIGINT NOT NULL,
+  reason TEXT NOT NULL,
+  recipient TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  telegram_message_id TEXT,
+  resolved_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_agent_approvals_vault ON agent_approvals(vault);
+CREATE INDEX IF NOT EXISTS idx_agent_approvals_status ON agent_approvals(status);
 `;
 
 function rowToStored(row: any): StoredAgent {
@@ -60,6 +89,13 @@ function rowToStored(row: any): StoredAgent {
     deployPhase: row.deploy_phase || undefined,
     deployError: row.deploy_error || undefined,
     sdkKey: row.sdk_key || undefined,
+    taskDescription: row.task_description || undefined,
+    budgetTotalMicro: row.budget_total_micro != null ? Number(row.budget_total_micro) : 0,
+    budgetSpentMicro: row.budget_spent_micro != null ? Number(row.budget_spent_micro) : 0,
+    budgetReservedMicro: row.budget_reserved_micro != null ? Number(row.budget_reserved_micro) : 0,
+    approvalThresholdMicro: row.approval_threshold_micro != null ? Number(row.approval_threshold_micro) : 5000000,
+    taskStatus: row.task_status || 'running',
+    operatorTelegram: row.operator_telegram || undefined,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   };
@@ -87,6 +123,13 @@ class AgentStorage {
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS deploy_status TEXT DEFAULT \'pending\'');
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS deploy_phase TEXT');
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS deploy_error TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS task_description TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS budget_total_micro BIGINT DEFAULT 0');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS budget_spent_micro BIGINT DEFAULT 0');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS budget_reserved_micro BIGINT DEFAULT 0');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS approval_threshold_micro BIGINT DEFAULT 5000000');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS task_status TEXT DEFAULT \'running\'');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS operator_telegram TEXT');
     await this.loadCache();
     await this.backfillSdkKeys();
     this.initialized = true;
@@ -218,6 +261,13 @@ class AgentStorage {
         model: 'model', operator: 'operator', registry: 'registry', isActive: 'is_active',
         isContainerized: 'is_containerized', containerIp: 'container_ip',
         deployStatus: 'deploy_status', deployPhase: 'deploy_phase', deployError: 'deploy_error',
+        taskDescription: 'task_description',
+        budgetTotalMicro: 'budget_total_micro',
+        budgetSpentMicro: 'budget_spent_micro',
+        budgetReservedMicro: 'budget_reserved_micro',
+        approvalThresholdMicro: 'approval_threshold_micro',
+        taskStatus: 'task_status',
+        operatorTelegram: 'operator_telegram',
       };
       for (const [key, col] of Object.entries(map)) {
         if ((updates as any)[key] !== undefined) {

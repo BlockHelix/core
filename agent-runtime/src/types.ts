@@ -16,6 +16,13 @@ export interface AgentConfig {
   deployStatus?: 'pending' | 'deploying' | 'active' | 'failed';
   deployPhase?: string;
   deployError?: string;
+  taskDescription?: string;
+  budgetTotalMicro?: number;
+  budgetSpentMicro?: number;
+  budgetReservedMicro?: number;
+  approvalThresholdMicro?: number;
+  taskStatus?: 'running' | 'paused' | 'completed' | 'budget_exhausted' | 'failed';
+  operatorTelegram?: string;
 }
 
 export interface RunRequest {

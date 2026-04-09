@@ -351,6 +351,53 @@ async function handleTgMessage(chatId, text, agentId) {
   }
 }
 
+const BH_RUNTIME_URL = process.env.BH_RUNTIME_URL || '';
+const BH_SDK_KEY = process.env.BH_SDK_KEY || '';
+
+const APPROVAL_REGEX = /^\s*(yes|y|approve|ok|ok!|no|n|reject|nope)\s+(\d+)\s*$/i;
+
+function normalizeDecision(word) {
+  const w = word.toLowerCase();
+  if (w === 'yes' || w === 'y' || w === 'approve' || w === 'ok' || w === 'ok!') return 'approved';
+  return 'rejected';
+}
+
+async function resolveApprovalViaRuntime(approvalId, decision, operatorUsername) {
+  if (!BH_RUNTIME_URL || !BH_SDK_KEY) {
+    throw new Error('BH_RUNTIME_URL or BH_SDK_KEY missing');
+  }
+  const resp = await fetch(`${BH_RUNTIME_URL}/v1/sdk/approvals/${approvalId}/resolve`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${BH_SDK_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ decision, operator_username: operatorUsername }),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`runtime resolve failed: ${resp.status} ${body.slice(0, 200)}`);
+  }
+  return resp.json();
+}
+
+async function maybeHandleApprovalReply(chatId, text, username) {
+  const match = text.match(APPROVAL_REGEX);
+  if (!match) return false;
+  const decision = normalizeDecision(match[1]);
+  const approvalId = Number(match[2]);
+  try {
+    const result = await resolveApprovalViaRuntime(approvalId, decision, username || 'operator');
+    const status = result?.status || decision;
+    await tgSend(chatId, `Approval #${approvalId} ${status}.`).catch(() => {});
+    console.log(`[telegram] Resolved approval #${approvalId} -> ${status}`);
+  } catch (err) {
+    console.error('[telegram] Approval resolve error:', err.message);
+    await tgSend(chatId, `Approval #${approvalId} failed: ${err.message}`).catch(() => {});
+  }
+  return true;
+}
+
 async function tgPoll() {
   if (!TG_TOKEN || !connected) return;
   try {
@@ -365,6 +412,12 @@ async function tgPoll() {
       const isOperator = OPERATOR_TG && (username === OPERATOR_TG || String(chatId) === OPERATOR_TG);
       const role = isOperator ? 'operator' : 'public';
       console.log(`[telegram] ${role} message from @${username || chatId}: ${msg.text.slice(0, 80)}`);
+
+      // Operators can reply YES/NO <approval_id> to resolve pending approvals
+      if (isOperator && await maybeHandleApprovalReply(chatId, msg.text, username)) {
+        continue;
+      }
+
       handleTgMessage(chatId, msg.text, role).catch(err => {
         console.error('[telegram] Unhandled:', err.message);
       });

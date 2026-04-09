@@ -7,6 +7,18 @@ import { agentStorage } from '../services/storage';
 import { eventIndexer } from '../services/event-indexer';
 import { getAllHostedAgents } from '../services/agent-config';
 import { pool } from '../services/db';
+import {
+  preflight as spendPreflight,
+  settle as spendSettle,
+  fail as spendFail,
+  getApproval,
+  resolveApproval,
+  listPendingApprovals,
+  listSpends,
+  getBudget,
+  setTaskStatus,
+  BudgetError,
+} from '../services/spend-ledger';
 
 const s3 = new S3Client({});
 const UPLOAD_BUCKET = process.env.UPLOAD_BUCKET || 'blockhelix-dev-storage';
@@ -229,6 +241,148 @@ router.post('/upload', express.raw({ type: '*/*', limit: '50mb' }), async (req: 
   const publicUrl = `https://${UPLOAD_BUCKET}.s3.amazonaws.com/${key}`;
 
   res.json({ url, publicUrl, key, filename, expiresIn: '7d' });
+});
+
+// ------------------------------------------------------------------
+// Spend / budget / approval endpoints
+// ------------------------------------------------------------------
+
+function handleBudgetError(res: Response, err: unknown): void {
+  if (err instanceof BudgetError) {
+    const status = err.code === 'AGENT_NOT_FOUND' ? 404 : 402;
+    res.status(status).json({ error: err.message, code: err.code });
+    return;
+  }
+  console.error('[sdk] Unexpected error:', err);
+  res.status(500).json({ error: 'Internal error' });
+}
+
+router.get('/budget', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  try {
+    const budget = await getBudget(agent.vault);
+    if (!budget) { res.status(404).json({ error: 'Agent not found' }); return; }
+    res.json(budget);
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.post('/spend/preflight', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  const { amount_micro, reason, recipient } = req.body || {};
+  if (typeof amount_micro !== 'number' || !reason) {
+    res.status(400).json({ error: 'amount_micro and reason required' });
+    return;
+  }
+  try {
+    const result = await spendPreflight(agent.vault, amount_micro, String(reason), recipient);
+    res.json(result);
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.post('/spend/settle', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  const { reservation_id, tx_signature, recipient, reason } = req.body || {};
+  if (typeof reservation_id !== 'number') {
+    res.status(400).json({ error: 'reservation_id required' });
+    return;
+  }
+  try {
+    await spendSettle(agent.vault, reservation_id, tx_signature, recipient, reason);
+    res.json({ ok: true });
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.post('/spend/fail', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  const { reservation_id, reason } = req.body || {};
+  if (typeof reservation_id !== 'number') {
+    res.status(400).json({ error: 'reservation_id required' });
+    return;
+  }
+  try {
+    await spendFail(agent.vault, reservation_id, String(reason || 'unknown'));
+    res.json({ ok: true });
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.get('/spends', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.json({ spends: [] }); return; }
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+  try {
+    const spends = await listSpends(agent.vault, limit);
+    res.json({ spends });
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.get('/approvals', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.json({ approvals: [] }); return; }
+  try {
+    const approvals = await listPendingApprovals(agent.vault);
+    res.json({ approvals });
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.get('/approvals/:id', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  try {
+    const approval = await getApproval(agent.vault, id);
+    if (!approval) { res.status(404).json({ error: 'Approval not found' }); return; }
+    res.json(approval);
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.post('/approvals/:id/resolve', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  const { decision, operator_username } = req.body || {};
+  if (decision !== 'approved' && decision !== 'rejected') {
+    res.status(400).json({ error: 'decision must be approved or rejected' });
+    return;
+  }
+  try {
+    const existing = await getApproval(agent.vault, id);
+    if (!existing) { res.status(404).json({ error: 'Approval not found' }); return; }
+    const result = await resolveApproval(id, decision, String(operator_username || 'unknown'));
+    res.json(result);
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.post('/task/complete', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  try {
+    await setTaskStatus(agent.vault, 'completed');
+    res.json({ ok: true, status: 'completed' });
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.post('/task/pause', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  try {
+    await setTaskStatus(agent.vault, 'paused');
+    res.json({ ok: true, status: 'paused' });
+  } catch (err) { handleBudgetError(res, err); }
+});
+
+router.post('/task/resume', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  if (!agent.vault) { res.status(400).json({ error: 'Agent has no vault' }); return; }
+  try {
+    await setTaskStatus(agent.vault, 'running');
+    res.json({ ok: true, status: 'running' });
+  } catch (err) { handleBudgetError(res, err); }
 });
 
 export default router;

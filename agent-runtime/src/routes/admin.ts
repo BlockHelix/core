@@ -264,7 +264,7 @@ export async function handleUpdateAgentConfig(req: Request, res: Response): Prom
 }
 
 export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
-  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken, operatorTelegram, braveApiKey, colosseumApiKey, kimiApiKey, veoApiKey, runwayApiKey, heartbeat } = req.body;
+  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken, operatorTelegram, braveApiKey, colosseumApiKey, kimiApiKey, veoApiKey, runwayApiKey, heartbeat, taskDescription, budgetUsdcMicro, approvalThresholdUsdcMicro } = req.body;
 
   if (!vault || !name || !systemPrompt || !apiKey) {
     res.status(400).json({
@@ -272,6 +272,9 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
     });
     return;
   }
+
+  const budgetMicro = typeof budgetUsdcMicro === 'number' ? budgetUsdcMicro : 0;
+  const thresholdMicro = typeof approvalThresholdUsdcMicro === 'number' ? approvalThresholdUsdcMicro : 5_000_000;
 
   let agentWallet: string | undefined;
   let walletSecretKey: string | undefined = bodySecretKey;
@@ -291,7 +294,7 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       agentId: agentId || '',
       name,
       systemPrompt,
-      priceUsdcMicro: priceUsdcMicro ?? 100_000,
+      priceUsdcMicro: priceUsdcMicro ?? 0,
       model: model || 'claude-sonnet-4-20250514',
       operator: operator || '',
       vault,
@@ -302,9 +305,24 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       agentWallet,
       walletSecretKey,
       deployStatus: 'deploying',
+      taskDescription: taskDescription || systemPrompt,
+      budgetTotalMicro: budgetMicro,
+      budgetSpentMicro: 0,
+      budgetReservedMicro: 0,
+      approvalThresholdMicro: thresholdMicro,
+      taskStatus: 'running',
+      operatorTelegram: operatorTelegram || undefined,
     };
 
     const stored = await agentStorage.create(fullConfig, ownerWallet || operator || '');
+    // Persist the new fields — create() doesn't know about them by default, so update after
+    await agentStorage.update(vault, {
+      taskDescription: fullConfig.taskDescription,
+      budgetTotalMicro: budgetMicro,
+      approvalThresholdMicro: thresholdMicro,
+      taskStatus: 'running',
+      operatorTelegram: fullConfig.operatorTelegram,
+    });
     eventIndexer.refreshMappings();
 
     res.status(201).json({
@@ -338,6 +356,9 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       kimiApiKey,
       veoApiKey,
       runwayApiKey,
+      taskDescription: fullConfig.taskDescription,
+      budgetTotalMicro: budgetMicro,
+      approvalThresholdMicro: thresholdMicro,
       heartbeat: heartbeat?.enabled ? {
         enabled: true,
         interval: heartbeat.interval,

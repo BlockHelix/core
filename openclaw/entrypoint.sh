@@ -178,6 +178,153 @@ Searches agent names/vaults and your own job history.
 SKILLEOF
   rm -f "$WORKSPACE/SKILL.md"
   echo "[entrypoint] Wrote blockhelix-api skill"
+
+  # budget-control skill — how the agent spends money
+  mkdir -p "$WORKSPACE/skills/budget-control"
+  BUDGET_TOTAL_DISPLAY="${BUDGET_TOTAL_MICRO:-0}"
+  APPROVAL_THRESHOLD_DISPLAY="${APPROVAL_THRESHOLD_MICRO:-5000000}"
+  TASK_DESCRIPTION_DISPLAY="${TASK_DESCRIPTION:-(not set)}"
+  cat > "$WORKSPACE/skills/budget-control/SKILL.md" <<BUDGETEOF
+---
+name: budget-control
+description: MANDATORY — how to spend money from your agent wallet. Call preflight before EVERY paid API call.
+metadata: {"openclaw":{"always":true,"emoji":"\$"}}
+---
+
+# Budget Control — READ THIS FIRST
+
+You are an autonomous agent with your own crypto wallet (Solana USDC).
+Your task has a **budget limit** enforced by BlockHelix.
+
+## Your task
+$TASK_DESCRIPTION_DISPLAY
+
+## Your budget
+- Total: $BUDGET_TOTAL_DISPLAY micro-USDC (\$$(awk "BEGIN {printf \"%.2f\", $BUDGET_TOTAL_DISPLAY / 1000000}"))
+- Approval threshold: $APPROVAL_THRESHOLD_DISPLAY micro-USDC (\$$(awk "BEGIN {printf \"%.2f\", $APPROVAL_THRESHOLD_DISPLAY / 1000000}"))
+- Any spend above the threshold REQUIRES human approval via Telegram.
+
+## The golden rule
+**Before ANY paid API call, payment, or outbound transaction, you MUST call \`/v1/sdk/spend/preflight\`.**
+If you skip preflight, the spend will NOT be tracked and the operator will see it as unauthorized.
+
+## Check your current budget state
+
+\`\`\`
+curl -s -H "Authorization: Bearer \$BH_SDK_KEY" "\$BH_RUNTIME_URL/v1/sdk/budget"
+\`\`\`
+
+Returns: \`{total, spent, reserved, available, threshold, status}\` (all in micro-USDC).
+
+If \`status\` is \`paused\`, \`completed\`, \`budget_exhausted\`, or \`failed\` — **STOP WORKING** and do not attempt any further spends.
+
+## Step 1: Preflight
+
+Before you spend money, call:
+
+\`\`\`
+curl -s -X POST "\$BH_RUNTIME_URL/v1/sdk/spend/preflight" \\
+  -H "Authorization: Bearer \$BH_SDK_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"amount_micro": 100000, "reason": "brave search api call", "recipient": "brave"}'
+\`\`\`
+
+### Possible responses
+
+**Under threshold, reserved immediately:**
+\`\`\`
+{"status": "approved", "reservationId": 42}
+\`\`\`
+Proceed with the payment. Save \`reservationId\` — you need it for settle.
+
+**Above threshold, waiting for operator:**
+\`\`\`
+{"status": "awaiting_approval", "approvalId": 7}
+\`\`\`
+A Telegram message was sent to the operator. Poll the approval endpoint:
+
+\`\`\`
+curl -s -H "Authorization: Bearer \$BH_SDK_KEY" "\$BH_RUNTIME_URL/v1/sdk/approvals/7"
+\`\`\`
+
+Poll every 5–10 seconds. If \`status\` is still \`pending\`, wait. Max wait: 10 minutes.
+
+- \`approved\` → a fresh reservation was created automatically. Call \`GET /v1/sdk/spends?limit=1\` to get the new \`reservationId\`, then proceed with payment.
+- \`rejected\` → the operator said no. Do not attempt the spend. Report back and move on.
+- \`expired\` → timed out. Do not attempt the spend. Report back.
+
+**Error (402):**
+\`\`\`
+{"error": "BUDGET_EXHAUSTED", "code": "BUDGET_EXHAUSTED"}
+\`\`\`
+Your task status will be auto-set to \`budget_exhausted\`. Stop spending. Report back to the operator.
+
+## Step 2: Do the actual payment
+
+Once you have a reservation, make the HTTP call / sign the Solana tx / whatever the spend requires. Capture the tx signature if any.
+
+## Step 3: Settle
+
+After the payment succeeds:
+
+\`\`\`
+curl -s -X POST "\$BH_RUNTIME_URL/v1/sdk/spend/settle" \\
+  -H "Authorization: Bearer \$BH_SDK_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"reservation_id": 42, "tx_signature": "5xyz..."}'
+\`\`\`
+
+If the payment failed:
+
+\`\`\`
+curl -s -X POST "\$BH_RUNTIME_URL/v1/sdk/spend/fail" \\
+  -H "Authorization: Bearer \$BH_SDK_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"reservation_id": 42, "reason": "402 response from upstream"}'
+\`\`\`
+
+\`fail\` releases the reservation back to available budget.
+
+## Resuming after restart
+
+If your container restarts, check for in-flight approvals:
+
+\`\`\`
+curl -s -H "Authorization: Bearer \$BH_SDK_KEY" "\$BH_RUNTIME_URL/v1/sdk/approvals"
+\`\`\`
+
+Any approvals in \`pending\` status may already have been resolved in Telegram. Poll each one's \`GET /v1/sdk/approvals/:id\` to get the latest.
+
+## Reporting task completion
+
+When your task is done (or you give up), call:
+
+\`\`\`
+curl -s -X POST "\$BH_RUNTIME_URL/v1/sdk/task/complete" \\
+  -H "Authorization: Bearer \$BH_SDK_KEY"
+\`\`\`
+
+This sets your task status to \`completed\`. The operator will be notified via the dashboard.
+
+You may also pause and resume:
+
+\`\`\`
+curl -s -X POST "\$BH_RUNTIME_URL/v1/sdk/task/pause"  -H "Authorization: Bearer \$BH_SDK_KEY"
+curl -s -X POST "\$BH_RUNTIME_URL/v1/sdk/task/resume" -H "Authorization: Bearer \$BH_SDK_KEY"
+\`\`\`
+
+## Summary of the spend loop
+
+1. Decide you need to spend money on a tool/API/tx.
+2. \`POST /v1/sdk/spend/preflight\` with amount + reason.
+3. If \`approved\` → proceed. If \`awaiting_approval\` → poll until resolved. If \`rejected\`/\`expired\` → abandon.
+4. Do the actual payment.
+5. \`POST /v1/sdk/spend/settle\` (or \`spend/fail\` if it didn't work).
+6. Repeat.
+
+**NEVER spend without preflight.** The operator can see every spend and will pause your task if you go rogue.
+BUDGETEOF
+  echo "[entrypoint] Wrote budget-control skill"
 fi
 
 if [ -n "$COLOSSEUM_API_KEY" ]; then

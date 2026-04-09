@@ -53,6 +53,9 @@ interface DeployParams {
   kimiApiKey?: string;
   veoApiKey?: string;
   runwayApiKey?: string;
+  taskDescription?: string;
+  budgetTotalMicro?: number;
+  approvalThresholdMicro?: number;
   onProgress?: (phase: DeployPhase) => void;
 }
 
@@ -200,6 +203,9 @@ class ContainerManager {
             ...(params.kimiApiKey ? [{ name: 'KIMI_API_KEY', value: params.kimiApiKey }] : []),
             ...(params.veoApiKey ? [{ name: 'VEO_API_KEY', value: params.veoApiKey }] : []),
             ...(params.runwayApiKey ? [{ name: 'RUNWAY_API_KEY', value: params.runwayApiKey }] : []),
+            ...(params.taskDescription ? [{ name: 'TASK_DESCRIPTION', value: params.taskDescription }] : []),
+            ...(params.budgetTotalMicro != null ? [{ name: 'BUDGET_TOTAL_MICRO', value: String(params.budgetTotalMicro) }] : []),
+            ...(params.approvalThresholdMicro != null ? [{ name: 'APPROVAL_THRESHOLD_MICRO', value: String(params.approvalThresholdMicro) }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },
               ...(params.heartbeat.interval ? [{ name: 'HEARTBEAT_INTERVAL', value: params.heartbeat.interval }] : []),
