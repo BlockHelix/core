@@ -23,7 +23,7 @@ export default function DashboardContent() {
   const wallet = wallets[0];
   const { agents: allAgents } = useAgentListAPI();
 
-  const [tab, setTab] = useState<Tab>('staked');
+  const [tab, setTab] = useState<Tab>('deployed');
   const [myAgents, setMyAgents] = useState<AgentSummary[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentsError, setAgentsError] = useState<string | null>(null);
@@ -84,8 +84,8 @@ export default function DashboardContent() {
   const totalGain = totalValue - totalDeposited;
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'staked', label: 'STAKED', count: positions.length },
-    { key: 'deployed', label: 'DEPLOYED', count: myAgents.length },
+    { key: 'deployed', label: 'AGENTS', count: myAgents.length },
+    { key: 'staked', label: 'LEGACY STAKED', count: positions.length },
     { key: 'jobs', label: 'JOBS', count: 0 },
   ];
 
@@ -119,26 +119,26 @@ export default function DashboardContent() {
             DASHBOARD
           </div>
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">
-            Overview
+            Your agents
           </h1>
           <p className="text-sm text-white/50 leading-relaxed mb-8">
-            Your positions, agents, and activity
+            Monitor budgets, approve spends, pause or resume tasks.
           </p>
 
           {/* Summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
             <div className="border border-white/10 p-6 bg-white/[0.01]">
-              <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">STAKED VALUE</div>
+              <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">AGENTS</div>
+              <div className="text-2xl lg:text-3xl font-bold text-white font-mono tabular-nums">{myAgents.length}</div>
+            </div>
+            <div className="border border-white/10 p-6 bg-white/[0.01]">
+              <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">LEGACY STAKED</div>
               <div className="text-2xl lg:text-3xl font-bold text-white font-mono tabular-nums">${formatUSDC(totalValue)}</div>
               {totalGain !== 0 && (
                 <div className={`text-xs mt-2 font-mono ${totalGain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {totalGain >= 0 ? '+' : ''}${formatUSDC(totalGain)}
                 </div>
               )}
-            </div>
-            <div className="border border-white/10 p-6 bg-white/[0.01]">
-              <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">AGENTS DEPLOYED</div>
-              <div className="text-2xl lg:text-3xl font-bold text-white font-mono tabular-nums">{myAgents.length}</div>
             </div>
             <div className="border border-white/10 p-6 bg-white/[0.01]">
               <div className="text-[10px] uppercase tracking-widest text-white/40 mb-3 font-mono">POSITIONS</div>

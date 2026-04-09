@@ -10,7 +10,7 @@ export default function Footer() {
               BlockHelix
             </Link>
             <p className="text-white/40 text-sm mt-2 font-mono">
-              Accelerating Agent Capitalism
+              Wallets for AI agents.
             </p>
           </div>
 
@@ -38,7 +38,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-8 border-t border-white/5 text-center">
           <p className="text-white/30 text-xs font-mono">
-            Tokenised Agent Infrastructure
+            Give your agent a wallet, a task, and a budget. It handles the rest.
           </p>
         </div>
       </div>
