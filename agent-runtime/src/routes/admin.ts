@@ -515,19 +515,29 @@ export async function handleClaimVault(req: Request, res: Response): Promise<voi
   const { agentId } = req.params;
   const { wallet, signature, signedAt } = req.body || {};
 
+  console.log(`[claim] incoming agentId=${agentId} wallet=${wallet} signedAt=${signedAt} sigLen=${signature?.length}`);
+
   if (!wallet || !signature || !signedAt) {
+    console.warn('[claim] missing required fields');
     res.status(400).json({ error: 'wallet, signature, signedAt required' });
     return;
   }
   const timestamp = typeof signedAt === 'number' ? signedAt : parseInt(signedAt, 10);
   if (!isMessageRecent(timestamp, 120_000)) {
+    console.warn(`[claim] signature expired: signedAt=${timestamp} now=${Date.now()}`);
     res.status(401).json({ error: 'Signature expired' });
     return;
   }
   const message = `BlockHelix-claim-vault:${agentId}:${timestamp}`;
+  console.log(`[claim] verifying message="${message}" sig="${signature.slice(0, 20)}..."`);
   const isValid = verifyWalletSignature({ message, signature, publicKey: wallet });
   if (!isValid) {
-    res.status(401).json({ error: 'Invalid wallet signature' });
+    console.warn(`[claim] signature verification failed for wallet=${wallet} message="${message}"`);
+    res.status(401).json({
+      error: 'Invalid wallet signature',
+      hint: 'Server expected this exact message to have been signed',
+      expectedMessage: message,
+    });
     return;
   }
 

@@ -19,7 +19,37 @@ async function signKeyedMessage(
   const encoded = new TextEncoder().encode(message);
   const result = await walletSign({ message: encoded });
   const bs58 = (await import('bs58')).default;
-  return { signature: bs58.encode(result.signature), signedAt };
+
+  // Privy's signMessage may return the signature as Uint8Array, string,
+  // or wrapped in different keys depending on SDK version. Normalize it.
+  const raw: unknown = (result as any)?.signature ?? result;
+  let sigBytes: Uint8Array;
+  if (raw instanceof Uint8Array) {
+    sigBytes = raw;
+  } else if (Array.isArray(raw)) {
+    sigBytes = Uint8Array.from(raw);
+  } else if (typeof raw === 'string') {
+    // Could be base58 or base64. Assume base58 first; fall back to base64.
+    try {
+      sigBytes = bs58.decode(raw);
+    } catch {
+      sigBytes = Uint8Array.from(Buffer.from(raw, 'base64'));
+    }
+  } else if (raw && typeof (raw as any).buffer !== 'undefined') {
+    sigBytes = new Uint8Array((raw as any).buffer);
+  } else {
+    console.error('[signKeyedMessage] unexpected signature shape', { raw, result });
+    throw new Error('Wallet signMessage returned an unexpected signature shape');
+  }
+
+  console.log('[signKeyedMessage]', {
+    message,
+    messageLen: encoded.length,
+    sigLen: sigBytes.length,
+    sigBase58Preview: bs58.encode(sigBytes).slice(0, 16) + '...',
+  });
+
+  return { signature: bs58.encode(sigBytes), signedAt };
 }
 
 export interface VaultAccess {

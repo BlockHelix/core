@@ -9,6 +9,7 @@ import {
   type PublicKey as UmiPublicKey,
 } from '@metaplex-foundation/umi';
 import { PublicKey as Web3PublicKey, Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { RPC_URL } from '../config';
 
 const s3 = new S3Client({});
@@ -163,9 +164,10 @@ export async function mintVaultNft(params: MintVaultNftParams): Promise<MintVaul
     owner: ownerUmi,
   }).sendAndConfirm(umi);
 
+  // result.signature is a Uint8Array of the tx sig bytes — base58 for Solana
   const signature = typeof result.signature === 'string'
     ? result.signature
-    : Buffer.from(result.signature).toString('base64');
+    : bs58.encode(result.signature);
 
   return {
     mint: asset.publicKey.toString(),
