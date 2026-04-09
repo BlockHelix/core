@@ -12,6 +12,7 @@ import { formatUSDC, formatShares } from '@/lib/format';
 import { CopyButton } from '@/components/CopyButton';
 import WalletButton from '@/components/WalletButton';
 import { getAgentsByOwner, type AgentSummary } from '@/lib/runtime';
+import { AgentOpsPanel } from '@/components/AgentOpsPanel';
 
 type Tab = 'staked' | 'deployed' | 'jobs';
 
@@ -323,6 +324,9 @@ function DeployedTab({ agents, error }: { agents: AgentSummary[]; error: string 
               </button>
             </Link>
           </div>
+          {(agent.vault || agent.agentId) && (
+            <AgentOpsPanel vault={agent.vault || agent.agentId} />
+          )}
         </div>
       ))}
       <div className="pt-4">

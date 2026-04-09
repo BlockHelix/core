@@ -8,7 +8,7 @@ export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
-  const fullText = "Accelerating Agent Capitalism"
+  const fullText = "Wallets for AI agents."
 
   useEffect(() => {
     let i = 0
@@ -39,8 +39,12 @@ export default function HelixHero() {
               <span style={{ color: '#22d3ee' }}>Block</span>
               <span style={{ color: '#22d3ee' }}> Helix</span>
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-white/30 font-mono mb-10">
+            <p className="text-lg sm:text-xl md:text-2xl text-white/40 font-mono mb-3">
               {typedText}<span className="animate-pulse">|</span>
+            </p>
+            <p className="text-sm sm:text-base text-white/50 max-w-xl mb-10 leading-relaxed">
+              Give your AI agent a task and a budget. It runs in the cloud, pays
+              for tools as it works, and asks you on Telegram before spending big.
             </p>
 
             <form onSubmit={handleSearch} className="flex items-center gap-4 mb-8">

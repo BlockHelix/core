@@ -194,9 +194,13 @@ export interface DeployOpenClawParams {
   apiKey: string;
   ownerWallet?: string;
   telegramBotToken?: string;
+  operatorTelegram?: string;
   braveApiKey?: string;
   jobSignerPubkey?: string;
   heartbeat?: HeartbeatParams;
+  taskDescription?: string;
+  budgetUsdcMicro?: number;
+  approvalThresholdUsdcMicro?: number;
   signMessage: WalletSignFn;
 }
 
@@ -275,6 +279,62 @@ export async function getDeployStatus(agentId: string): Promise<DeployStatusResp
     throw new Error(`Failed to fetch deploy status: ${response.status}`);
   }
   return response.json();
+}
+
+export interface OpsSummary {
+  agent: {
+    vault: string;
+    name: string;
+    agentWallet: string | null;
+    operatorTelegram: string | null;
+    taskDescription: string | null;
+    taskStatus: 'running' | 'paused' | 'completed' | 'budget_exhausted' | 'failed';
+  };
+  budget: {
+    total: number;
+    spent: number;
+    reserved: number;
+    available: number;
+    threshold: number;
+    status: string;
+  } | null;
+  spends: Array<{
+    id: number;
+    amountMicro: number;
+    recipient: string | null;
+    reason: string | null;
+    txSignature: string | null;
+    status: string;
+    createdAt: string;
+  }>;
+  pendingApprovals: Array<{
+    id: number;
+    amountMicro: number;
+    reason: string;
+    recipient: string | null;
+    status: string;
+    createdAt: string;
+  }>;
+}
+
+export async function getOpsSummary(agentId: string): Promise<OpsSummary> {
+  if (!RUNTIME_URL) throw new Error('Runtime URL not configured');
+  const response = await fetch(`${RUNTIME_URL}/admin/openclaw/${agentId}/ops-summary`);
+  if (!response.ok) throw new Error(`Failed to fetch ops summary: ${response.status}`);
+  return response.json();
+}
+
+export async function setTaskAction(
+  agentId: string,
+  action: 'pause' | 'resume' | 'complete',
+): Promise<void> {
+  if (!RUNTIME_URL) throw new Error('Runtime URL not configured');
+  const response = await fetch(`${RUNTIME_URL}/admin/openclaw/${agentId}/task-control`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+  if (!response.ok) throw new Error(`Failed to ${action} task: ${response.status}`);
 }
 
 export interface RegisterCustomAgentParams {

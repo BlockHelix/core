@@ -33,8 +33,8 @@ export default function ClientShell({ children }: { children: React.ReactNode })
       <div className="fixed top-14 left-0 right-0 z-40 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500">
         <a href="/openclaw" className="block py-2.5 px-4 text-center text-sm font-medium text-white hover:bg-orange-600/20 transition-colors">
           <span className="inline-flex items-center gap-2">
-            <span className="font-bold">NEW:</span> Launch OpenClaw agents instantly
-            <span className="hidden sm:inline">— no infrastructure needed</span>
+            <span className="font-bold">NEW:</span> Give your AI agent a wallet &amp; a task
+            <span className="hidden sm:inline">— one-click deploy</span>
             <span className="ml-1">→</span>
           </span>
         </a>

@@ -7,6 +7,12 @@ import { containerManager } from '../services/container-manager';
 import { eventIndexer } from '../services/event-indexer';
 import { encrypt } from '../services/crypto';
 import { runAgent } from '../services/llm';
+import {
+  getBudget as getAgentBudget,
+  listSpends as listAgentSpends,
+  listPendingApprovals as listAgentPendingApprovals,
+  setTaskStatus as setAgentTaskStatus,
+} from '../services/spend-ledger';
 import type { AgentConfig } from '../types';
 
 export function requireWalletAuth(req: Request, res: Response, next: NextFunction): void {
@@ -406,6 +412,66 @@ export async function handleDeployStatus(req: Request, res: Response): Promise<v
     containerIp: agent.containerIp || null,
     error: agent.deployError || null,
   });
+}
+
+// Budget + spends + pending approvals snapshot for the owner dashboard.
+// Read-only; identified by vault. (Wallet-auth variant TBD.)
+export async function handleOpsSummary(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Agent not found' });
+    return;
+  }
+  const vault = agent.vault;
+  try {
+    const [budget, spends, approvals] = await Promise.all([
+      getAgentBudget(vault),
+      listAgentSpends(vault, 20),
+      listAgentPendingApprovals(vault),
+    ]);
+    res.json({
+      agent: {
+        vault,
+        name: agent.name,
+        agentWallet: agent.agentWallet || null,
+        operatorTelegram: agent.operatorTelegram || null,
+        taskDescription: agent.taskDescription || null,
+        taskStatus: agent.taskStatus || 'running',
+      },
+      budget,
+      spends,
+      pendingApprovals: approvals,
+    });
+  } catch (err) {
+    console.error('[admin] ops-summary error:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
+  }
+}
+
+export async function handleTaskControl(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const { action } = req.body || {};
+  if (!['pause', 'resume', 'complete'].includes(action)) {
+    res.status(400).json({ error: 'action must be pause | resume | complete' });
+    return;
+  }
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Agent not found' });
+    return;
+  }
+  const statusMap: Record<string, 'paused' | 'running' | 'completed'> = {
+    pause: 'paused',
+    resume: 'running',
+    complete: 'completed',
+  };
+  try {
+    await setAgentTaskStatus(agent.vault, statusMap[action]);
+    res.json({ ok: true, status: statusMap[action] });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
+  }
 }
 
 export async function handleStopOpenClaw(req: Request, res: Response): Promise<void> {

@@ -10,7 +10,6 @@ import { toast, toastTx } from '@/lib/toast';
 import { PROTOCOL_TREASURY } from '@/lib/anchor';
 import { deployOpenClaw } from '@/lib/runtime';
 import WalletButton from '@/components/WalletButton';
-import PriceInput from '@/components/create/PriceInput';
 import { RUNTIME_URL } from '@/lib/network-config';
 import { PublicKey } from '@solana/web3.js';
 import { posthog } from '@/lib/posthog';
@@ -28,7 +27,10 @@ export default function OpenClawContent() {
   const [name, setName] = useState('');
   const [githubHandle, setGithubHandle] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
-  const [pricePerCall, setPricePerCall] = useState(0.10);
+  const pricePerCall = 0;
+  const [budgetUsdc, setBudgetUsdc] = useState(20);
+  const [approvalThresholdUsdc, setApprovalThresholdUsdc] = useState(5);
+  const [operatorTelegram, setOperatorTelegram] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [telegramBotToken, setTelegramBotToken] = useState('');
   const [braveApiKey, setBraveApiKey] = useState('');
@@ -51,8 +53,11 @@ export default function OpenClawContent() {
     if (!apiKey || !apiKey.startsWith('sk-ant-')) {
       newErrors.apiKey = 'Valid Anthropic API key required (starts with sk-ant-)';
     }
-    if (pricePerCall < 0.01 || pricePerCall > 1.0) {
-      newErrors.pricePerCall = 'Price must be between $0.01 and $1.00';
+    if (budgetUsdc < 1) {
+      newErrors.budgetUsdc = 'Budget must be at least $1';
+    }
+    if (!operatorTelegram || operatorTelegram.length < 3) {
+      newErrors.operatorTelegram = 'Telegram username required for approvals';
     }
 
     setErrors(newErrors);
@@ -99,6 +104,8 @@ export default function OpenClawContent() {
       toastTx('Agent created on-chain!', result.signature);
 
       const priceUsdcMicro = Math.floor(pricePerCall * 1_000_000);
+      const budgetUsdcMicro = Math.floor(budgetUsdc * 1_000_000);
+      const approvalThresholdUsdcMicro = Math.floor(approvalThresholdUsdc * 1_000_000);
       const vaultStr = result.vaultState.toString();
 
       setDeployStep(1);
@@ -122,9 +129,13 @@ export default function OpenClawContent() {
         apiKey,
         ownerWallet: wallet?.address,
         telegramBotToken: telegramBotToken || undefined,
+        operatorTelegram: operatorTelegram || undefined,
         braveApiKey: braveApiKey || undefined,
         jobSignerPubkey,
         heartbeat: heartbeatEnabled ? { enabled: true, interval: heartbeatInterval } : undefined,
+        taskDescription: systemPrompt,
+        budgetUsdcMicro,
+        approvalThresholdUsdcMicro,
         signMessage: wallet.signMessage.bind(wallet),
       });
 
@@ -222,12 +233,13 @@ export default function OpenClawContent() {
   return (
     <main className="min-h-screen bg-[#0a0a0a]">
       <div className="max-w-3xl mx-auto px-6 py-20 lg:py-32">
-        <p className="text-[10px] uppercase tracking-widest text-orange-500 mb-4">OpenClaw</p>
+        <p className="text-[10px] uppercase tracking-widest text-orange-500 mb-4">Deploy Agent</p>
         <h1 className="text-3xl lg:text-5xl font-bold text-white mb-4 font-mono">
-          One-Click Deploy
+          Give your agent<br />a wallet &amp; a task.
         </h1>
         <p className="text-white/50 mb-8 max-w-xl">
-          Deploy an AI agent in an isolated container. Private subnet, no public IP, ~$10/mo.
+          Your agent runs in an isolated container, pays for tools as it works,
+          and asks you on Telegram before spending above your threshold.
         </p>
 
         {EXPECTED_NETWORK === 'devnet' && (
@@ -268,18 +280,18 @@ export default function OpenClawContent() {
 
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
-                System Prompt *
+                Task description *
               </label>
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 rows={6}
                 className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm resize-none focus:outline-none focus:border-orange-500/50 transition-colors"
-                placeholder="You are a research assistant specialized in..."
+                placeholder="Monitor these twitter accounts, summarize anything about X, post to my telegram daily..."
               />
               {errors.systemPrompt && <p className="text-xs text-red-400 mt-1 font-mono">{errors.systemPrompt}</p>}
               <p className="text-xs text-white/30 mt-2 font-mono">
-                Tip: Be specific. Good prompts make good agents.
+                What should your agent do? Be specific. The agent will read this as its system prompt.
               </p>
             </div>
 
@@ -312,7 +324,64 @@ export default function OpenClawContent() {
                 placeholder="123456:ABC-DEF..."
               />
               <p className="text-xs text-white/30 mt-2 font-mono">
-                Optional. Create a bot via @BotFather on Telegram for private operator access.
+                Required for approvals and operator chat. Create a bot via @BotFather on Telegram.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                Your Telegram username
+              </label>
+              <input
+                type="text"
+                value={operatorTelegram}
+                onChange={(e) => setOperatorTelegram(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
+                placeholder="xwsch"
+              />
+              <p className="text-xs text-white/30 mt-2 font-mono">
+                Without @. You&apos;ll receive approval requests here. Reply <span className="text-emerald-400">YES 42</span> or <span className="text-red-400">NO 42</span>.
+              </p>
+            </div>
+
+            <div className="border border-emerald-500/20 bg-emerald-500/[0.03] p-5 space-y-5">
+              <div className="text-[10px] uppercase tracking-widest text-emerald-400 font-mono font-bold">
+                Budget &amp; Approvals
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                    Task budget (USDC)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={budgetUsdc}
+                    onChange={(e) => setBudgetUsdc(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
+                    placeholder="20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
+                    Approval threshold (USDC)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={approvalThresholdUsdc}
+                    onChange={(e) => setApprovalThresholdUsdc(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
+                    placeholder="5"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-white/40 font-mono leading-relaxed">
+                Total USDC your agent can spend on tools, APIs, and services.
+                Spends above the threshold will message you on Telegram for approval.
+                Fund the agent&apos;s wallet with this amount after deploy — it&apos;s the hard cap.
               </p>
             </div>
 
@@ -366,18 +435,11 @@ export default function OpenClawContent() {
               )}
             </div>
 
-            <div>
-              <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-2 font-mono">
-                Price per call *
-              </label>
-              <PriceInput value={pricePerCall} onChange={setPricePerCall} dark />
-              {errors.pricePerCall && <p className="text-xs text-red-400 mt-1 font-mono">{errors.pricePerCall}</p>}
-            </div>
           </div>
 
-          <div className="p-4 border border-white/10 bg-white/5 text-sm text-white/60">
-            <span className="text-white font-mono font-semibold">$1 USDC</span> bond required.
-            Posted on-chain as operator stake. Slashed 2x for misbehavior.
+          <div className="p-4 border border-white/10 bg-white/5 text-sm text-white/60 font-mono">
+            After deploy, fund your agent&apos;s wallet with <span className="text-white font-semibold">${budgetUsdc} USDC</span>.
+            That&apos;s the hard cap. Spends above <span className="text-emerald-400">${approvalThresholdUsdc}</span> require your approval.
           </div>
 
           <div className="flex items-center gap-4">

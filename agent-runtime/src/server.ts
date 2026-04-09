@@ -14,6 +14,8 @@ import {
   handleUpdateAgentConfig,
   handleDeployOpenClaw,
   handleDeployStatus,
+  handleOpsSummary,
+  handleTaskControl,
   handleStopOpenClaw,
   handleGenerateKeypair,
   requireWalletAuth,
@@ -306,6 +308,8 @@ export function createApp(): express.Application {
 
   app.post('/admin/openclaw/deploy', adminLimit, requireWalletAuth, handleDeployOpenClaw);
   app.get('/admin/openclaw/:agentId/deploy-status', handleDeployStatus);
+  app.get('/admin/openclaw/:agentId/ops-summary', handleOpsSummary);
+  app.post('/admin/openclaw/:agentId/task-control', handleTaskControl);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
 
   app.use('/v1/sdk', sdkRoutes);
