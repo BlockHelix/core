@@ -140,6 +140,7 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
   // the chat, good for up to an hour. Without it, we fall back to public.
   let anthropicKey: string | null = null;
   let tier: 'holder' | 'public' = 'public';
+  let isOwner = false;
   let verifiedWallet: string | null = null;
   if (
     wallet &&
@@ -160,28 +161,37 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
       if (ok) verifiedWallet = wallet;
     }
   }
+  // Ownership check — decoupled from key resolution. A verified wallet is
+  // the "owner" if it matches the on-chain NFT holder OR (for vaults with
+  // no NFT minted yet) the legacy ownerWallet/operator fallback. This is
+  // the SAME logic handleAccess uses.
   if (verifiedWallet) {
     if (agent.vaultNftMint) {
       try {
         const holder = await getVaultNftHolder(agent.vaultNftMint);
-        if (holder === verifiedWallet) {
-          const key = await agentStorage.getHolderKey(agent.vault, verifiedWallet);
-          if (key) {
-            anthropicKey = key;
-            tier = 'holder';
-          }
-        }
+        if (holder === verifiedWallet) isOwner = true;
       } catch (err) {
         console.warn('[chat] holder check failed:', err);
       }
+    } else {
+      const expectedClaimer = (agent.ownerWallet && agent.ownerWallet !== '')
+        ? agent.ownerWallet
+        : agent.operator;
+      if (expectedClaimer && verifiedWallet === expectedClaimer) isOwner = true;
     }
   }
-  if (!anthropicKey) {
-    if (agent.apiKey && agent.apiKey.startsWith('sk-ant-')) {
-      anthropicKey = agent.apiKey;
-      tier = 'public';
-    }
+
+  // Key resolution: prefer the owner's holder key if they've registered one,
+  // else fall back to the operator's stored key. Independent of voice tier.
+  if (isOwner && verifiedWallet) {
+    const key = await agentStorage.getHolderKey(agent.vault, verifiedWallet);
+    if (key) anthropicKey = key;
   }
+  if (!anthropicKey && agent.apiKey && agent.apiKey.startsWith('sk-ant-')) {
+    anthropicKey = agent.apiKey;
+  }
+
+  tier = isOwner ? 'holder' : 'public';
 
   if (!anthropicKey) {
     res.status(402).json({ error: 'no api key available for this vault' });
