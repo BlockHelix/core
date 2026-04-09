@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: agent-runtime
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Type check
         working-directory: agent-runtime

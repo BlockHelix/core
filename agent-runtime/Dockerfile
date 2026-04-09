@@ -2,7 +2,7 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
@@ -12,7 +12,7 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production --legacy-peer-deps
 COPY --from=builder /app/dist ./dist
 COPY idl ./idl
 
