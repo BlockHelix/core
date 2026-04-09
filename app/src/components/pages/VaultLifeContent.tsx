@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import MoodOrb from '@/components/vault/MoodOrb';
 import OwnerControls from '@/components/vault/OwnerControls';
+import WalletPip from '@/components/vault/WalletPip';
 import { explainVault } from '@/lib/vault-state';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
@@ -99,6 +100,7 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      <WalletPip />
       {/* Hero — the whole story in one screen */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
         <MoodOrb

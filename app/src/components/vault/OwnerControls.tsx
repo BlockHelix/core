@@ -83,34 +83,19 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
     }
   };
 
-  // Not connected — show a subtle but visible connect button
+  // Not connected — WalletPip in the corner handles the connect prompt.
+  // Nothing to render here unless they're the owner.
   if (!authenticated || !wallet) {
-    return (
-      <div className="mt-8">
-        <button
-          onClick={() => login()}
-          className="px-5 py-2 border border-white/25 text-white/60 text-xs hover:border-white/50 hover:text-white transition-colors rounded-full"
-        >
-          connect wallet
-        </button>
-        <div className="mt-2 text-[10px] text-white/20">
-          if you own this vault you&apos;ll see controls
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (loading || !access) {
-    return <div className="mt-8 text-[10px] uppercase tracking-widest text-white/30">checking access…</div>;
+    return null;
   }
 
-  // Not the owner — show a small, quiet badge so the viewer at least knows they connected
+  // Not the owner — hide entirely. The pip already confirms they're connected.
   if (access.tier !== 'owner') {
-    return (
-      <div className="mt-8 text-[10px] uppercase tracking-widest text-white/25">
-        viewing as visitor
-      </div>
-    );
+    return null;
   }
 
   // Owner but vault has no NFT yet → offer claim
