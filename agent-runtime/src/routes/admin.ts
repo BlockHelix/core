@@ -370,6 +370,13 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
           await agentStorage.update(vault, { vaultNftMint: result.mint }).catch((err) => {
             console.error('[nft] Failed to persist mint address:', err);
           });
+          // Seed the holder_keys row with the deployer's key so they can
+          // chat unlimited immediately without being asked again.
+          if (apiKey && apiKey.startsWith('sk-ant-')) {
+            await agentStorage.setHolderKey(vault, nftOwner, apiKey).catch((err) => {
+              console.error('[nft] Failed to seed holder key:', err);
+            });
+          }
         })
         .catch((err) => {
           console.error(`[nft] Mint failed for vault ${vault}:`, err);
@@ -573,6 +580,22 @@ export async function handleClaimVault(req: Request, res: Response): Promise<voi
       liveUrl,
     });
     await agentStorage.update(agent.vault, { vaultNftMint: result.mint });
+
+    // Auto-seed the holder key from the original operator's stored key.
+    // Anyone who deployed a vault already pasted their Anthropic key during
+    // deploy — we shouldn't ask again just because they're now claiming.
+    // agentStorage.get() decrypts apiKey for us so we can re-encrypt in the
+    // per-holder table.
+    try {
+      const freshAgent = await agentStorage.getAsync(agent.vault);
+      if (freshAgent?.apiKey && freshAgent.apiKey.startsWith('sk-ant-')) {
+        await agentStorage.setHolderKey(agent.vault, wallet, freshAgent.apiKey);
+        console.log(`[claim] auto-seeded holder key for ${wallet} from stored operator key`);
+      }
+    } catch (seedErr) {
+      console.warn('[claim] could not auto-seed holder key:', seedErr);
+    }
+
     res.json({
       ok: true,
       mint: result.mint,
@@ -588,16 +611,19 @@ export async function handleClaimVault(req: Request, res: Response): Promise<voi
 
 // Holders register their own Anthropic key so their chats run on their dime.
 // Requires a fresh wallet signature — no replay protection beyond the 2-min window.
+// If `reuseStored: true` is passed, copy the existing vault operator key into
+// holder_keys instead of requiring a new paste (common case: the original
+// operator is the holder and already supplied their key during deploy).
 export async function handleSetHolderKey(req: Request, res: Response): Promise<void> {
   const { agentId } = req.params;
-  const { wallet, signature, signedAt, anthropicKey } = req.body || {};
+  const { wallet, signature, signedAt, anthropicKey, reuseStored } = req.body || {};
 
-  if (!wallet || !signature || !signedAt || !anthropicKey) {
-    res.status(400).json({ error: 'wallet, signature, signedAt, anthropicKey required' });
+  if (!wallet || !signature || !signedAt) {
+    res.status(400).json({ error: 'wallet, signature, signedAt required' });
     return;
   }
-  if (typeof anthropicKey !== 'string' || !anthropicKey.startsWith('sk-ant-')) {
-    res.status(400).json({ error: 'anthropicKey must be a valid key (sk-ant-...)' });
+  if (!reuseStored && (!anthropicKey || typeof anthropicKey !== 'string' || !anthropicKey.startsWith('sk-ant-'))) {
+    res.status(400).json({ error: 'anthropicKey must be a valid key (sk-ant-...) unless reuseStored=true' });
     return;
   }
   const timestamp = typeof signedAt === 'number' ? signedAt : parseInt(signedAt, 10);
@@ -628,7 +654,17 @@ export async function handleSetHolderKey(req: Request, res: Response): Promise<v
       res.status(403).json({ error: 'Signer does not hold the vault NFT' });
       return;
     }
-    await agentStorage.setHolderKey(agent.vault, wallet, anthropicKey);
+
+    let keyToStore = anthropicKey;
+    if (reuseStored) {
+      if (!agent.apiKey || !agent.apiKey.startsWith('sk-ant-')) {
+        res.status(400).json({ error: 'No stored key available to reuse' });
+        return;
+      }
+      keyToStore = agent.apiKey;
+    }
+
+    await agentStorage.setHolderKey(agent.vault, wallet, keyToStore);
     res.json({ ok: true });
   } catch (err) {
     console.error('[holder-key] set failed:', err);

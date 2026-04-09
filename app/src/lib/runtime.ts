@@ -94,7 +94,7 @@ export async function claimVault(
 export async function setHolderKey(
   agentId: string,
   wallet: string,
-  anthropicKey: string,
+  options: { anthropicKey?: string; reuseStored?: boolean },
   signMessage: WalletSignFn,
 ): Promise<{ ok: boolean }> {
   if (!RUNTIME_URL) throw new Error('Runtime URL not configured');
@@ -104,7 +104,8 @@ export async function setHolderKey(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       wallet,
-      anthropicKey,
+      anthropicKey: options.anthropicKey,
+      reuseStored: options.reuseStored,
       signature: auth.signature,
       signedAt: auth.signedAt,
     }),
