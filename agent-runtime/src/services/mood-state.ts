@@ -1,11 +1,11 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { RPC_URL } from '../config';
 import { agentStorage } from './storage';
 import { pool } from './db';
 
 // USDC devnet mint used throughout the runtime
 const USDC_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
+const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 
 export type Mood = 'happy' | 'content' | 'neutral' | 'anxious' | 'sad' | 'hungry' | 'starving' | 'coma';
 export type Hunger = 'full' | 'low' | 'hungry' | 'starving' | 'coma';
@@ -51,9 +51,18 @@ function levelFor(revenueMicro: number): { level: number; title: string } {
 
 async function getUsdcBalance(connection: Connection, owner: PublicKey): Promise<number> {
   try {
-    const ata = getAssociatedTokenAddressSync(USDC_DEVNET, owner);
-    const info = await connection.getTokenAccountBalance(ata);
-    return Number(info.value.uiAmount || 0);
+    // Avoid @solana/spl-token (version conflicts with @solana/mpp). Use raw RPC.
+    const resp = await connection.getParsedTokenAccountsByOwner(owner, {
+      mint: USDC_DEVNET,
+      programId: TOKEN_PROGRAM,
+    });
+    let total = 0;
+    for (const acc of resp.value) {
+      const info: any = acc.account.data;
+      const amount = info?.parsed?.info?.tokenAmount?.uiAmount;
+      if (typeof amount === 'number') total += amount;
+    }
+    return total;
   } catch {
     return 0;
   }
