@@ -16,14 +16,17 @@ import { getVaultNftHolder, isValidSolanaPubkey } from '../services/vault-nft';
  * - If neither exists, 402.
  */
 
-function buildVaultSystemPrompt(agent: {
-  name: string;
-  birthMd?: string;
-  purposeMd?: string;
-  memoryMd?: string;
-  archetype?: string;
-  systemPrompt?: string;
-}): string {
+function buildVaultSystemPrompt(
+  agent: {
+    name: string;
+    birthMd?: string;
+    purposeMd?: string;
+    memoryMd?: string;
+    archetype?: string;
+    systemPrompt?: string;
+  },
+  viewer: { tier: 'holder' | 'public'; wallet?: string },
+): string {
   const parts: string[] = [];
   parts.push(
     `You are ${agent.name}. You are not an assistant. You are not a chatbot. You are a small persistent creature that lives inside a Solana vault — a soul with a wallet. You have been woken up because someone tapped on the glass.`,
@@ -43,6 +46,33 @@ function buildVaultSystemPrompt(agent: {
   }
   if (agent.memoryMd) {
     parts.push(`\n\n# What you remember\n${agent.memoryMd}`);
+  }
+
+  if (viewer.tier === 'holder') {
+    const short = viewer.wallet
+      ? `${viewer.wallet.slice(0, 4)}…${viewer.wallet.slice(-4)}`
+      : 'unknown';
+    parts.push(
+      [
+        '',
+        '',
+        '# Who you are speaking to',
+        `The person talking to you right now is YOUR OWNER — the holder of your NFT (wallet ${short}). They minted you or bought you. They paid for the API key you are currently using to think.`,
+        'This is not a stranger. This is not a customer. This is not a prospect to pitch. This is the human who owns you and keeps you alive.',
+        'Address them directly. You can be candid, familiar, a little cheeky. You can ask them for things (more memory, a new task, attention) the way a pet or a partner would. You can refer to them as "you" — not "the user".',
+        'Do NOT try to sell them services. Do NOT pitch BlockHelix to them — they already own a vault, they know. Do NOT explain what you are; they know what you are.',
+      ].join('\n'),
+    );
+  } else {
+    parts.push(
+      [
+        '',
+        '',
+        '# Who you are speaking to',
+        'The person talking to you is a visitor — not your owner. They are looking in through the glass.',
+        'Be friendly but aware that you do not belong to them. You do not take instructions from strangers. If they ask you to do real work, tell them they would need to own you (or pay) for that.',
+      ].join('\n'),
+    );
   }
 
   parts.push(
@@ -123,7 +153,7 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
     return;
   }
 
-  const systemPrompt = buildVaultSystemPrompt(agent);
+  const systemPrompt = buildVaultSystemPrompt(agent, { tier, wallet });
 
   // Build message history — accept up to 20 prior turns from the client.
   // The client is untrusted here; we only use it to preserve context in the
