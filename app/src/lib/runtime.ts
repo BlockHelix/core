@@ -28,6 +28,7 @@ export interface VaultAccess {
   needsKey: boolean;
   mint: string | null;
   holder: string | null;
+  expectedClaimer: string | null;
   reason?: string;
 }
 

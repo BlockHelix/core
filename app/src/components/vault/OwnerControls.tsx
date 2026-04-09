@@ -93,8 +93,23 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
     return null;
   }
 
-  // Not the owner — hide entirely. The pip already confirms they're connected.
+  // Not the owner. If there's an expected claimer for an unminted vault
+  // (i.e. we know who SHOULD be able to claim), surface that so the user
+  // can connect the right wallet. Otherwise hide.
   if (access.tier !== 'owner') {
+    if (access.expectedClaimer && !access.mint) {
+      const short = `${access.expectedClaimer.slice(0, 4)}…${access.expectedClaimer.slice(-4)}`;
+      return (
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <div className="text-[10px] uppercase tracking-widest text-white/30">
+            this vault was deployed by {short}
+          </div>
+          <div className="text-[10px] text-white/20">
+            connect that wallet to claim ownership
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 

@@ -638,14 +638,20 @@ export async function handleAccess(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  // No NFT minted yet (legacy vaults) — default to public tier
+  // No NFT minted yet (legacy vaults) — anyone can view, and we surface
+  // the pubkey that's allowed to claim so the UI can say "connect with X".
   if (!agent.vaultNftMint) {
+    const expectedClaimer = (agent.ownerWallet && agent.ownerWallet !== '')
+      ? agent.ownerWallet
+      : agent.operator;
+    const isClaimant = !!wallet && wallet === expectedClaimer;
     res.json({
-      tier: 'public',
+      tier: isClaimant ? 'owner' : 'public',
       canEdit: false,
       needsKey: false,
       mint: null,
       holder: null,
+      expectedClaimer: expectedClaimer || null,
       reason: 'vault has no NFT minted',
     });
     return;
@@ -659,6 +665,7 @@ export async function handleAccess(req: Request, res: Response): Promise<void> {
       needsKey: false,
       mint: agent.vaultNftMint,
       holder: null,
+      expectedClaimer: null,
     });
     return;
   }
@@ -674,6 +681,7 @@ export async function handleAccess(req: Request, res: Response): Promise<void> {
         needsKey: false,
         mint: agent.vaultNftMint,
         holder,
+        expectedClaimer: null,
       });
       return;
     }
@@ -687,6 +695,7 @@ export async function handleAccess(req: Request, res: Response): Promise<void> {
       needsKey: !hasKey,
       mint: agent.vaultNftMint,
       holder,
+      expectedClaimer: null,
     });
   } catch (err) {
     console.error('[access] check failed:', err);
