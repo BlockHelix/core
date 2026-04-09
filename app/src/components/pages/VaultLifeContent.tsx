@@ -6,6 +6,7 @@ import MoodOrb from '@/components/vault/MoodOrb';
 import OwnerControls from '@/components/vault/OwnerControls';
 import WalletPip from '@/components/vault/WalletPip';
 import { explainVault } from '@/lib/vault-state';
+import { useAuth } from '@/hooks/useAuth';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
 
@@ -41,6 +42,14 @@ interface LifeResponse {
     status: string;
     createdAt: string;
   }>;
+  access?: {
+    tier: 'owner' | 'public';
+    canEdit: boolean;
+    needsKey: boolean;
+    mint: string | null;
+    holder: string | null;
+    expectedClaimer: string | null;
+  };
 }
 
 const TONE_TEXT: Record<string, string> = {
@@ -65,13 +74,17 @@ interface Props {
 }
 
 export default function VaultLifeContent({ agentId, initialData }: Props) {
+  const { walletAddress } = useAuth();
   const [data, setData] = useState<LifeResponse | null>(initialData);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(`${RUNTIME_URL}/v1/vaults/${agentId}/life`);
+      const url = walletAddress
+        ? `${RUNTIME_URL}/v1/vaults/${agentId}/life?wallet=${encodeURIComponent(walletAddress)}`
+        : `${RUNTIME_URL}/v1/vaults/${agentId}/life`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
       setData(json);
@@ -79,9 +92,11 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : null);
     }
-  }, [agentId]);
+  }, [agentId, walletAddress]);
 
+  // Refetch immediately when wallet changes so owner controls appear fast
   useEffect(() => {
+    refresh();
     const id = setInterval(refresh, 20_000);
     return () => clearInterval(id);
   }, [refresh]);
@@ -139,7 +154,11 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
           </button>
         )}
 
-        <OwnerControls agentId={agentId} onOwnershipChanged={refresh} />
+        <OwnerControls
+          agentId={agentId}
+          initialAccess={data.access}
+          onOwnershipChanged={refresh}
+        />
 
         <button
           onClick={() => setShowDetails((s) => !s)}

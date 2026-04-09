@@ -8,31 +8,44 @@ import { toast, toastTx } from '@/lib/toast';
 
 interface Props {
   agentId: string;
+  initialAccess?: VaultAccess;
   onOwnershipChanged?: () => void;
 }
 
 type Panel = 'none' | 'claim' | 'add-key';
 
-export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
+export default function OwnerControls({ agentId, initialAccess, onOwnershipChanged }: Props) {
   const { authenticated, walletAddress, login } = useAuth();
   // useWallets is only used to get a signer; the canonical address for the
   // access check comes from useAuth to stay aligned with WalletPip.
   const { wallets } = useWallets();
   const signerWallet = wallets[0];
 
-  const [access, setAccess] = useState<VaultAccess | null>(null);
+  const [access, setAccess] = useState<VaultAccess | null>(initialAccess || null);
   const [loading, setLoading] = useState(false);
   const [panel, setPanel] = useState<Panel>('none');
   const [keyInput, setKeyInput] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Refresh access whenever the connected wallet changes
+  // Keep access in sync with parent-provided data (which already includes
+  // the access block when a wallet is connected, via /life?wallet=X)
   useEffect(() => {
+    if (initialAccess) {
+      setAccess(initialAccess);
+      setLoading(false);
+      return;
+    }
+    // Fallback: fetch separately if parent didn't provide it (e.g. wallet
+    // connected but the parent's latest /life call didn't include the wallet)
     let cancelled = false;
     async function check() {
+      if (!walletAddress) {
+        setAccess(null);
+        return;
+      }
       setLoading(true);
       try {
-        const a = await getVaultAccess(agentId, walletAddress || undefined);
+        const a = await getVaultAccess(agentId, walletAddress);
         if (!cancelled) setAccess(a);
       } catch {
         if (!cancelled) setAccess(null);
@@ -42,7 +55,7 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
     }
     check();
     return () => { cancelled = true; };
-  }, [agentId, walletAddress]);
+  }, [agentId, walletAddress, initialAccess]);
 
   const handleClaim = async () => {
     if (!walletAddress) {

@@ -749,9 +749,26 @@ export async function handleAccess(req: Request, res: Response): Promise<void> {
   }
 }
 
-// Public life endpoint — returns identity + mood + recent activity for the public vault page
+// Small in-memory cache so repeated viewers don't hammer the DB/RPC.
+// 15s is short enough to feel live, long enough to coalesce bursts.
+const lifeCache = new Map<string, { ts: number; data: any }>();
+const LIFE_CACHE_TTL_MS = 15_000;
+
+// Public life endpoint — returns identity + mood + recent activity for the public vault page.
+// When ?wallet=X is passed, also includes an inline `access` block so the client
+// doesn't need a second round trip to decide between public view and owner controls.
 export async function handleLife(req: Request, res: Response): Promise<void> {
   const { agentId } = req.params;
+  const walletParam = typeof req.query.wallet === 'string' ? req.query.wallet : '';
+  const cacheKey = `${agentId}:${walletParam}`;
+
+  const cached = lifeCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < LIFE_CACHE_TTL_MS) {
+    res.set('X-Cache', 'hit');
+    res.json(cached.data);
+    return;
+  }
+
   const agent = await agentStorage.getAsync(agentId);
   if (!agent) {
     res.status(404).json({ error: 'Vault not found' });
@@ -762,10 +779,55 @@ export async function handleLife(req: Request, res: Response): Promise<void> {
       getVaultState(agent.vault),
       listAgentSpends(agent.vault, 10),
     ]);
+
+    // Resolve access inline if a wallet was provided — saves a round trip.
+    let access: any = undefined;
+    if (walletParam && isValidSolanaPubkey(walletParam)) {
+      if (!agent.vaultNftMint) {
+        const expectedClaimer = (agent.ownerWallet && agent.ownerWallet !== '')
+          ? agent.ownerWallet
+          : agent.operator;
+        access = {
+          tier: walletParam === expectedClaimer ? 'owner' : 'public',
+          canEdit: false,
+          needsKey: false,
+          mint: null,
+          holder: null,
+          expectedClaimer: expectedClaimer || null,
+        };
+      } else {
+        try {
+          const holder = await getVaultNftHolder(agent.vaultNftMint);
+          if (holder === walletParam) {
+            const hasKey = await agentStorage.hasHolderKey(agent.vault, walletParam);
+            access = {
+              tier: 'owner',
+              canEdit: true,
+              needsKey: !hasKey,
+              mint: agent.vaultNftMint,
+              holder,
+              expectedClaimer: null,
+            };
+          } else {
+            access = {
+              tier: 'public',
+              canEdit: false,
+              needsKey: false,
+              mint: agent.vaultNftMint,
+              holder,
+              expectedClaimer: null,
+            };
+          }
+        } catch (accessErr) {
+          console.warn('[life] inline access failed:', accessErr);
+        }
+      }
+    }
+
     // Public response: NEVER leak the vault's internal identity (BIRTH/PURPOSE/MEMORY).
     // Those are the agent's "NPC script" — they live inside the vault and shape behavior.
     // Visitors see what the vault DOES, not its source code.
-    res.json({
+    const payload: any = {
       vault: {
         id: agent.vault,
         name: agent.name,
@@ -784,7 +846,12 @@ export async function handleLife(req: Request, res: Response): Promise<void> {
         status: s.status,
         createdAt: s.createdAt,
       })),
-    });
+    };
+    if (access) payload.access = access;
+
+    lifeCache.set(cacheKey, { ts: Date.now(), data: payload });
+    res.set('X-Cache', 'miss');
+    res.json(payload);
   } catch (err) {
     console.error('[admin] life error:', err);
     res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
