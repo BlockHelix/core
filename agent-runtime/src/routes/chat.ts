@@ -4,6 +4,7 @@ import { agentStorage } from '../services/storage';
 import { getVaultNftHolder, isValidSolanaPubkey } from '../services/vault-nft';
 import { verifyWalletSignature } from '../services/wallet-verify';
 import { getToolsFor, toAnthropicTools, runTool, type ToolContext } from '../services/vault-tools';
+import { containerManager } from '../services/container-manager';
 
 /**
  * Chat with a vault. v1 scope:
@@ -240,6 +241,84 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
 
   sse(res, 'start', { tier, vault: agent.name });
 
+  // ==== Container path ====
+  // If this vault is a real OpenClaw container, talk to its adapter directly.
+  // The container runs claude-code with full bash/filesystem/skills/memory —
+  // a proper body with a working directory, not a stateless LLM call. The
+  // adapter streams NDJSON {type: 'delta', text} / {type: 'done'} / {type:
+  // 'error'} which we translate to our SSE event schema.
+  if (agent.isContainerized && agent.containerIp) {
+    try {
+      // Build a short owner-aware prefix so the container's running agent
+      // knows who is at the glass. The container already has BIRTH/PURPOSE/
+      // MEMORY in its workspace, so we don't need to re-inject the full
+      // identity — just the viewer context + conversation history.
+      const historyPrefix = messages
+        .slice(0, -1)
+        .filter((m) => typeof m.content === 'string' && (m.content as string).trim())
+        .map((m) => `${m.role === 'user' ? 'Owner' : 'You'}: ${m.content}`)
+        .join('\n\n');
+
+      const viewerBlock =
+        tier === 'holder'
+          ? `You are talking to YOUR OWNER (wallet ${verifiedWallet || 'unknown'}). Be direct and useful — no pitching, no explaining what you are. They own your NFT and pay your bills.`
+          : `You are talking to a visitor (not your owner). Be friendly but aware that they do not command you.`;
+
+      const input = [
+        viewerBlock,
+        historyPrefix ? `\n## Recent conversation\n${historyPrefix}` : '',
+        `\n## Now they say\n${message}`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const upstream = await containerManager.proxyRequestStream(
+        agentId,
+        { input, stream: true },
+        agent.containerIp,
+      );
+
+      const reader = upstream.body?.getReader();
+      if (!reader) throw new Error('container returned no stream body');
+
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.type === 'delta' && typeof parsed.text === 'string') {
+              sse(res, 'delta', { text: parsed.text });
+            } else if (parsed.type === 'done') {
+              // Container sends full text on done; we already streamed it.
+            } else if (parsed.type === 'error') {
+              sse(res, 'error', { message: parsed.error || 'container error' });
+            } else if (parsed.type === 'tool_use' || parsed.type === 'tool_result') {
+              // Pass through if the container ever emits these
+              sse(res, parsed.type, parsed);
+            }
+          } catch {
+            /* non-json line, ignore */
+          }
+        }
+      }
+
+      sse(res, 'done', { inputTokens: 0, outputTokens: 0 });
+      res.end();
+      return;
+    } catch (err: any) {
+      console.error('[chat] container proxy failed, falling back to direct:', err?.message || err);
+      // Fall through to direct Anthropic path below as a last resort.
+    }
+  }
+
+  // ==== Direct Anthropic path (legacy / non-containerized vaults) ====
   const anthropic = new Anthropic({ apiKey: anthropicKey });
   const model = agent.model || 'claude-sonnet-4-20250514';
 
