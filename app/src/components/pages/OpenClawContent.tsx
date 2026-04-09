@@ -44,22 +44,19 @@ export default function OpenClawContent() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!name || name.length < 3 || name.length > 50) {
-      newErrors.name = 'Name must be 3-50 characters';
-    }
     if (!systemPrompt || systemPrompt.length < 10) {
-      newErrors.systemPrompt = 'System prompt must be at least 10 characters';
+      newErrors.systemPrompt = 'Describe what your agent should do';
     }
     if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-      newErrors.apiKey = 'Valid Anthropic API key required (starts with sk-ant-)';
-    }
-    if (!operatorTelegram || operatorTelegram.length < 3) {
-      newErrors.operatorTelegram = 'Telegram username required for approvals';
+      newErrors.apiKey = 'Anthropic API key required (sk-ant-...)';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  // Auto-derive a name from the first few words of the task if the user hasn't set one
+  const effectiveName = name.trim() || (systemPrompt.trim().split(/\s+/).slice(0, 4).join(' ') || 'Agent');
 
   const DEPLOY_STEPS = [
     'Creating agent on-chain',
@@ -86,7 +83,7 @@ export default function OpenClawContent() {
       if (!agentWalletAddress) throw new Error('Wallet address not available');
 
       const result = await createAgent({
-        name,
+        name: effectiveName,
         githubHandle: githubHandle || 'blockhelix',
         endpointUrl: RUNTIME_URL,
         agentFeeBps: 200,
@@ -117,7 +114,7 @@ export default function OpenClawContent() {
       setDeployStep(2);
       await deployOpenClaw({
         agentId: vaultStr,
-        name,
+        name: effectiveName,
         systemPrompt,
         priceUsdcMicro,
         operator: agentWalletAddress,
@@ -224,124 +221,82 @@ export default function OpenClawContent() {
 
   const inputCls = "w-full bg-white/5 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-emerald-400/60 transition-colors rounded-none";
 
+  const hasRequiredKeys = !!apiKey;
+
   return (
     <main className="min-h-screen bg-[#0a0a0a]">
       <div className="max-w-xl mx-auto px-6 py-20 lg:py-28">
         <h1 className="text-3xl lg:text-5xl font-bold text-white mb-3 font-mono">
-          New agent
+          What should<br />your agent do?
         </h1>
-        <p className="text-white/50 mb-10 text-base">
-          It&apos;ll run in the cloud, pay for tools as it works, and ping you on Telegram before big spends.
-        </p>
 
-        <div className="space-y-6">
-          {/* What is it called */}
-          <div>
-            <label className="block text-xs text-white/60 mb-2">
-              Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={inputCls}
-              placeholder="My research agent"
-            />
-            {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
-          </div>
+        <div className="space-y-5 mt-10">
+          <textarea
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
+            rows={6}
+            autoFocus
+            className={inputCls + " text-base resize-none"}
+            placeholder="Every morning, read the latest AI news and post a 200 word summary to my Telegram."
+          />
+          {errors.systemPrompt && <p className="text-xs text-red-400 -mt-3">{errors.systemPrompt}</p>}
 
-          {/* What should it do */}
-          <div>
-            <label className="block text-xs text-white/60 mb-2">
-              What should it do?
-            </label>
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              rows={5}
-              className={inputCls + " font-mono text-sm resize-none"}
-              placeholder={'e.g. "Every morning, research the latest AI agent news, summarize the top 5 items, and post to my Telegram. Keep it under 300 words."'}
-            />
-            {errors.systemPrompt && <p className="text-xs text-red-400 mt-1">{errors.systemPrompt}</p>}
-          </div>
-
-          {/* Telegram */}
-          <div>
-            <label className="block text-xs text-white/60 mb-2">
-              Your Telegram username
-            </label>
-            <input
-              type="text"
-              value={operatorTelegram}
-              onChange={(e) => setOperatorTelegram(e.target.value.replace(/^@/, ''))}
-              className={inputCls}
-              placeholder="satoshi"
-            />
-            {errors.operatorTelegram && <p className="text-xs text-red-400 mt-1">{errors.operatorTelegram}</p>}
-            <p className="text-xs text-white/40 mt-2">
-              Your agent will DM you here for approvals and updates.
-            </p>
-          </div>
-
-          {/* Keys — compact block */}
-          <div className="border border-white/10 bg-white/[0.02] p-5 space-y-4">
-            <p className="text-xs text-white/60">Keys</p>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className={inputCls + " font-mono text-sm"}
-              placeholder="Anthropic API key (sk-ant-...)"
-            />
-            {errors.apiKey && <p className="text-xs text-red-400 -mt-2">{errors.apiKey}</p>}
-            <input
-              type="password"
-              value={telegramBotToken}
-              onChange={(e) => setTelegramBotToken(e.target.value)}
-              className={inputCls + " font-mono text-sm"}
-              placeholder="Telegram bot token (from @BotFather)"
-            />
-            <p className="text-xs text-white/30">
-              Encrypted at rest. You pay Anthropic directly.
-            </p>
-          </div>
-
-          {/* Advanced — collapsed by default */}
-          <details className="border border-white/10 bg-white/[0.02]">
-            <summary className="px-5 py-3 cursor-pointer text-xs text-white/50 hover:text-white/70 transition-colors">
-              Advanced
+          <details className="border border-white/10 bg-white/[0.02]" open={!hasRequiredKeys}>
+            <summary className="px-5 py-3 cursor-pointer text-xs text-white/60 hover:text-white flex items-center justify-between">
+              <span>Setup {!hasRequiredKeys && <span className="text-red-400 ml-1">•</span>}</span>
+              <span className="text-white/30">{hasRequiredKeys ? 'ready' : 'api key required'}</span>
             </summary>
             <div className="px-5 pb-5 space-y-4 border-t border-white/5 pt-4">
               <div>
-                <label className="block text-xs text-white/50 mb-2">
-                  Approval threshold (USDC)
-                </label>
                 <input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={approvalThresholdUsdc}
-                  onChange={(e) => setApprovalThresholdUsdc(parseFloat(e.target.value) || 0)}
-                  className={inputCls + " font-mono text-sm"}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputCls}
+                  placeholder="Agent name"
                 />
-                <p className="text-xs text-white/30 mt-1">
-                  Spends over this amount need your approval on Telegram.
-                </p>
+                {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
               </div>
-
               <div>
-                <label className="block text-xs text-white/50 mb-2">
-                  Brave Search API key
-                </label>
                 <input
                   type="password"
-                  value={braveApiKey}
-                  onChange={(e) => setBraveApiKey(e.target.value)}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
                   className={inputCls + " font-mono text-sm"}
-                  placeholder="Optional — enables web search"
+                  placeholder="Anthropic API key (sk-ant-...)"
                 />
+                {errors.apiKey && <p className="text-xs text-red-400 mt-1">{errors.apiKey}</p>}
+                <p className="text-xs text-white/30 mt-1">Required. Encrypted at rest.</p>
               </div>
+            </div>
+          </details>
 
+          <details className="border border-white/10 bg-white/[0.02]">
+            <summary className="px-5 py-3 cursor-pointer text-xs text-white/50 hover:text-white/70">
+              Optional — Telegram, heartbeat, web search
+            </summary>
+            <div className="px-5 pb-5 space-y-4 border-t border-white/5 pt-4">
+              <input
+                type="password"
+                value={telegramBotToken}
+                onChange={(e) => setTelegramBotToken(e.target.value)}
+                className={inputCls + " font-mono text-sm"}
+                placeholder="Telegram bot token (from @BotFather)"
+              />
+              <input
+                type="text"
+                value={operatorTelegram}
+                onChange={(e) => setOperatorTelegram(e.target.value.replace(/^@/, ''))}
+                className={inputCls}
+                placeholder="Your Telegram username"
+              />
+              <input
+                type="password"
+                value={braveApiKey}
+                onChange={(e) => setBraveApiKey(e.target.value)}
+                className={inputCls + " font-mono text-sm"}
+                placeholder="Brave Search API key (enables web search)"
+              />
               <label className="flex items-center gap-3 cursor-pointer text-xs text-white/60">
                 <input
                   type="checkbox"
@@ -349,7 +304,7 @@ export default function OpenClawContent() {
                   onChange={(e) => setHeartbeatEnabled(e.target.checked)}
                   className="w-4 h-4 accent-emerald-400"
                 />
-                Run periodically (heartbeat)
+                Run periodically
               </label>
               {heartbeatEnabled && (
                 <select
@@ -368,10 +323,10 @@ export default function OpenClawContent() {
 
           <button
             onClick={handleDeploy}
-            disabled={isCreating || deployStep >= 0}
-            className="w-full py-4 bg-emerald-400 text-black text-sm font-bold hover:bg-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isCreating || deployStep >= 0 || !systemPrompt.trim() || !apiKey}
+            className="w-full py-4 bg-emerald-400 text-black text-sm font-bold hover:bg-emerald-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isCreating ? 'Deploying…' : 'Launch agent'}
+            {isCreating ? 'Deploying…' : 'Launch'}
           </button>
         </div>
       </div>
