@@ -83,40 +83,47 @@ export default function OwnerControls({ agentId, onOwnershipChanged }: Props) {
     }
   };
 
-  // Not connected — hide entirely (no "connect wallet" CTA on the calm page)
+  // Not connected — show a subtle but visible connect button
   if (!authenticated || !wallet) {
     return (
-      <div className="mt-8 text-[10px] uppercase tracking-widest text-white/15">
+      <div className="mt-8">
         <button
           onClick={() => login()}
-          className="hover:text-white/40 transition-colors"
+          className="px-5 py-2 border border-white/25 text-white/60 text-xs hover:border-white/50 hover:text-white transition-colors rounded-full"
         >
           connect wallet
         </button>
+        <div className="mt-2 text-[10px] text-white/20">
+          if you own this vault you&apos;ll see controls
+        </div>
       </div>
     );
   }
 
   if (loading || !access) {
-    return <div className="mt-8 text-[10px] uppercase tracking-widest text-white/15">checking…</div>;
+    return <div className="mt-8 text-[10px] uppercase tracking-widest text-white/30">checking access…</div>;
   }
 
-  // Not the owner — hide entirely
+  // Not the owner — show a small, quiet badge so the viewer at least knows they connected
   if (access.tier !== 'owner') {
-    return null;
+    return (
+      <div className="mt-8 text-[10px] uppercase tracking-widest text-white/25">
+        viewing as visitor
+      </div>
+    );
   }
 
   // Owner but vault has no NFT yet → offer claim
   if (!access.mint) {
     return (
       <div className="mt-8 flex flex-col items-center gap-3">
-        <div className="text-[10px] uppercase tracking-widest text-white/30">
+        <div className="text-[10px] uppercase tracking-widest text-emerald-300/60">
           this is yours
         </div>
         <button
           onClick={handleClaim}
           disabled={busy}
-          className="px-5 py-2 border border-white/20 text-white/70 text-xs hover:border-white/40 hover:text-white transition-colors disabled:opacity-40"
+          className="px-6 py-3 border border-emerald-400/40 bg-emerald-400/5 text-emerald-200 text-sm hover:bg-emerald-400/10 hover:border-emerald-400/70 transition-colors disabled:opacity-40 rounded-full"
         >
           {busy ? 'minting…' : 'claim ownership (mint NFT)'}
         </button>
