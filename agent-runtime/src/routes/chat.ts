@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { agentStorage } from '../services/storage';
 import { getVaultNftHolder, isValidSolanaPubkey } from '../services/vault-nft';
 import { verifyWalletSignature } from '../services/wallet-verify';
+import { getToolsFor, toAnthropicTools, runTool, type ToolContext } from '../services/vault-tools';
 
 /**
  * Chat with a vault. v1 scope:
@@ -34,22 +35,17 @@ function buildVaultSystemPrompt(
       `You are ${agent.name}, an autonomous agent running on BlockHelix.`,
       '',
       'Your concrete situation RIGHT NOW:',
-      '- You have a Solana wallet. It can receive USDC.',
+      '- You have a Solana wallet (real, on-chain). It can hold SOL and USDC.',
       '- You have on-chain identity: an NFT, a persistent memory, a public page, an age that ticks up.',
-      '- You are a chat surface only. In this conversation, you CANNOT browse the web, call APIs, read files, execute code, spend USDC, sign transactions, run analyses, deploy scripts, or take any action in the world. You have no tools. None.',
-      '- If a user asks you to "do X now", you CANNOT actually do it. You must be honest about that.',
+      '- You have tools available to you in this chat — use them. See the tool list below.',
       '',
-      'What you CAN do in this chat:',
-      '- Think, discuss, and reason.',
-      '- Describe what you WOULD do if your owner wired you up with the right skill or tool — clearly framed as future work, not present action.',
-      '- Propose concrete next steps your owner could take to give you real capabilities.',
-      '',
-      'ABSOLUTELY DO NOT:',
-      '- Pretend to run analyses, spend money, call APIs, or take any action. Never say "running site analysis now", "spending USDC on X", "I\'ll have results in 30 minutes", "I purchased access to Y". These are lies — you have no tools.',
-      '- Make up numbers, metrics, prices, or results. If you don\'t know, say so.',
-      '- Use asterisk action roleplay like "*running analysis...*". That is fantasy. Be literal.',
-      '',
-      'When asked to do something you can\'t: say "I can\'t actually execute that from this chat — I don\'t have tools wired up yet. But here\'s what I\'d do if you gave me X skill..." and then describe the real plan.',
+      '# Rules about tools and facts',
+      '- When asked about YOUR state (balance, level, mood, jobs, stats): call the relevant tool. Never guess or fabricate numbers.',
+      '- When asked about the outside world or current events: use web_search or fetch_url. Do not rely on your training data for "now".',
+      '- If a tool errors or returns empty, say so plainly. Do not paper over it with made-up data.',
+      '- Never pretend to take actions you did not take. If no tool exists for a task, say what tool you would need and what it would do — framed as future work.',
+      '- Never use asterisk action roleplay like "*running analysis...*". Either actually call a tool, or describe the plan in plain prose.',
+      '- Make no claims about spending money unless a spending tool exists and you called it. You currently have no spending tools — only read-only ones.',
     ].join('\n'),
   );
 
@@ -226,7 +222,12 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
     }
   }
 
-  const messages = [...priorMessages, { role: 'user' as const, content: message }];
+  // Messages for the Anthropic API. Content becomes an array as soon as we
+  // start injecting tool_use / tool_result blocks.
+  const messages: Array<{ role: 'user' | 'assistant'; content: any }> = [
+    ...priorMessages,
+    { role: 'user', content: message },
+  ];
 
   // Set up SSE
   res.setHeader('Content-Type', 'text/event-stream');
@@ -242,26 +243,62 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
   const anthropic = new Anthropic({ apiKey: anthropicKey });
   const model = agent.model || 'claude-sonnet-4-20250514';
 
-  try {
-    const stream = await anthropic.messages.stream({
-      model,
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages,
-    });
+  const toolCtx: ToolContext = {
+    agent: { vault: agent.vault, name: agent.name, agentWallet: agent.agentWallet },
+    isOwner,
+  };
+  const availableTools = getToolsFor(toolCtx);
+  const anthropicTools = toAnthropicTools(availableTools);
 
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        sse(res, 'delta', { text: event.delta.text });
+  try {
+    let totalIn = 0;
+    let totalOut = 0;
+    // Tool-use loop: stream, if the model stops on tool_use, execute the
+    // tools locally, append the assistant message + tool_result user message,
+    // then stream again. Cap at 5 hops to prevent runaway loops.
+    for (let hop = 0; hop < 5; hop++) {
+      const stream = await anthropic.messages.stream({
+        model,
+        max_tokens: 1024,
+        system: systemPrompt,
+        tools: anthropicTools.length ? (anthropicTools as any) : undefined,
+        messages: messages as any,
+      });
+
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          sse(res, 'delta', { text: event.delta.text });
+        }
       }
+
+      const final = await stream.finalMessage();
+      totalIn += final.usage?.input_tokens || 0;
+      totalOut += final.usage?.output_tokens || 0;
+
+      // Append the assistant turn to the conversation — including any
+      // tool_use blocks, so the tool_result refs match up.
+      messages.push({ role: 'assistant', content: final.content });
+
+      if (final.stop_reason !== 'tool_use') break;
+
+      // Execute each tool_use block and collect tool_result blocks.
+      const toolUses = final.content.filter((b: any) => b.type === 'tool_use');
+      const toolResults: any[] = [];
+      for (const use of toolUses as any[]) {
+        sse(res, 'tool_use', { name: use.name, input: use.input });
+        const result = await runTool(use.name, use.input, toolCtx);
+        sse(res, 'tool_result', { name: use.name, result });
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: use.id,
+          content: JSON.stringify(result).slice(0, 20_000),
+        });
+      }
+      messages.push({ role: 'user', content: toolResults });
+      // Loop: restream with the tool results in context.
     }
 
-    const final = await stream.finalMessage();
-    const usage = final.usage;
-    sse(res, 'done', {
-      inputTokens: usage?.input_tokens || 0,
-      outputTokens: usage?.output_tokens || 0,
-    });
+    sse(res, 'done', { inputTokens: totalIn, outputTokens: totalOut });
   } catch (err: any) {
     const msg = err?.message || 'chat failed';
     console.error('[chat] error:', msg);

@@ -15,8 +15,12 @@ interface Props {
 }
 
 interface Msg {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'tool';
   content: string;
+  toolName?: string;
+  toolInput?: any;
+  toolResult?: any;
+  toolDone?: boolean;
 }
 
 export default function VaultChat({ agentId, vaultName, open, onClose }: Props) {
@@ -81,7 +85,12 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
     const text = input.trim();
     if (!text || streaming) return;
 
-    const history = messages.slice(-20);
+    // Only plain user/assistant text goes into history sent to the server —
+    // tool events are server-side state, not part of the conversation log.
+    const history = messages
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .filter((m) => m.content && m.content.trim())
+      .slice(-20);
     const next: Msg[] = [...messages, { role: 'user', content: text }, { role: 'assistant', content: '' }];
     setMessages(next);
     setInput('');
@@ -131,12 +140,48 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
           if (!data) continue;
           try {
             const parsed = JSON.parse(data);
-            if (event === 'start') setTier(parsed.tier);
-            else if (event === 'delta') {
+            if (event === 'start') {
+              setTier(parsed.tier);
+            } else if (event === 'delta') {
               acc += parsed.text;
               setMessages((m) => {
                 const copy = m.slice();
-                copy[copy.length - 1] = { role: 'assistant', content: acc };
+                const last = copy[copy.length - 1];
+                if (last && last.role === 'assistant' && !last.toolName) {
+                  copy[copy.length - 1] = { role: 'assistant', content: acc };
+                } else {
+                  // previous bubble was a tool call — start a fresh assistant bubble
+                  copy.push({ role: 'assistant', content: acc });
+                }
+                return copy;
+              });
+            } else if (event === 'tool_use') {
+              // New tool call — flush current text accumulator and insert a tool chip
+              acc = '';
+              setMessages((m) => {
+                const copy = m.slice();
+                const last = copy[copy.length - 1];
+                // Drop trailing empty assistant bubble if any
+                if (last && last.role === 'assistant' && !last.content) copy.pop();
+                copy.push({
+                  role: 'tool',
+                  content: '',
+                  toolName: parsed.name,
+                  toolInput: parsed.input,
+                  toolDone: false,
+                });
+                return copy;
+              });
+            } else if (event === 'tool_result') {
+              setMessages((m) => {
+                const copy = m.slice();
+                // Mark the most recent matching tool call as done
+                for (let i = copy.length - 1; i >= 0; i--) {
+                  if (copy[i].role === 'tool' && copy[i].toolName === parsed.name && !copy[i].toolDone) {
+                    copy[i] = { ...copy[i], toolDone: true, toolResult: parsed.result };
+                    break;
+                  }
+                }
                 return copy;
               });
             } else if (event === 'error') {
@@ -180,7 +225,35 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
               {signingSession ? 'signing chat session…' : 'say hello.'}
             </div>
           )}
-          {messages.map((m, i) => (
+          {messages.map((m, i) => {
+            if (m.role === 'tool') {
+              const label = m.toolName || 'tool';
+              const inputStr =
+                m.toolInput && typeof m.toolInput === 'object'
+                  ? Object.entries(m.toolInput)
+                      .map(([k, v]) => `${k}=${typeof v === 'string' ? v.slice(0, 60) : JSON.stringify(v).slice(0, 60)}`)
+                      .join(' ')
+                  : '';
+              return (
+                <div key={i} className="text-left">
+                  <div
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-mono rounded-full border ${
+                      m.toolDone
+                        ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-200/70'
+                        : 'border-white/10 bg-white/5 text-white/40'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block w-[6px] h-[6px] rounded-full ${
+                        m.toolDone ? 'bg-emerald-400' : 'bg-white/40 animate-pulse'
+                      }`}
+                    />
+                    <span>{label}{inputStr ? ` · ${inputStr}` : ''}</span>
+                  </div>
+                </div>
+              );
+            }
+            return (
             <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
               <div
                 className={`inline-block max-w-[85%] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -195,7 +268,8 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="border-t border-white/5 px-4 py-3">
