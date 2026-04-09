@@ -68,6 +68,9 @@ function buildVaultSystemPrompt(agent: {
 function sse(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(data)}\n\n`);
+  // Force flush — without this, Node/express/ALB can buffer small writes
+  // and deliver the whole stream at the end, killing the streaming UX.
+  (res as any).flush?.();
 }
 
 export async function handleVaultChat(req: Request, res: Response): Promise<void> {
@@ -143,6 +146,8 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders?.();
+  // Disable Nagle so small SSE writes hit the wire immediately
+  req.socket?.setNoDelay?.(true);
 
   sse(res, 'start', { tier, vault: agent.name });
 

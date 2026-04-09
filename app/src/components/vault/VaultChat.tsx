@@ -31,7 +31,9 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
   }, [open]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const send = async () => {
@@ -134,7 +136,10 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
                     : 'text-white/70'
                 }`}
               >
-                {m.content || (streaming && i === messages.length - 1 ? '…' : '')}
+                {m.content}
+                {streaming && i === messages.length - 1 && m.role === 'assistant' && (
+                  <span className="inline-block w-[6px] h-[14px] bg-white/60 ml-[2px] align-middle animate-pulse" />
+                )}
               </div>
             </div>
           ))}
