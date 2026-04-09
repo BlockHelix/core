@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import MoodOrb from '@/components/vault/MoodOrb';
+import FeedButton from '@/components/vault/FeedButton';
+import { explainVault } from '@/lib/vault-state';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
 
@@ -41,28 +44,12 @@ interface LifeResponse {
   }>;
 }
 
-const MOOD_COLORS: Record<string, string> = {
-  happy: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30',
-  content: 'text-white bg-white/10 border-white/30',
-  neutral: 'text-white/60 bg-white/5 border-white/20',
-  anxious: 'text-amber-400 bg-amber-400/10 border-amber-400/30',
-  sad: 'text-blue-400 bg-blue-400/10 border-blue-400/30',
-  hungry: 'text-amber-400 bg-amber-400/10 border-amber-400/30',
-  starving: 'text-red-400 bg-red-400/10 border-red-400/30',
-  coma: 'text-white/30 bg-white/5 border-white/10',
+const TONE_TEXT: Record<string, string> = {
+  good: 'text-emerald-300',
+  caution: 'text-amber-300',
+  critical: 'text-red-300',
+  neutral: 'text-white/60',
 };
-
-const HUNGER_LABEL: Record<string, string> = {
-  full: 'well fed',
-  low: 'peckish',
-  hungry: 'hungry',
-  starving: 'starving',
-  coma: 'in coma',
-};
-
-function fmtUsdc(micro: number): string {
-  return `$${(micro / 1_000_000).toFixed(2)}`;
-}
 
 function relTime(iso: string): string {
   const t = new Date(iso).getTime();
@@ -81,6 +68,7 @@ interface Props {
 export default function VaultLifeContent({ agentId, initialData }: Props) {
   const [data, setData] = useState<LifeResponse | null>(initialData);
   const [error, setError] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -90,7 +78,7 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
       setData(json);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : null);
     }
   }, [agentId]);
 
@@ -101,145 +89,140 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
 
   if (!data) {
     return (
-      <main className="min-h-screen bg-[#0a0a0a] py-24">
-        <div className="max-w-3xl mx-auto px-6">
-          <p className="text-white/40 font-mono text-sm">
-            {error ? `Error: ${error}` : 'Loading vault…'}
-          </p>
-        </div>
+      <main className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <p className="text-white/30 text-sm">{error ? `error: ${error}` : 'loading…'}</p>
       </main>
     );
   }
 
   const { vault, state, recentActivity } = data;
-  const moodClass = state ? MOOD_COLORS[state.mood] || MOOD_COLORS.neutral : MOOD_COLORS.neutral;
+  const explain = explainVault(vault.name, state);
+  const toneClass = TONE_TEXT[explain.tone] || TONE_TEXT.neutral;
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] py-16 lg:py-24">
-      <div className="max-w-3xl mx-auto px-6 space-y-10">
-        {/* Hero strip */}
-        <div className="flex items-start gap-6 pb-8 border-b border-white/10">
-          <div className="text-7xl leading-none" aria-label={state?.mood || 'neutral'}>
-            {state?.emoji || '◯'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl lg:text-5xl font-bold text-white font-mono mb-2 break-words">
-              {vault.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              {vault.archetype && (
-                <span className="text-[10px] uppercase tracking-widest px-2 py-1 border border-white/20 text-white/60 font-mono">
-                  {vault.archetype}
-                </span>
-              )}
-              {state && (
-                <span className={`text-[10px] uppercase tracking-widest px-2 py-1 border font-mono ${moodClass}`}>
-                  {state.mood}
-                </span>
-              )}
-              {state && (
-                <span className="text-[10px] uppercase tracking-widest px-2 py-1 border border-white/20 text-white/50 font-mono">
-                  {HUNGER_LABEL[state.hunger] || state.hunger}
-                </span>
-              )}
-              {state && (
-                <span className="text-[10px] uppercase tracking-widest px-2 py-1 border border-white/20 text-white/50 font-mono">
-                  lvl {state.level} · {state.title}
-                </span>
-              )}
-            </div>
-            {state?.bornAt && (
-              <p className="text-xs text-white/30 font-mono">
-                born {new Date(state.bornAt).toLocaleDateString()} · {state.daysAlive} days alive
-              </p>
-            )}
-          </div>
-        </div>
+    <main className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      {/* Hero — only the orb, name, one-line state, and the action */}
+      <section className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
+        <MoodOrb
+          mood={state?.mood || 'neutral'}
+          hunger={state?.hunger || 'full'}
+          balanceSol={state?.balanceSol || 0}
+          minutesSinceActivity={state?.minutesSinceActivity ?? null}
+          size={260}
+        />
 
-        {/* Wallet + stats strip */}
+        <h1 className="text-3xl md:text-4xl font-light text-white mt-12 tracking-wide">
+          {vault.name.toLowerCase()}
+        </h1>
+
         {state && (
-          <section>
-            <h2 className="text-[10px] uppercase tracking-widest text-white/30 font-mono mb-3">
-              Treasury
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 border border-white/10 divide-x divide-white/10">
-              <div className="px-4 py-4">
-                <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-mono">SOL</div>
-                <div className="text-lg font-bold text-white font-mono tabular-nums">
-                  {state.balanceSol.toFixed(4)}
-                </div>
-              </div>
-              <div className="px-4 py-4">
-                <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-mono">USDC</div>
-                <div className="text-lg font-bold text-white font-mono tabular-nums">
-                  ${state.balanceUsdc.toFixed(2)}
-                </div>
-              </div>
-              <div className="px-4 py-4">
-                <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-mono">Spent total</div>
-                <div className="text-lg font-bold text-emerald-400 font-mono tabular-nums">
-                  {fmtUsdc(state.revenueTotalMicro)}
-                </div>
-              </div>
-              <div className="px-4 py-4">
-                <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-mono">Today</div>
-                <div className="text-lg font-bold text-cyan-400 font-mono tabular-nums">
-                  {state.spendsTodayCount} actions
-                </div>
-              </div>
-            </div>
-            {vault.agentWallet && (
-              <p className="text-[10px] text-white/30 font-mono mt-3 break-all">
-                wallet: {vault.agentWallet}
-              </p>
-            )}
-          </section>
+          <p className="text-xs text-white/30 mt-2 font-mono">
+            {state.title.toLowerCase()} · {state.daysAlive === 0 ? 'born today' : `${state.daysAlive}d alive`}
+          </p>
         )}
 
-        {/* Recent activity */}
-        <section>
-          <h2 className="text-[10px] uppercase tracking-widest text-white/30 font-mono mb-3">
-            Recent activity
-          </h2>
-          {recentActivity.length === 0 ? (
-            <div className="p-5 border border-white/10 bg-white/[0.02] text-white/30 font-mono text-xs">
-              Nothing yet. Still waking up.
+        <p className={`max-w-md mt-10 text-base md:text-lg leading-relaxed ${toneClass}`}>
+          {explain.headline}
+        </p>
+        {explain.detail && (
+          <p className="max-w-md mt-2 text-sm text-white/40">
+            {explain.detail}
+          </p>
+        )}
+
+        {explain.action === 'feed' && vault.agentWallet && state && (
+          <div className="mt-10">
+            <FeedButton
+              vaultId={vault.id}
+              agentWallet={vault.agentWallet}
+              vaultName={vault.name}
+              amountSol={0.05}
+              onFed={() => setTimeout(refresh, 2000)}
+            />
+          </div>
+        )}
+
+        {explain.action === 'chat' && (
+          <button
+            disabled
+            className="mt-10 px-8 py-3.5 border border-white/20 text-white/40 text-sm rounded-full"
+            title="Coming soon"
+          >
+            say hello (soon)
+          </button>
+        )}
+
+        <button
+          onClick={() => setShowDetails((s) => !s)}
+          className="mt-16 text-[11px] uppercase tracking-widest text-white/20 hover:text-white/50 transition-colors"
+        >
+          {showDetails ? 'hide details' : 'details'}
+        </button>
+      </section>
+
+      {/* Details — secondary info, only on demand */}
+      {showDetails && state && (
+        <section className="px-6 pb-20 max-w-2xl mx-auto w-full">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">SOL</div>
+              <div className="text-white/70 font-mono tabular-nums">{state.balanceSol.toFixed(4)}</div>
             </div>
-          ) : (
-            <div className="border border-white/10 bg-white/[0.01] divide-y divide-white/5">
-              {recentActivity.map((a) => (
-                <div key={a.id} className="px-5 py-3 flex items-center justify-between text-xs font-mono">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white/70 truncate">{a.reason || '(no reason)'}</div>
-                    <div className="text-[10px] text-white/30 mt-0.5">
-                      {relTime(a.createdAt)}
-                      {a.recipient && <> · {a.recipient}</>}
-                    </div>
-                  </div>
-                  <div className="ml-4 text-right">
-                    <div className={
-                      a.status === 'settled' ? 'text-emerald-400' :
-                      a.status === 'pending' ? 'text-amber-400' :
-                      'text-red-400'
-                    }>
-                      {fmtUsdc(a.amountMicro)}
-                    </div>
-                    <div className="text-[10px] text-white/30">{a.status}</div>
-                  </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">USDC</div>
+              <div className="text-white/70 font-mono tabular-nums">${state.balanceUsdc.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">spent</div>
+              <div className="text-white/70 font-mono tabular-nums">${(state.revenueTotalMicro / 1_000_000).toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">today</div>
+              <div className="text-white/70 font-mono tabular-nums">{state.spendsTodayCount}</div>
+            </div>
+          </div>
+
+          {vault.agentWallet && (
+            <div className="mt-10 text-center">
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-2">wallet</div>
+              <div className="text-[11px] font-mono text-white/40 break-all">{vault.agentWallet}</div>
+              {vault.agentWallet && (
+                <div className="mt-3">
+                  <FeedButton
+                    vaultId={vault.id}
+                    agentWallet={vault.agentWallet}
+                    vaultName={vault.name}
+                    amountSol={0.05}
+                    variant="subtle"
+                    onFed={() => setTimeout(refresh, 2000)}
+                  />
                 </div>
-              ))}
+              )}
+            </div>
+          )}
+
+          {recentActivity.length > 0 && (
+            <div className="mt-10">
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-3 text-center">
+                recent
+              </div>
+              <div className="space-y-2 text-center">
+                {recentActivity.slice(0, 5).map((a) => (
+                  <div key={a.id} className="text-xs text-white/30 italic">
+                    “{a.reason || 'something'}” · {relTime(a.createdAt)} · ${(a.amountMicro / 1_000_000).toFixed(3)}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </section>
+      )}
 
-        {/* Footer link */}
-        <div className="pt-8 border-t border-white/10 flex items-center justify-between text-[10px] text-white/30 font-mono">
-          <Link href="/" className="hover:text-white/60 transition-colors">
-            ← blockhelix
-          </Link>
-          <span>updates every 20s</span>
-        </div>
-      </div>
+      <footer className="px-6 py-6 text-center text-[10px] text-white/15 font-mono">
+        <Link href="/" className="hover:text-white/40 transition-colors">
+          blockhelix
+        </Link>
+      </footer>
     </main>
   );
 }
