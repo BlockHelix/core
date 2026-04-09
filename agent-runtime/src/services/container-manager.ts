@@ -56,6 +56,10 @@ interface DeployParams {
   taskDescription?: string;
   budgetTotalMicro?: number;
   approvalThresholdMicro?: number;
+  birthMd?: string;
+  purposeMd?: string;
+  memoryMd?: string;
+  archetype?: string;
   onProgress?: (phase: DeployPhase) => void;
 }
 
@@ -206,6 +210,10 @@ class ContainerManager {
             ...(params.taskDescription ? [{ name: 'TASK_DESCRIPTION', value: params.taskDescription }] : []),
             ...(params.budgetTotalMicro != null ? [{ name: 'BUDGET_TOTAL_MICRO', value: String(params.budgetTotalMicro) }] : []),
             ...(params.approvalThresholdMicro != null ? [{ name: 'APPROVAL_THRESHOLD_MICRO', value: String(params.approvalThresholdMicro) }] : []),
+            ...(params.birthMd ? [{ name: 'BIRTH_MD', value: params.birthMd }] : []),
+            ...(params.purposeMd ? [{ name: 'PURPOSE_MD', value: params.purposeMd }] : []),
+            ...(params.memoryMd ? [{ name: 'MEMORY_MD', value: params.memoryMd }] : []),
+            ...(params.archetype ? [{ name: 'ARCHETYPE', value: params.archetype }] : []),
             ...(params.heartbeat?.enabled ? [
               { name: 'HEARTBEAT_ENABLED', value: 'true' },
               ...(params.heartbeat.interval ? [{ name: 'HEARTBEAT_INTERVAL', value: params.heartbeat.interval }] : []),

@@ -13,6 +13,7 @@ import {
   listPendingApprovals as listAgentPendingApprovals,
   setTaskStatus as setAgentTaskStatus,
 } from '../services/spend-ledger';
+import { getVaultState } from '../services/mood-state';
 import type { AgentConfig } from '../types';
 
 export function requireWalletAuth(req: Request, res: Response, next: NextFunction): void {
@@ -270,7 +271,7 @@ export async function handleUpdateAgentConfig(req: Request, res: Response): Prom
 }
 
 export async function handleDeployOpenClaw(req: Request, res: Response): Promise<void> {
-  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken, operatorTelegram, braveApiKey, colosseumApiKey, kimiApiKey, veoApiKey, runwayApiKey, heartbeat, taskDescription, budgetUsdcMicro, approvalThresholdUsdcMicro } = req.body;
+  const { agentId, name, systemPrompt, priceUsdcMicro, model, operator, vault, registry, apiKey, ownerWallet, jobSignerPubkey, walletSecretKey: bodySecretKey, telegramBotToken, operatorTelegram, braveApiKey, colosseumApiKey, kimiApiKey, veoApiKey, runwayApiKey, heartbeat, taskDescription, budgetUsdcMicro, approvalThresholdUsdcMicro, birthMd, purposeMd, memoryMd, archetype } = req.body;
 
   if (!vault || !name || !systemPrompt || !apiKey) {
     res.status(400).json({
@@ -328,6 +329,10 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       approvalThresholdMicro: thresholdMicro,
       taskStatus: 'running',
       operatorTelegram: fullConfig.operatorTelegram,
+      birthMd: birthMd || undefined,
+      purposeMd: purposeMd || undefined,
+      memoryMd: memoryMd || undefined,
+      archetype: archetype || undefined,
     });
     eventIndexer.refreshMappings();
 
@@ -365,6 +370,10 @@ export async function handleDeployOpenClaw(req: Request, res: Response): Promise
       taskDescription: fullConfig.taskDescription,
       budgetTotalMicro: budgetMicro,
       approvalThresholdMicro: thresholdMicro,
+      birthMd: birthMd || undefined,
+      purposeMd: purposeMd || undefined,
+      memoryMd: memoryMd || undefined,
+      archetype: archetype || undefined,
       heartbeat: heartbeat?.enabled ? {
         enabled: true,
         interval: heartbeat.interval,
@@ -445,6 +454,51 @@ export async function handleOpsSummary(req: Request, res: Response): Promise<voi
     });
   } catch (err) {
     console.error('[admin] ops-summary error:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
+  }
+}
+
+// Public life endpoint — returns identity + mood + recent activity for the public vault page
+export async function handleLife(req: Request, res: Response): Promise<void> {
+  const { agentId } = req.params;
+  const agent = await agentStorage.getAsync(agentId);
+  if (!agent) {
+    res.status(404).json({ error: 'Vault not found' });
+    return;
+  }
+  try {
+    const [state, spends] = await Promise.all([
+      getVaultState(agent.vault),
+      listAgentSpends(agent.vault, 10),
+    ]);
+    res.json({
+      vault: {
+        id: agent.vault,
+        name: agent.name,
+        agentId: agent.agentId,
+        agentWallet: agent.agentWallet || null,
+        archetype: agent.archetype || null,
+        operator: agent.operator || null,
+        operatorTelegram: agent.operatorTelegram || null,
+        taskStatus: agent.taskStatus || 'running',
+      },
+      identity: {
+        birth: agent.birthMd || null,
+        purpose: agent.purposeMd || agent.taskDescription || agent.systemPrompt || null,
+        memory: agent.memoryMd || null,
+      },
+      state,
+      recentActivity: spends.map((s) => ({
+        id: s.id,
+        amountMicro: s.amountMicro,
+        recipient: s.recipient,
+        reason: s.reason,
+        status: s.status,
+        createdAt: s.createdAt,
+      })),
+    });
+  } catch (err) {
+    console.error('[admin] life error:', err);
     res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
   }
 }

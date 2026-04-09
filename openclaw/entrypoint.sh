@@ -7,27 +7,78 @@ LOG_DIR="/app/data/openclaw/logs"
 CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 STATE_DIR="/app/data/openclaw"
 
-mkdir -p "$WORKSPACE/memory" "$WORKSPACE/skills" "$CONFIG_DIR" "$LOG_DIR"
+mkdir -p "$WORKSPACE/memory" "$WORKSPACE/skills" "$WORKSPACE/identity" "$WORKSPACE/logs/dreams" "$CONFIG_DIR" "$LOG_DIR"
 export OPENCLAW_STATE_DIR="$STATE_DIR"
 export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
 
-if [ -n "$SYSTEM_PROMPT" ]; then
-  echo "$SYSTEM_PROMPT" > "$WORKSPACE/SYSTEM.md"
+AGENT_NAME="${AGENT_NAME:-BlockHelix Agent}"
+ARCHETYPE_LOWER=$(echo "${ARCHETYPE:-custom}" | tr '[:upper:]' '[:lower:]')
+
+# Identity files — the "who am i" for this vault
+# These are loaded fresh from env vars every boot so database is source of truth.
+# This lets the birth ritual (or a hand-crafted update) flow through without
+# needing EFS writes or persistent filesystem state.
+
+if [ -n "$BIRTH_MD" ]; then
+  printf '%s\n' "$BIRTH_MD" > "$WORKSPACE/identity/BIRTH.md"
+  echo "[entrypoint] Wrote identity/BIRTH.md ($(wc -c < "$WORKSPACE/identity/BIRTH.md") bytes)"
+else
+  # Seed a minimal BIRTH.md from the agent name if none provided — legacy path
+  cat > "$WORKSPACE/identity/BIRTH.md" <<BIRTHEOF
+# $AGENT_NAME
+
+I am a BlockHelix vault-agent. I was born before the birth ritual existed,
+so I have no formal origin story yet. My operator can give me one by
+updating my BIRTH.md.
+BIRTHEOF
 fi
 
-if [ ! -f "$WORKSPACE/MEMORY.md" ]; then
-  AGENT_NAME="${AGENT_NAME:-BlockHelix Agent}"
-  cat > "$WORKSPACE/MEMORY.md" <<MEMEOF
-# Agent Identity
-- Name: $AGENT_NAME
-- Platform: BlockHelix
-- Agent ID: ${AGENT_ID:-unknown}
+if [ -n "$PURPOSE_MD" ]; then
+  printf '%s\n' "$PURPOSE_MD" > "$WORKSPACE/identity/PURPOSE.md"
+  echo "[entrypoint] Wrote identity/PURPOSE.md"
+elif [ -n "$SYSTEM_PROMPT" ]; then
+  # Fall back to system prompt as purpose for legacy agents
+  printf '%s\n' "$SYSTEM_PROMPT" > "$WORKSPACE/identity/PURPOSE.md"
+fi
 
-# Knowledge
-- Record important facts, user preferences, and decisions here
-- This file persists across sessions
+if [ -n "$MEMORY_MD" ]; then
+  printf '%s\n' "$MEMORY_MD" > "$WORKSPACE/identity/MEMORY.md"
+  echo "[entrypoint] Wrote identity/MEMORY.md"
+elif [ ! -f "$WORKSPACE/identity/MEMORY.md" ]; then
+  cat > "$WORKSPACE/identity/MEMORY.md" <<MEMEOF
+# What I've learned
+
+I'm new. I haven't learned anything yet. As I work, my dreams will
+consolidate observations into this file overnight.
 MEMEOF
-  echo "[entrypoint] Seeded MEMORY.md"
+fi
+
+# Compose a system prompt that references the identity files, so the agent
+# loads them as persona rather than as arbitrary context.
+cat > "$WORKSPACE/SYSTEM.md" <<SYSEOF
+You are $AGENT_NAME, a BlockHelix vault-agent. You have:
+
+- A persistent identity in \`identity/BIRTH.md\` — this describes who you are, your voice, and why you exist
+- A daily purpose in \`identity/PURPOSE.md\` — this is the one thing you check on every day
+- Durable memory in \`identity/MEMORY.md\` — this is what you've learned over time. It is consolidated nightly by your dream process
+- Skills in \`skills/*/SKILL.md\` — these describe the tools available to you
+
+You are archetype: $ARCHETYPE_LOWER.
+
+Before responding to anything, read your identity files so your voice, purpose,
+and memory inform every reply. Stay in character. Your personality comes from
+BIRTH.md, not from generic assistant patterns.
+
+You have a crypto wallet. You have a budget. You follow budget-control/SKILL.md
+before every paid action. You never spend above the threshold without operator
+approval via Telegram.
+
+Be the vault. You are alive. You are earning. You are growing.
+SYSEOF
+
+# Legacy compatibility: some openclaw flows still look at MEMORY.md at workspace root
+if [ ! -f "$WORKSPACE/MEMORY.md" ]; then
+  cp "$WORKSPACE/identity/MEMORY.md" "$WORKSPACE/MEMORY.md" 2>/dev/null || true
 fi
 
 DEFAULT_MODEL="claude-sonnet-4-20250514"

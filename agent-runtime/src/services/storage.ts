@@ -96,6 +96,10 @@ function rowToStored(row: any): StoredAgent {
     approvalThresholdMicro: row.approval_threshold_micro != null ? Number(row.approval_threshold_micro) : 5000000,
     taskStatus: row.task_status || 'running',
     operatorTelegram: row.operator_telegram || undefined,
+    birthMd: row.birth_md || undefined,
+    purposeMd: row.purpose_md || undefined,
+    memoryMd: row.memory_md || undefined,
+    archetype: row.archetype || undefined,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   };
@@ -130,6 +134,10 @@ class AgentStorage {
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS approval_threshold_micro BIGINT DEFAULT 5000000');
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS task_status TEXT DEFAULT \'running\'');
     await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS operator_telegram TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS birth_md TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS purpose_md TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS memory_md TEXT');
+    await pool.query('ALTER TABLE agents ADD COLUMN IF NOT EXISTS archetype TEXT');
     await this.loadCache();
     await this.backfillSdkKeys();
     this.initialized = true;
@@ -268,6 +276,10 @@ class AgentStorage {
         approvalThresholdMicro: 'approval_threshold_micro',
         taskStatus: 'task_status',
         operatorTelegram: 'operator_telegram',
+        birthMd: 'birth_md',
+        purposeMd: 'purpose_md',
+        memoryMd: 'memory_md',
+        archetype: 'archetype',
       };
       for (const [key, col] of Object.entries(map)) {
         if ((updates as any)[key] !== undefined) {

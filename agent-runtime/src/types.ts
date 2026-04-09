@@ -23,6 +23,10 @@ export interface AgentConfig {
   approvalThresholdMicro?: number;
   taskStatus?: 'running' | 'paused' | 'completed' | 'budget_exhausted' | 'failed';
   operatorTelegram?: string;
+  birthMd?: string;
+  purposeMd?: string;
+  memoryMd?: string;
+  archetype?: 'scout' | 'critic' | 'trader' | 'oracle' | 'custom';
 }
 
 export interface RunRequest {

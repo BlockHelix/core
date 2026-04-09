@@ -15,6 +15,7 @@ import {
   handleDeployOpenClaw,
   handleDeployStatus,
   handleOpsSummary,
+  handleLife,
   handleTaskControl,
   handleStopOpenClaw,
   handleGenerateKeypair,
@@ -309,6 +310,8 @@ export function createApp(): express.Application {
   app.post('/admin/openclaw/deploy', adminLimit, requireWalletAuth, handleDeployOpenClaw);
   app.get('/admin/openclaw/:agentId/deploy-status', handleDeployStatus);
   app.get('/admin/openclaw/:agentId/ops-summary', handleOpsSummary);
+  app.get('/admin/openclaw/:agentId/life', handleLife);
+  app.get('/v1/vaults/:agentId/life', handleLife);
   app.post('/admin/openclaw/:agentId/task-control', handleTaskControl);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
 
