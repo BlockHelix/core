@@ -58,26 +58,33 @@ async function getActivityStats(vault: string): Promise<ActivityStats> {
   if (!pool) return { jobsTotal: 0, jobsToday: 0, chatsTotal: 0, chatsToday: 0, lastActivity: null, errorsRecent: 0 };
 
   // Use existing tables only — no new schema yet. Job + chat counts come from
-  // job_receipts (already populated by event indexer) and agent_spends
-  // (any settled action the agent did).
+  // job_receipts (already populated by event indexer) and agent_spends.
+  // Note: job_receipts.created_at is BIGINT (unix ms) while agent_spends.created_at
+  // is timestamptz. Compute them separately and compare on the client.
+  const nowMs = Date.now();
+  const oneDayAgoMs = nowMs - 24 * 60 * 60 * 1000;
+
   const { rows } = await pool.query(
     `SELECT
        (SELECT COUNT(*) FROM job_receipts WHERE vault = $1)::int AS jobs_total,
-       (SELECT COUNT(*) FROM job_receipts WHERE vault = $1 AND created_at > now() - interval '1 day')::int AS jobs_today,
+       (SELECT COUNT(*) FROM job_receipts WHERE vault = $1 AND created_at > $2)::int AS jobs_today,
        (SELECT COUNT(*) FROM agent_spends WHERE vault = $1 AND status = 'settled')::int AS chats_total,
        (SELECT COUNT(*) FROM agent_spends WHERE vault = $1 AND status = 'settled' AND created_at > now() - interval '1 day')::int AS chats_today,
        (SELECT COUNT(*) FROM agent_spends WHERE vault = $1 AND status = 'failed' AND created_at > now() - interval '1 day')::int AS errors_recent,
-       GREATEST(
-         COALESCE((SELECT MAX(created_at) FROM job_receipts WHERE vault = $1), '1970-01-01'::timestamptz),
-         COALESCE((SELECT MAX(created_at) FROM agent_spends WHERE vault = $1), '1970-01-01'::timestamptz)
-       ) AS last_activity`,
-    [vault],
+       (SELECT MAX(created_at) FROM job_receipts WHERE vault = $1)::bigint AS last_job_ms,
+       (SELECT MAX(created_at) FROM agent_spends WHERE vault = $1) AS last_spend_at`,
+    [vault, oneDayAgoMs],
   );
   const r = rows[0] || {};
+
   let last: Date | null = null;
-  if (r.last_activity) {
-    const d = new Date(r.last_activity);
+  if (r.last_job_ms) {
+    const d = new Date(Number(r.last_job_ms));
     if (d.getFullYear() >= 2000) last = d;
+  }
+  if (r.last_spend_at) {
+    const d = new Date(r.last_spend_at);
+    if (d.getFullYear() >= 2000 && (!last || d > last)) last = d;
   }
   return {
     jobsTotal: Number(r.jobs_total || 0),
