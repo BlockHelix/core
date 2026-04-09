@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import MoodOrb from '@/components/vault/MoodOrb';
-import FeedButton from '@/components/vault/FeedButton';
 import { explainVault } from '@/lib/vault-state';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
@@ -20,14 +19,12 @@ interface LifeResponse {
   };
   state: {
     mood: string;
-    hunger: string;
     level: number;
     title: string;
-    balanceSol: number;
-    balanceUsdc: number;
-    revenueTotalMicro: number;
-    revenueTodayMicro: number;
-    spendsTodayCount: number;
+    jobsTotal: number;
+    jobsToday: number;
+    chatsTotal: number;
+    chatsToday: number;
     daysAlive: number;
     lastActivityAt: string | null;
     minutesSinceActivity: number | null;
@@ -101,12 +98,11 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      {/* Hero — only the orb, name, one-line state, and the action */}
+      {/* Hero — the whole story in one screen */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
         <MoodOrb
           mood={state?.mood || 'neutral'}
-          hunger={state?.hunger || 'full'}
-          balanceSol={state?.balanceSol || 0}
+          level={state?.level || 1}
           minutesSinceActivity={state?.minutesSinceActivity ?? null}
           size={260}
         />
@@ -128,18 +124,6 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
           <p className="max-w-md mt-2 text-sm text-white/40">
             {explain.detail}
           </p>
-        )}
-
-        {explain.action === 'feed' && vault.agentWallet && state && (
-          <div className="mt-10">
-            <FeedButton
-              vaultId={vault.id}
-              agentWallet={vault.agentWallet}
-              vaultName={vault.name}
-              amountSol={0.05}
-              onFed={() => setTimeout(refresh, 2000)}
-            />
-          </div>
         )}
 
         {explain.action === 'chat' && (
@@ -165,51 +149,32 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
         <section className="px-6 pb-20 max-w-2xl mx-auto w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">SOL</div>
-              <div className="text-white/70 font-mono tabular-nums">{state.balanceSol.toFixed(4)}</div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">chats today</div>
+              <div className="text-white/70 font-mono tabular-nums">{state.chatsToday}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">USDC</div>
-              <div className="text-white/70 font-mono tabular-nums">${state.balanceUsdc.toFixed(2)}</div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">jobs today</div>
+              <div className="text-white/70 font-mono tabular-nums">{state.jobsToday}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">spent</div>
-              <div className="text-white/70 font-mono tabular-nums">${(state.revenueTotalMicro / 1_000_000).toFixed(2)}</div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">total chats</div>
+              <div className="text-white/70 font-mono tabular-nums">{state.chatsTotal}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">today</div>
-              <div className="text-white/70 font-mono tabular-nums">{state.spendsTodayCount}</div>
+              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-1">total jobs</div>
+              <div className="text-white/70 font-mono tabular-nums">{state.jobsTotal}</div>
             </div>
           </div>
 
-          {vault.agentWallet && (
-            <div className="mt-10 text-center">
-              <div className="text-[10px] uppercase tracking-widest text-white/20 mb-2">wallet</div>
-              <div className="text-[11px] font-mono text-white/40 break-all">{vault.agentWallet}</div>
-              {vault.agentWallet && (
-                <div className="mt-3">
-                  <FeedButton
-                    vaultId={vault.id}
-                    agentWallet={vault.agentWallet}
-                    vaultName={vault.name}
-                    amountSol={0.05}
-                    variant="subtle"
-                    onFed={() => setTimeout(refresh, 2000)}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
           {recentActivity.length > 0 && (
-            <div className="mt-10">
+            <div className="mt-12">
               <div className="text-[10px] uppercase tracking-widest text-white/20 mb-3 text-center">
                 recent
               </div>
               <div className="space-y-2 text-center">
                 {recentActivity.slice(0, 5).map((a) => (
                   <div key={a.id} className="text-xs text-white/30 italic">
-                    “{a.reason || 'something'}” · {relTime(a.createdAt)} · ${(a.amountMicro / 1_000_000).toFixed(3)}
+                    “{a.reason || 'something'}” · {relTime(a.createdAt)}
                   </div>
                 ))}
               </div>

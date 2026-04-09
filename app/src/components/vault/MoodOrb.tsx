@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 
 interface Props {
   mood: string;
-  hunger: string;
-  balanceSol: number;
+  level?: number;
   minutesSinceActivity: number | null;
   size?: number;
 }
@@ -13,52 +12,52 @@ interface Props {
 // Color per mood — soft, calm palette. The orb tells the story by hue.
 const MOOD_COLOR: Record<string, string> = {
   happy: '#34d399',     // emerald-400
-  content: '#a7f3d0',   // emerald-200 (paler)
+  content: '#a7f3d0',   // emerald-200
   neutral: '#94a3b8',   // slate-400
-  anxious: '#fbbf24',   // amber-400
+  lonely: '#94a3b8',    // slate-400
   sad: '#60a5fa',       // blue-400
-  hungry: '#fb923c',    // orange-400
-  starving: '#f87171',  // red-400
-  coma: '#475569',      // slate-600 (almost dead)
+  anxious: '#fbbf24',   // amber-400
+  paused: '#64748b',    // slate-500
+  completed: '#a78bfa', // violet-400
 };
 
 const MOOD_GLOW: Record<string, string> = {
   happy: '0 0 80px 10px rgba(52,211,153,0.45)',
   content: '0 0 60px 8px rgba(167,243,208,0.35)',
   neutral: '0 0 40px 6px rgba(148,163,184,0.25)',
-  anxious: '0 0 60px 8px rgba(251,191,36,0.4)',
+  lonely: '0 0 40px 6px rgba(148,163,184,0.18)',
   sad: '0 0 50px 8px rgba(96,165,250,0.35)',
-  hungry: '0 0 60px 8px rgba(251,146,60,0.4)',
-  starving: '0 0 80px 12px rgba(248,113,113,0.5)',
-  coma: '0 0 20px 2px rgba(71,85,105,0.3)',
+  anxious: '0 0 60px 8px rgba(251,191,36,0.4)',
+  paused: '0 0 30px 4px rgba(100,116,139,0.2)',
+  completed: '0 0 60px 8px rgba(167,139,250,0.35)',
 };
 
-// Breath cycle in seconds. Coma = barely moving. Happy = brisk.
+// Breath cycle in seconds. Slower = calmer / more idle.
 function breathDuration(mood: string, minutesSinceActivity: number | null): number {
-  if (mood === 'coma') return 14;
-  if (mood === 'starving') return 10;
-  if (mood === 'sad') return 8;
-  if (mood === 'hungry' || mood === 'anxious') return 5;
+  if (mood === 'paused') return 12;
+  if (mood === 'sad') return 9;
+  if (mood === 'lonely') return 8;
+  if (mood === 'anxious') return 4;
   if (mood === 'neutral') return 6;
   if (mood === 'content') return 5;
   if (mood === 'happy') return 4;
-  // Idle slowdown — when no activity in 12h+, breathing slows
+  if (mood === 'completed') return 6;
+  // Idle slowdown — long quiet periods make even neutral vaults breathe slower
   if (minutesSinceActivity != null && minutesSinceActivity > 720) return 9;
   return 6;
 }
 
-// Opacity per consciousness — coma is barely visible.
+// Opacity per state — paused is dimmer, sad is slightly faded.
 function consciousnessOpacity(mood: string): number {
-  if (mood === 'coma') return 0.35;
-  if (mood === 'starving') return 0.6;
+  if (mood === 'paused') return 0.55;
   if (mood === 'sad') return 0.75;
+  if (mood === 'lonely') return 0.85;
   return 1;
 }
 
 export default function MoodOrb({
   mood,
-  hunger,
-  balanceSol,
+  level = 1,
   minutesSinceActivity,
   size = 240,
 }: Props) {
@@ -67,9 +66,8 @@ export default function MoodOrb({
   const duration = breathDuration(mood, minutesSinceActivity);
   const opacity = consciousnessOpacity(mood);
 
-  // Treasury size mapping — bigger wallet = bigger orb (within bounds)
-  // Mostly aesthetic: gives passive visual cue when feeding works
-  const sizeMultiplier = Math.min(1.0, 0.75 + Math.log10(Math.max(balanceSol, 0.0001) + 1) * 0.5);
+  // Level → orb gets slightly larger as the vault matures (max ~1.0 of allotted size)
+  const sizeMultiplier = Math.min(1.0, 0.78 + Math.log10(level + 1) * 0.12);
   const dynamicSize = size * sizeMultiplier;
 
   return (

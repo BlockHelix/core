@@ -15,7 +15,6 @@ const WALLET_PATH_PREFIXES = [
   '/openclaw',
   '/agent',
   '/jobs',
-  '/v',
 ];
 
 function needsWallet(pathname: string): boolean {
