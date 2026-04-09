@@ -5,6 +5,7 @@ import Link from 'next/link';
 import MoodOrb from '@/components/vault/MoodOrb';
 import OwnerControls from '@/components/vault/OwnerControls';
 import WalletPip from '@/components/vault/WalletPip';
+import VaultChat from '@/components/vault/VaultChat';
 import { explainVault } from '@/lib/vault-state';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -78,6 +79,7 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
   const [data, setData] = useState<LifeResponse | null>(initialData);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -144,15 +146,12 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
           </p>
         )}
 
-        {explain.action === 'chat' && (
-          <button
-            disabled
-            className="mt-10 px-8 py-3.5 border border-white/20 text-white/40 text-sm rounded-full"
-            title="Coming soon"
-          >
-            say hello (soon)
-          </button>
-        )}
+        <button
+          onClick={() => setChatOpen(true)}
+          className="mt-10 px-8 py-3.5 border border-white/30 text-white/80 text-sm rounded-full hover:border-white/60 hover:bg-white/5 transition-colors"
+        >
+          say hello
+        </button>
 
         <OwnerControls
           agentId={agentId}
@@ -206,6 +205,13 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
           )}
         </section>
       )}
+
+      <VaultChat
+        agentId={agentId}
+        vaultName={vault.name}
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
 
       <footer className="px-6 py-6 text-center text-[10px] text-white/15 font-mono">
         <Link href="/" className="hover:text-white/40 transition-colors">

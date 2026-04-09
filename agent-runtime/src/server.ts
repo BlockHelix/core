@@ -26,6 +26,7 @@ import {
   requireWalletAuth,
 } from './routes/admin';
 import { handleTest } from './routes/test';
+import { handleVaultChat } from './routes/chat';
 import sdkRoutes from './routes/sdk';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
@@ -319,6 +320,7 @@ export function createApp(): express.Application {
   app.get('/v1/vaults/:agentId/access', handleAccess);
   app.post('/v1/vaults/:agentId/claim', handleClaimVault);
   app.post('/v1/vaults/:agentId/holder-key', handleSetHolderKey);
+  app.post('/v1/vaults/:agentId/chat', handleVaultChat);
   app.post('/admin/openclaw/:agentId/identity', handleUpdateIdentity);
   app.post('/admin/openclaw/:agentId/task-control', handleTaskControl);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
