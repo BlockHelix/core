@@ -140,8 +140,20 @@ export default function OpenClawContent() {
 
     } catch (error: any) {
       console.error('Deploy error:', error);
-      posthog?.capture('deploy_failed', { error: error.message, step: deployStep });
-      setDeployError(error.message || 'Deployment failed');
+      const raw = error?.message || 'Deployment failed';
+      posthog?.capture('deploy_failed', { error: raw, step: deployStep });
+
+      let friendly = raw;
+      if (/no record of a prior credit|insufficient.*lamports|insufficient funds/i.test(raw)) {
+        friendly = 'NEEDS_SOL';
+      } else if (/User rejected|User declined|denied/i.test(raw)) {
+        friendly = 'Transaction was cancelled.';
+      } else if (/blockhash not found|block.*height.*exceeded/i.test(raw)) {
+        friendly = 'Network is congested. Please try again in a moment.';
+      } else if (/simulation failed/i.test(raw)) {
+        friendly = 'Transaction simulation failed. Please try again — if it keeps happening, check your wallet balance.';
+      }
+      setDeployError(friendly);
     }
   };
 
@@ -199,12 +211,38 @@ export default function OpenClawContent() {
             })}
           </div>
 
-          {deployError && (
+          {deployError === 'NEEDS_SOL' && (
+            <div className="mt-6 p-5 border border-amber-400/30 bg-amber-400/5">
+              <p className="text-sm font-semibold text-white mb-2">Your wallet needs a tiny bit of SOL</p>
+              <p className="text-sm text-white/60 mb-4 leading-relaxed">
+                Solana charges a fraction of a cent per transaction. Your wallet{wallet?.address ? ` (${wallet.address.slice(0, 4)}…${wallet.address.slice(-4)})` : ''} has none yet.
+                {' '}On devnet it&apos;s free — grab some from the faucet below, then hit retry.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={wallet?.address ? `https://faucet.solana.com/?walletAddress=${wallet.address}&network=devnet` : 'https://faucet.solana.com/'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-colors"
+                >
+                  Get devnet SOL →
+                </a>
+                <button
+                  onClick={() => { setDeployStep(-1); setDeployError(null); }}
+                  className="px-4 py-2 border border-white/20 text-white/70 text-xs hover:border-white/40 hover:text-white transition-colors"
+                >
+                  Back to form
+                </button>
+              </div>
+            </div>
+          )}
+
+          {deployError && deployError !== 'NEEDS_SOL' && (
             <div className="mt-6 p-4 border border-red-500/30 bg-red-500/5">
-              <p className="text-sm text-red-400 font-mono mb-4">{deployError}</p>
+              <p className="text-sm text-red-400 mb-4">{deployError}</p>
               <button
                 onClick={() => { setDeployStep(-1); setDeployError(null); }}
-                className="px-6 py-2 border border-white/20 text-white/60 text-[10px] uppercase tracking-widest font-mono hover:border-white/40 hover:text-white transition-colors"
+                className="px-4 py-2 border border-white/20 text-white/60 text-xs hover:border-white/40 hover:text-white transition-colors"
               >
                 Back to form
               </button>
