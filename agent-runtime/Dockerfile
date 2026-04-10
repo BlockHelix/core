@@ -15,6 +15,7 @@ COPY package*.json ./
 RUN npm ci --only=production --legacy-peer-deps
 COPY --from=builder /app/dist ./dist
 COPY idl ./idl
+COPY public ./public
 
 ENV NODE_ENV=production
 ENV PORT=3002

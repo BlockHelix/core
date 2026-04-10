@@ -326,6 +326,15 @@ export function createApp(): express.Application {
   app.post('/admin/openclaw/:agentId/task-control', handleTaskControl);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
 
+  // Serve static skill files — downloadable by any agent harness
+  app.use('/skills', express.static('public/skills', {
+    setHeaders: (res) => {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    },
+  }));
+
   app.use('/v1/sdk', sdkRoutes);
 
   // Static site serving — public, no auth. Files uploaded by agents via
