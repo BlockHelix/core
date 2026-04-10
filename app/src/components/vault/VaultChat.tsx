@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallets } from '@privy-io/react-auth/solana';
+import { useX402 } from '@/hooks/useX402';
 import { toast } from '@/lib/toast';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
@@ -59,6 +60,8 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
   const [tier, setTier] = useState<'holder' | 'public' | null>(null);
   const [session, setSession] = useState<{ signature: string; expAt: number; wallet: string } | null>(null);
   const [signingSession, setSigningSession] = useState(false);
+  const [price, setPrice] = useState<number | null>(null);
+  const { fetchWithPayment, isReady: x402Ready } = useX402();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -123,7 +126,8 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
     setStreaming(true);
 
     try {
-      const res = await fetch(`${RUNTIME_URL}/v1/vaults/${agentId}/chat`, {
+      const chatUrl = `${RUNTIME_URL}/v1/vaults/${agentId}/chat`;
+      const fetchOpts: RequestInit = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,10 +141,25 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
               }
             : {}),
         }),
-      });
+      };
+
+      // First try — might get 402 for public visitors
+      let res = await fetch(chatUrl, fetchOpts);
+
+      // If 402, attempt x402 payment flow (pay to chat)
+      if (res.status === 402 && x402Ready) {
+        const paymentData = await res.json().catch(() => ({}));
+        setPrice(paymentData.price || null);
+        // Use fetchWithPayment which handles the 402→pay→retry cycle
+        res = await fetchWithPayment(chatUrl, fetchOpts);
+      }
 
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({}));
+        if (res.status === 402) {
+          const p = err.price ? `$${err.price}` : '';
+          throw new Error(`this vault charges ${p} per message — connect a wallet with USDC to chat`);
+        }
         throw new Error(err.error || `chat failed: ${res.status}`);
       }
 
@@ -247,7 +266,7 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
             <div className="text-sm text-white/70 lowercase font-light tracking-wide">{vaultName}</div>
             {tier && (
               <div className={`text-[9px] uppercase tracking-widest ${tier === 'holder' ? 'text-emerald-300/70' : 'text-white/30'}`}>
-                {tier}
+                {tier === 'holder' ? 'owner' : price ? `$${price}/msg` : 'public'}
               </div>
             )}
           </div>

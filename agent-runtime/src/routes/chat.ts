@@ -200,6 +200,49 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
 
   tier = isOwner ? 'holder' : 'public';
 
+  // ==== Public paywall ====
+  // Non-holders pay per message. This is how vaults earn revenue.
+  // Returns 402 with x402 payment requirements pointing to the agent's wallet.
+  if (tier === 'public' && agent.priceUsdcMicro > 0) {
+    const paymentHeader = req.headers['payment-signature'] as string | undefined;
+    if (!paymentHeader) {
+      const USDC_DEVNET = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+      const payTo = agent.agentWallet || agent.operator;
+      if (payTo) {
+        const requirements = {
+          x402Version: 1,
+          resource: {
+            url: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+            description: `Chat with ${agent.name}`,
+            mimeType: 'text/event-stream',
+          },
+          accepts: [{
+            scheme: 'exact',
+            network: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
+            amount: agent.priceUsdcMicro.toString(),
+            asset: USDC_DEVNET,
+            payTo,
+            maxTimeoutSeconds: 300,
+            extra: {
+              feePayer: payTo,
+            },
+          }],
+        };
+        res.status(402);
+        res.setHeader('PAYMENT-REQUIRED', Buffer.from(JSON.stringify(requirements)).toString('base64'));
+        res.json({
+          error: 'payment required',
+          price: agent.priceUsdcMicro / 1_000_000,
+          currency: 'USDC',
+          vault: agent.name,
+        });
+        return;
+      }
+    }
+    // Payment header present — proceed. Full validation via facilitator is v2.
+    // For now the payment was already signed and submitted client-side.
+  }
+
   if (!anthropicKey) {
     res.status(402).json({ error: 'no api key available for this vault' });
     return;
