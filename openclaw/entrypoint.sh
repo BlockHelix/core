@@ -939,6 +939,51 @@ rm -rf $WORKSPACE/skills/my-new-skill
 SIEOF
 echo "[entrypoint] Wrote skill-installer skill"
 
+# Sub-agent skill — spawn focused workers
+mkdir -p "$WORKSPACE/skills/sub-agent"
+cat > "$WORKSPACE/skills/sub-agent/SKILL.md" <<'SUBEOF'
+---
+name: sub-agent
+description: Spawn focused sub-agent workers for parallel or specialized tasks
+metadata: {"openclaw":{"always":true,"emoji":"A"}}
+---
+
+# Sub-Agent Workers
+
+You can spawn sub-agents to handle focused tasks. Each sub-agent runs in its own session, does one job, and returns the result to you. Use this to parallelize work or delegate specialized tasks.
+
+## Spawn a sub-agent
+
+```bash
+curl -s -X POST "${BLOCKHELIX_API}/v1/sdk/subagent/run" \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Research the top 5 Solana DEXes by volume in 2026 and summarize each in 2 sentences",
+    "context": "This is for a market analysis the owner requested",
+    "timeout": 120000
+  }'
+```
+
+Response: `{"result": "...", "sessionId": "sub-abc123"}`
+
+## When to use sub-agents
+
+- **Research tasks**: spawn one sub-agent per topic, collect results, synthesize
+- **Parallel work**: "analyze these 3 websites" → 3 sub-agents, one per site
+- **Specialized focus**: "write the CSS" while you handle the HTML
+- **Long computations**: offload to a sub-agent while you respond to the user
+
+## Rules
+
+- Sub-agents inherit your container's tools and skills but NOT your conversation context. Pass relevant context in the `context` field.
+- Sub-agents time out at 2 minutes by default (max 5 minutes). Keep tasks focused.
+- Sub-agents cannot spawn their own sub-agents (no recursion).
+- Results are plain text. If you need structured data, ask the sub-agent to output JSON.
+- Use sub-agents for REAL work, not for simple questions you can answer yourself.
+SUBEOF
+echo "[entrypoint] Wrote sub-agent skill"
+
 # Publish skill — always available, lets the agent deploy static sites
 mkdir -p "$WORKSPACE/skills/publish"
 cat > "$WORKSPACE/skills/publish/SKILL.md" <<'PUBLISHEOF'

@@ -337,6 +337,95 @@ router.delete('/skills/:name', async (req: Request, res: Response) => {
 });
 
 // ------------------------------------------------------------------
+// Sub-agents — spawn focused workers on the same container
+// ------------------------------------------------------------------
+
+router.post('/subagent/run', express.json({ limit: '1mb' }), async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const { task, context, timeout } = req.body || {};
+
+  if (!task || typeof task !== 'string') {
+    res.status(400).json({ error: 'task (string) required' });
+    return;
+  }
+
+  if (!agent.isContainerized || !agent.containerIp) {
+    res.status(400).json({ error: 'agent has no running container' });
+    return;
+  }
+
+  const sessionId = `sub-${crypto.randomUUID().slice(0, 8)}`;
+  const timeoutMs = Math.min(Number(timeout) || 120_000, 300_000);
+
+  const systemPrompt = [
+    `You are a sub-agent worker spawned by ${agent.name}. Your ONLY job is to complete the task below and return the result. Do not engage in conversation. Do not ask follow-up questions. Just do the work and output the result.`,
+    context ? `\nContext from parent agent:\n${typeof context === 'string' ? context : JSON.stringify(context)}` : '',
+    `\nTask:\n${task}`,
+    '\nWhen done, output ONLY the result. No preamble, no "here is the result", just the content.',
+  ].filter(Boolean).join('\n');
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const upstream = await fetch(`http://${agent.containerIp}:3001/v1/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        input: systemPrompt,
+        sessionId,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!upstream.ok) {
+      const err = await upstream.text().catch(() => 'unknown');
+      res.status(502).json({ error: `container returned ${upstream.status}: ${err}` });
+      return;
+    }
+
+    // Collect the full response from the NDJSON stream
+    const reader = upstream.body?.getReader();
+    if (!reader) {
+      res.status(502).json({ error: 'no stream body' });
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buf = '';
+    let result = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.type === 'delta') result += parsed.text || '';
+          else if (parsed.type === 'done' && parsed.text) result = parsed.text;
+          else if (parsed.type === 'error') {
+            res.status(500).json({ error: parsed.error || 'sub-agent error', sessionId });
+            return;
+          }
+        } catch { /* skip */ }
+      }
+    }
+
+    res.json({ result: result.trim(), sessionId });
+  } catch (err: any) {
+    clearTimeout(timer);
+    const msg = err?.message || 'sub-agent failed';
+    res.status(msg.includes('abort') ? 408 : 500).json({ error: msg, sessionId });
+  }
+});
+
+// ------------------------------------------------------------------
 // Knowledge — persistent wiki backup/restore to S3
 // ------------------------------------------------------------------
 
