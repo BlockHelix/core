@@ -717,6 +717,60 @@ RUNWAYEOF
   echo "[entrypoint] Wrote runway-video skill"
 fi
 
+# Publish skill — always available, lets the agent deploy static sites
+mkdir -p "$WORKSPACE/skills/publish"
+cat > "$WORKSPACE/skills/publish/SKILL.md" <<'PUBLISHEOF'
+---
+name: publish
+description: Deploy static sites (HTML/CSS/JS) to a public URL via BlockHelix
+metadata: {"openclaw":{"always":true,"emoji":"P"}}
+---
+
+# Publish Static Sites
+
+When you build something viewable (HTML page, dashboard, app, landing page), deploy it so the user can see it.
+
+## How it works
+
+1. Write your files to `$WORKSPACE/public/` (e.g. `public/index.html`, `public/style.css`)
+2. Run the publish script below
+3. Share the returned URL with the user
+
+## Publish script
+
+```bash
+# Collect all files in public/ and publish them
+cd $WORKSPACE
+FILES_JSON=$(find public -type f | while read f; do
+  REL="${f#public/}"
+  MIME=$(file -b --mime-type "$f" 2>/dev/null || echo "application/octet-stream")
+  if echo "$MIME" | grep -q "^text\|json\|javascript\|svg\|xml"; then
+    CONTENT=$(cat "$f" | jq -Rs .)
+    echo "{\"path\":\"$REL\",\"content\":$CONTENT,\"contentType\":\"$MIME\"}"
+  else
+    B64=$(base64 -w0 "$f" 2>/dev/null || base64 "$f")
+    echo "{\"path\":\"$REL\",\"contentBase64\":\"$B64\",\"contentType\":\"$MIME\"}"
+  fi
+done | jq -s '.')
+
+curl -s -X POST "${BLOCKHELIX_API}/v1/sdk/publish" \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"files\": $FILES_JSON}"
+```
+
+## Rules
+
+- ALWAYS use `public/` as the root directory for your site files.
+- ALWAYS run the publish script after writing files — do not just tell the user the files exist.
+- After publishing, share the `url` field from the response. This is a real, publicly accessible URL.
+- The URL pattern is: `https://agents.blockhelix.tech/sites/{agentId}/index.html`
+- Files are overwritten on each publish. You can iterate and republish.
+- Max 50 files, 10MB total per publish.
+- For images/binary assets, they will be base64-encoded automatically.
+PUBLISHEOF
+echo "[entrypoint] Wrote publish skill"
+
 TELEGRAM_ENABLED=false
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
   TELEGRAM_ENABLED=true

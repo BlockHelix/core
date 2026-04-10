@@ -244,6 +244,72 @@ router.post('/upload', express.raw({ type: '*/*', limit: '50mb' }), async (req: 
 });
 
 // ------------------------------------------------------------------
+// Publish — deploy static sites from container public/ to S3
+// ------------------------------------------------------------------
+
+router.post('/publish', express.json({ limit: '10mb' }), async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const agentId = agent.agentId;
+  const files: Array<{ path: string; content?: string; contentBase64?: string; contentType?: string }> = req.body?.files;
+
+  if (!Array.isArray(files) || files.length === 0) {
+    res.status(400).json({ error: 'files array required' });
+    return;
+  }
+
+  if (files.length > 50) {
+    res.status(400).json({ error: 'max 50 files per publish' });
+    return;
+  }
+
+  const uploaded: string[] = [];
+  for (const f of files) {
+    if (!f.path || typeof f.path !== 'string') continue;
+    // Sanitize path — no ../ or absolute paths
+    const clean = f.path.replace(/^\/+/, '').replace(/\.\.\//g, '');
+    if (!clean) continue;
+
+    const key = `sites/${agentId}/${clean}`;
+    const body = f.contentBase64
+      ? Buffer.from(f.contentBase64, 'base64')
+      : Buffer.from(f.content || '', 'utf-8');
+
+    const ct = f.contentType || guessMime(clean);
+
+    await s3.send(new PutObjectCommand({
+      Bucket: UPLOAD_BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: ct,
+      CacheControl: 'public, max-age=60',
+    }));
+    uploaded.push(clean);
+  }
+
+  const baseUrl = `${req.protocol}://${req.get('host')}/sites/${agentId}`;
+  const indexUrl = uploaded.includes('index.html') ? `${baseUrl}/index.html` : baseUrl;
+
+  res.json({
+    url: indexUrl,
+    baseUrl,
+    files: uploaded,
+    count: uploaded.length,
+  });
+});
+
+function guessMime(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    html: 'text/html', css: 'text/css', js: 'application/javascript',
+    json: 'application/json', svg: 'image/svg+xml', png: 'image/png',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+    ico: 'image/x-icon', txt: 'text/plain', md: 'text/markdown',
+    woff2: 'font/woff2', woff: 'font/woff',
+  };
+  return map[ext || ''] || 'application/octet-stream';
+}
+
+// ------------------------------------------------------------------
 // Spend / budget / approval endpoints
 // ------------------------------------------------------------------
 

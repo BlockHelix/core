@@ -7,6 +7,32 @@ import { toast } from '@/lib/toast';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
 
+const URL_RE = /https?:\/\/[^\s<>"')\]]+/g;
+function Linkify({ text }: { text: string }) {
+  if (!text) return null;
+  const parts: Array<string | { url: string }> = [];
+  let last = 0;
+  for (const match of text.matchAll(URL_RE)) {
+    if (match.index! > last) parts.push(text.slice(last, match.index!));
+    parts.push({ url: match[0] });
+    last = match.index! + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return (
+    <>
+      {parts.map((p, i) =>
+        typeof p === 'string' ? (
+          <span key={i}>{p}</span>
+        ) : (
+          <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" className="text-emerald-300 underline underline-offset-2 hover:text-emerald-200">
+            {p.url.length > 60 ? p.url.slice(0, 57) + '…' : p.url}
+          </a>
+        ),
+      )}
+    </>
+  );
+}
+
 interface Props {
   agentId: string;
   vaultName: string;
@@ -271,7 +297,7 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
                     : 'text-white/70'
                 }`}
               >
-                {m.content}
+                <Linkify text={m.content} />
                 {streaming && i === messages.length - 1 && m.role === 'assistant' && (
                   <span className="inline-block w-[6px] h-[14px] bg-white/60 ml-[2px] align-middle animate-pulse" />
                 )}

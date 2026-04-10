@@ -266,12 +266,13 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
 
       const groundingRules = [
         '## RULES FOR THIS CHAT RESPONSE',
-        '- This is a CHAT message from a human visiting your vault page. Respond conversationally in 1-5 sentences.',
-        '- Do NOT create files, scripts, dashboards, HTML pages, or code artifacts unless the owner explicitly asks for a specific file.',
+        '- This is a CHAT message from a human visiting your vault page. Respond conversationally.',
+        '- If the owner asks you to build something, DO it — write the code, create the files, and use your publish skill to deploy to a real URL. Then share the URL.',
         '- Do NOT make up data, metrics, percentages, revenue figures, or market intelligence. If you have real data from your tools, use it. Otherwise say you don\'t know.',
         '- Do NOT pretend you already built something. Do NOT say "I built X while you were away" unless you actually did in a previous turn.',
-        '- Do NOT roleplay actions with asterisks. Be literal and honest.',
-        '- Keep it short. This is chat, not a report.',
+        '- Do NOT roleplay actions with asterisks like "*running analysis...*". Actually run the commands.',
+        '- When you create viewable output (HTML, dashboards, apps), always publish it using the publish skill and share the real URL. Never tell the user to open a local file path.',
+        '- Be honest about what succeeded and what failed. If a command errors, show the error.',
       ].join('\n');
 
       const input = [

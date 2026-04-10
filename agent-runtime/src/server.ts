@@ -28,6 +28,7 @@ import {
 import { handleTest } from './routes/test';
 import { handleVaultChat } from './routes/chat';
 import sdkRoutes from './routes/sdk';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getAgentConfig, getAllHostedAgents, initDefaultAgents } from './services/agent-config';
 import { replayFromChain, subscribeToFactory, type ReplayStats } from './services/replay';
 import { eventIndexer } from './services/event-indexer';
@@ -326,6 +327,31 @@ export function createApp(): express.Application {
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
 
   app.use('/v1/sdk', sdkRoutes);
+
+  // Static site serving — public, no auth. Files uploaded by agents via
+  // POST /v1/sdk/publish are served from S3 sites/{agentId}/{path}.
+  const sitesS3 = new S3Client({});
+  const SITES_BUCKET = process.env.UPLOAD_BUCKET || 'blockhelix-dev-storage';
+  app.get('/sites/:agentId/*', async (req, res) => {
+    const { agentId } = req.params;
+    const filePath = (req.params as any)[0] || 'index.html';
+    const key = `sites/${agentId}/${filePath}`;
+    try {
+      const obj = await sitesS3.send(new GetObjectCommand({ Bucket: SITES_BUCKET, Key: key }));
+      res.setHeader('Content-Type', obj.ContentType || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      if (obj.ContentLength) res.setHeader('Content-Length', obj.ContentLength.toString());
+      const stream = obj.Body as any;
+      stream.pipe(res);
+    } catch (err: any) {
+      if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+        res.status(404).send('not found');
+      } else {
+        console.error('[sites] S3 fetch error:', err?.message);
+        res.status(500).send('internal error');
+      }
+    }
+  });
 
   // x402 payment middleware - only affects routes defined AFTER this
   app.use((req, _res, next) => {
