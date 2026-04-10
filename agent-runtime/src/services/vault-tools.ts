@@ -1,7 +1,11 @@
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { RPC_URL, USDC_MINT } from '../config';
 import { getVaultState } from './mood-state';
 import { pool } from './db';
+
+const knowledgeS3 = new S3Client({});
+const UPLOAD_BUCKET = process.env.UPLOAD_BUCKET || 'blockhelix-dev-storage';
 
 // The tool layer is intentionally tiny and read-only for v1. No writes, no
 // signing, no spending. The point is to ground the vault in its actual
@@ -178,12 +182,60 @@ const web_search: VaultTool = {
   },
 };
 
+const search_knowledge: VaultTool = {
+  name: 'search_knowledge',
+  description:
+    'Search the vault\'s persistent knowledge base for notes matching a keyword. Returns note titles, tags, and content snippets. Use this before answering domain questions — the vault may already know the answer from prior research.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'Keyword or topic to search for' },
+    },
+    required: ['query'],
+  },
+  run: async (input, ctx) => {
+    const query = typeof input?.query === 'string' ? input.query.toLowerCase() : '';
+    if (!query) return { error: 'query required' };
+    try {
+      const prefix = `knowledge/${ctx.agent.vault}/knowledge/`;
+      const list = await knowledgeS3.send(new ListObjectsV2Command({
+        Bucket: UPLOAD_BUCKET,
+        Prefix: prefix,
+        MaxKeys: 200,
+      }));
+      if (!list.Contents || list.Contents.length === 0) {
+        return { results: [], message: 'knowledge base is empty — no notes yet' };
+      }
+      // For each .md file, fetch and check for keyword match
+      const matches: Array<{ file: string; title: string; snippet: string }> = [];
+      for (const obj of list.Contents) {
+        if (!obj.Key || !obj.Key.endsWith('.md') || obj.Key.endsWith('_index.md')) continue;
+        try {
+          const resp = await knowledgeS3.send(new GetObjectCommand({ Bucket: UPLOAD_BUCKET, Key: obj.Key }));
+          const text = await resp.Body?.transformToString('utf-8') || '';
+          if (!text.toLowerCase().includes(query)) continue;
+          const titleMatch = text.match(/^title:\s*(.+)$/m);
+          const title = titleMatch?.[1] || obj.Key.split('/').pop()?.replace('.md', '') || 'untitled';
+          const idx = text.toLowerCase().indexOf(query);
+          const snippet = text.slice(Math.max(0, idx - 80), idx + 120).replace(/\n/g, ' ').trim();
+          matches.push({ file: obj.Key.split('/').pop() || '', title, snippet });
+          if (matches.length >= 10) break;
+        } catch { /* skip unreadable */ }
+      }
+      return { query, results: matches, totalNotes: list.Contents.length };
+    } catch (err: any) {
+      return { error: err?.message || 'knowledge search failed' };
+    }
+  },
+};
+
 const ALL_TOOLS: VaultTool[] = [
   get_vault_stats,
   get_wallet_balance,
   list_recent_jobs,
   fetch_url,
   web_search,
+  search_knowledge,
 ];
 
 export function getToolsFor(ctx: ToolContext): VaultTool[] {

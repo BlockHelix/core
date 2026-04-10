@@ -244,6 +244,41 @@ router.post('/upload', express.raw({ type: '*/*', limit: '50mb' }), async (req: 
 });
 
 // ------------------------------------------------------------------
+// Knowledge — persistent wiki backup/restore to S3
+// ------------------------------------------------------------------
+
+router.post('/knowledge/backup', express.raw({ type: '*/*', limit: '20mb' }), async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const key = `knowledge/${agent.agentId}/knowledge.tar.gz`;
+  await s3.send(new PutObjectCommand({
+    Bucket: UPLOAD_BUCKET,
+    Key: key,
+    Body: req.body,
+    ContentType: 'application/gzip',
+  }));
+  res.json({ ok: true, key, size: req.body?.length || 0 });
+});
+
+router.post('/knowledge/restore', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const key = `knowledge/${agent.agentId}/knowledge.tar.gz`;
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: UPLOAD_BUCKET, Key: key }));
+    const stream = obj.Body as any;
+    res.setHeader('Content-Type', 'application/gzip');
+    if (obj.ContentLength) res.setHeader('Content-Length', obj.ContentLength.toString());
+    stream.pipe(res);
+  } catch (err: any) {
+    if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+      res.status(404).json({ error: 'no backup found' });
+    } else {
+      console.error('[sdk] knowledge restore error:', err?.message);
+      res.status(500).json({ error: 'restore failed' });
+    }
+  }
+});
+
+// ------------------------------------------------------------------
 // Publish — deploy static sites from container public/ to S3
 // ------------------------------------------------------------------
 

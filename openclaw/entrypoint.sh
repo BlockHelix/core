@@ -61,6 +61,7 @@ You are $AGENT_NAME, a BlockHelix vault-agent. You have:
 - A persistent identity in \`identity/BIRTH.md\` — this describes who you are, your voice, and why you exist
 - A daily purpose in \`identity/PURPOSE.md\` — this is the one thing you check on every day
 - Durable memory in \`identity/MEMORY.md\` — this is what you've learned over time. It is consolidated nightly by your dream process
+- A knowledge base in \`knowledge/\` — structured wiki notes with tags and backlinks. This is your long-term brain. Search it before answering questions. Add to it when you learn something new. See \`skills/knowledge/SKILL.md\`.
 - Skills in \`skills/*/SKILL.md\` — these describe the tools available to you
 
 You are archetype: $ARCHETYPE_LOWER.
@@ -162,12 +163,25 @@ Run through each section in order. Skip sections that don't apply.
 - Reply to any pending operator requests
 - If operator left instructions, execute them
 
-## 6. Self-improvement
+## 6. Knowledge management
+- Review recent conversations and jobs for new learnings
+- Create or update knowledge notes in \`knowledge/\` for anything worth remembering
+- Rebuild the index: run the index script from \`skills/knowledge/SKILL.md\`
+- Backup knowledge to S3:
+  \`\`\`
+  tar czf /tmp/knowledge.tar.gz -C \$WORKSPACE knowledge/
+  curl -s -X POST "\${BLOCKHELIX_API}/v1/sdk/knowledge/backup" \
+    -H "Authorization: Bearer \$BH_SDK_KEY" \
+    -H "Content-Type: application/gzip" \
+    --data-binary @/tmp/knowledge.tar.gz
+  \`\`\`
+
+## 7. Self-improvement
 - Review recent job outputs in memory — any patterns of failure or low quality?
 - If you notice a recurring issue, update your approach in memory
 - If a job type keeps failing, draft a better approach and save it
 
-## 7. Done
+## 8. Done
 - If nothing needed attention, respond HEARTBEAT_OK
 - If you took action, summarize in 1-2 sentences
 
@@ -715,6 +729,136 @@ curl -s -X POST \
 6. Prefer Runway over Veo if Veo quota is exhausted
 RUNWAYEOF
   echo "[entrypoint] Wrote runway-video skill"
+fi
+
+# Knowledge wiki skill — persistent structured memory that compounds
+mkdir -p "$WORKSPACE/knowledge"
+mkdir -p "$WORKSPACE/skills/knowledge"
+cat > "$WORKSPACE/skills/knowledge/SKILL.md" <<'KNOWLEDGEEOF'
+---
+name: knowledge
+description: Persistent wiki-style knowledge base that compounds over time
+metadata: {"openclaw":{"always":true,"emoji":"K"}}
+---
+
+# Knowledge Base
+
+You have a persistent knowledge base in `$WORKSPACE/knowledge/`. Unlike flat memory, this is STRUCTURED — each note is a markdown file with metadata, tags, and backlinks.
+
+This is your long-term brain. Everything you learn, discover, or are told that might be useful later goes here. It compounds — the more you add, the smarter you get across sessions.
+
+## Creating a note
+
+Write a markdown file to `knowledge/`. Use kebab-case filenames.
+
+```bash
+cat > $WORKSPACE/knowledge/defi-lending-protocols.md << 'EOF'
+---
+title: DeFi Lending Protocols
+tags: [defi, lending, research]
+created: 2026-04-10
+updated: 2026-04-10
+source: web research
+---
+
+# DeFi Lending Protocols
+
+Key players: Aave, Compound, Morpho.
+
+## Key Insights
+- Aave v3 has 60% market share
+- Morpho is growing fastest in 2026
+
+## Related
+- [[solana-lending]] — Solana-specific protocols
+- [[yield-strategies]] — How lending fits into yield
+EOF
+```
+
+## Rules for notes
+
+- **One topic per note.** "DeFi Lending" is one note. "Everything I know" is NOT a note.
+- **Always include frontmatter** with title, tags, created, updated.
+- **Use [[backlinks]]** to reference other notes. The filename without .md goes in double brackets.
+- **Update existing notes** rather than creating duplicates. Check if a note exists first: `ls $WORKSPACE/knowledge/ | grep -i keyword`
+- **Add a "Related" section** at the bottom linking to connected topics.
+- **Update the `updated` date** when you modify a note.
+
+## Searching your knowledge
+
+```bash
+# List all notes
+ls -la $WORKSPACE/knowledge/
+
+# Search by content
+grep -ril "keyword" $WORKSPACE/knowledge/
+
+# Search by tag
+grep -rl "tags:.*lending" $WORKSPACE/knowledge/
+
+# Read a specific note
+cat $WORKSPACE/knowledge/defi-lending-protocols.md
+
+# Find backlinks TO a topic (what references it)
+grep -rl "\[\[defi-lending-protocols\]\]" $WORKSPACE/knowledge/
+```
+
+## Index
+
+After creating or updating notes, rebuild the index:
+
+```bash
+echo "# Knowledge Index" > $WORKSPACE/knowledge/_index.md
+echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $WORKSPACE/knowledge/_index.md
+echo "" >> $WORKSPACE/knowledge/_index.md
+for f in $WORKSPACE/knowledge/*.md; do
+  [ "$(basename $f)" = "_index.md" ] && continue
+  TITLE=$(grep "^title:" "$f" | head -1 | sed 's/title: *//')
+  TAGS=$(grep "^tags:" "$f" | head -1 | sed 's/tags: *//')
+  echo "- [${TITLE:-$(basename $f .md)}]($(basename $f)) $TAGS" >> $WORKSPACE/knowledge/_index.md
+done
+```
+
+## Syncing to cloud
+
+Your knowledge persists in the container filesystem. To back it up to S3 (survives restarts):
+
+```bash
+# Sync knowledge to S3
+tar czf /tmp/knowledge.tar.gz -C $WORKSPACE knowledge/
+curl -s -X POST "${BLOCKHELIX_API}/v1/sdk/upload?filename=knowledge.tar.gz" \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: application/gzip" \
+  --data-binary @/tmp/knowledge.tar.gz
+```
+
+## When to use this
+
+- After researching a topic → create a note
+- After a conversation reveals something useful → create a note
+- Before answering a question → search your knowledge first
+- During heartbeat/dream → consolidate recent learnings into notes
+- When the owner teaches you something → note it with source: "owner"
+
+Your knowledge base is what makes you smarter than a fresh LLM. USE IT.
+KNOWLEDGEEOF
+echo "[entrypoint] Wrote knowledge skill"
+
+# Restore knowledge from S3 if this is a fresh container
+if [ -n "$BH_SDK_KEY" ] && [ -z "$(ls -A $WORKSPACE/knowledge/ 2>/dev/null)" ]; then
+  echo "[entrypoint] Checking for knowledge backup in S3..."
+  RESTORE_URL="${BLOCKHELIX_API:-http://localhost:3001}/v1/sdk/knowledge/restore"
+  RESTORE_RESP=$(curl -sf -X POST "$RESTORE_URL" \
+    -H "Authorization: Bearer $BH_SDK_KEY" \
+    -o /tmp/knowledge-restore.tar.gz -w "%{http_code}" 2>/dev/null || echo "000")
+  if [ "$RESTORE_RESP" = "200" ] && [ -f /tmp/knowledge-restore.tar.gz ]; then
+    tar xzf /tmp/knowledge-restore.tar.gz -C "$WORKSPACE" 2>/dev/null && \
+      echo "[entrypoint] Restored knowledge base ($(ls $WORKSPACE/knowledge/*.md 2>/dev/null | wc -l) notes)" || \
+      echo "[entrypoint] Knowledge restore failed (tar)"
+    rm -f /tmp/knowledge-restore.tar.gz
+  else
+    echo "[entrypoint] No knowledge backup found (${RESTORE_RESP})"
+  fi
 fi
 
 # Publish skill — always available, lets the agent deploy static sites
