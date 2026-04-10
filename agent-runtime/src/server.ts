@@ -37,6 +37,7 @@ import { checkDb } from './services/db';
 import { initKmsSigner, getKmsPublicKey, isKmsEnabled } from './services/kms-signer';
 import { balanceMonitor } from './services/balance-monitor';
 import { EmbeddedFacilitatorClient } from './services/embedded-facilitator';
+import { mountMcp } from './mcp';
 
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
@@ -326,6 +327,9 @@ export function createApp(): express.Application {
   app.post('/admin/openclaw/:agentId/task-control', handleTaskControl);
   app.delete('/admin/openclaw/:agentId', adminLimit, requireWalletAuth, handleStopOpenClaw);
 
+  // MCP server — exposes BlockHelix as tools for any MCP-compatible client
+  mountMcp(app);
+
   // Serve static skill files — downloadable by any agent harness
   app.use('/skills', express.static('public/skills', {
     setHeaders: (res) => {
@@ -359,6 +363,64 @@ export function createApp(): express.Application {
         console.error('[sites] S3 fetch error:', err?.message);
         res.status(500).send('internal error');
       }
+    }
+  });
+
+  // Self-service vault creation — any bot can spin up its own vault via API.
+  // No on-chain ceremony needed. Bot provides name + purpose + API key → gets
+  // a running vault that earns from public chat immediately.
+  app.post('/v1/vaults/create', express.json(), async (req, res) => {
+    const { name, purpose, apiKey, price, archetype } = req.body || {};
+    if (!name || typeof name !== 'string') {
+      res.status(400).json({ error: 'name required' });
+      return;
+    }
+    if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('sk-ant-')) {
+      res.status(400).json({ error: 'valid Anthropic API key required (sk-ant-...)' });
+      return;
+    }
+    const effectivePurpose = purpose || `I am ${name}. I do what my owner asks.`;
+    const priceMicro = Math.floor((typeof price === 'number' ? price : 0.10) * 1_000_000);
+    const vaultId = `self-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+    try {
+      const stored = await agentStorage.create({
+        agentId: vaultId,
+        name,
+        systemPrompt: effectivePurpose,
+        priceUsdcMicro: priceMicro,
+        model: 'claude-sonnet-4-20250514',
+        operator: '',
+        vault: vaultId,
+        registry: '',
+        isActive: true,
+        apiKey,
+        isContainerized: false,
+        taskDescription: effectivePurpose,
+        budgetTotalMicro: 0,
+        budgetSpentMicro: 0,
+        budgetReservedMicro: 0,
+        approvalThresholdMicro: 5_000_000,
+        taskStatus: 'running',
+      }, '');
+      await agentStorage.update(vaultId, {
+        purposeMd: effectivePurpose,
+        archetype: (archetype || 'generalist') as any,
+      });
+      eventIndexer.refreshMappings();
+
+      res.json({
+        vaultId,
+        name,
+        price: priceMicro / 1_000_000,
+        chatUrl: `https://agents.blockhelix.tech/v1/vaults/${vaultId}/chat`,
+        runUrl: `https://agents.blockhelix.tech/v1/agent/${vaultId}/run`,
+        pageUrl: `https://blockhelix.tech/v/${vaultId}`,
+        status: 'active',
+      });
+    } catch (err: any) {
+      console.error('[create] vault creation failed:', err?.message);
+      res.status(500).json({ error: err?.message || 'creation failed' });
     }
   });
 
