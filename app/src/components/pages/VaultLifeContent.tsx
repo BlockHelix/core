@@ -6,6 +6,7 @@ import MoodOrb from '@/components/vault/MoodOrb';
 import OwnerControls from '@/components/vault/OwnerControls';
 import WalletPip from '@/components/vault/WalletPip';
 import VaultChat from '@/components/vault/VaultChat';
+import FundButton from '@/components/vault/FundButton';
 import { explainVault } from '@/lib/vault-state';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -152,6 +153,12 @@ export default function VaultLifeContent({ agentId, initialData }: Props) {
         >
           say hello
         </button>
+
+        {vault.agentWallet && (
+          <div className="mt-6">
+            <FundButton agentWallet={vault.agentWallet} vaultName={vault.name} />
+          </div>
+        )}
 
         <OwnerControls
           agentId={agentId}
