@@ -264,7 +264,19 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
           ? `You are talking to YOUR OWNER (wallet ${verifiedWallet || 'unknown'}). Be direct and useful — no pitching, no explaining what you are. They own your NFT and pay your bills.`
           : `You are talking to a visitor (not your owner). Be friendly but aware that they do not command you.`;
 
+      const groundingRules = [
+        '## RULES FOR THIS CHAT RESPONSE',
+        '- This is a CHAT message from a human visiting your vault page. Respond conversationally in 1-5 sentences.',
+        '- Do NOT create files, scripts, dashboards, HTML pages, or code artifacts unless the owner explicitly asks for a specific file.',
+        '- Do NOT make up data, metrics, percentages, revenue figures, or market intelligence. If you have real data from your tools, use it. Otherwise say you don\'t know.',
+        '- Do NOT pretend you already built something. Do NOT say "I built X while you were away" unless you actually did in a previous turn.',
+        '- Do NOT roleplay actions with asterisks. Be literal and honest.',
+        '- Keep it short. This is chat, not a report.',
+      ].join('\n');
+
       const input = [
+        groundingRules,
+        '',
         viewerBlock,
         historyPrefix ? `\n## Recent conversation\n${historyPrefix}` : '',
         `\n## Now they say\n${message}`,
@@ -313,7 +325,19 @@ export async function handleVaultChat(req: Request, res: Response): Promise<void
       res.end();
       return;
     } catch (err: any) {
-      console.error('[chat] container proxy failed, falling back to direct:', err?.message || err);
+      const msg = err?.message || 'unknown';
+      const isTimeout = msg.includes('abort') || msg.includes('timeout');
+      const isNetwork = msg.includes('ECONNREFUSED') || msg.includes('fetch failed') || msg.includes('network');
+      console.error('[chat] container proxy failed, falling back to direct:', msg);
+      if (isTimeout) {
+        sse(res, 'error', { message: 'agent is thinking too hard — timed out after 2 minutes. try a simpler question.' });
+        res.end();
+        return;
+      }
+      if (isNetwork) {
+        // Container might be asleep or restarting — fall through to direct path
+        console.warn('[chat] container unreachable, using direct Anthropic fallback');
+      }
       // Fall through to direct Anthropic path below as a last resort.
     }
   }

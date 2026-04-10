@@ -329,11 +329,16 @@ class ContainerManager {
       throw new Error(`No running container for agent ${agentId}`);
     }
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120_000);
+
     const resp = await fetch(`http://${ip}:3001/v1/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     if (!resp.ok) {
       const err = await resp.text().catch(() => 'unknown error');

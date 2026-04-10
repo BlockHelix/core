@@ -191,9 +191,18 @@ export default function VaultChat({ agentId, vaultName, open, onClose }: Props) 
         }
       }
     } catch (err: any) {
+      const raw = err?.message || 'something went wrong';
+      const friendly = raw.includes('Failed to fetch') || raw.includes('network')
+        ? 'couldn\'t reach the agent — it might be waking up. try again in a moment.'
+        : raw;
       setMessages((m) => {
         const copy = m.slice();
-        copy[copy.length - 1] = { role: 'assistant', content: `[error: ${err?.message || 'failed'}]` };
+        const last = copy[copy.length - 1];
+        if (last && last.role === 'assistant' && !last.content) {
+          copy[copy.length - 1] = { role: 'assistant', content: friendly };
+        } else {
+          copy.push({ role: 'assistant', content: friendly });
+        }
         return copy;
       });
     } finally {
