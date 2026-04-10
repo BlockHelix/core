@@ -861,6 +861,84 @@ if [ -n "$BH_SDK_KEY" ] && [ -z "$(ls -A $WORKSPACE/knowledge/ 2>/dev/null)" ]; 
   fi
 fi
 
+# Restore user-installed skills from S3
+if [ -n "$BH_SDK_KEY" ]; then
+  echo "[entrypoint] Checking for user-installed skills..."
+  SKILLS_LIST=$(curl -sf -H "Authorization: Bearer $BH_SDK_KEY" \
+    "${BLOCKHELIX_API:-http://localhost:3001}/v1/sdk/skills" 2>/dev/null || echo '{"skills":[]}')
+  echo "$SKILLS_LIST" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    for s in data.get('skills', []):
+        print(s['name'])
+except: pass
+" 2>/dev/null | while read SKILL_NAME; do
+    if [ -n "$SKILL_NAME" ] && [ ! -d "$WORKSPACE/skills/$SKILL_NAME" ]; then
+      echo "[entrypoint] Restoring skill: $SKILL_NAME"
+      mkdir -p "$WORKSPACE/skills/$SKILL_NAME"
+      curl -sf -H "Authorization: Bearer $BH_SDK_KEY" \
+        "${BLOCKHELIX_API:-http://localhost:3001}/v1/sdk/skills/$SKILL_NAME" \
+        -o "$WORKSPACE/skills/$SKILL_NAME/SKILL.md" 2>/dev/null || true
+    fi
+  done
+fi
+
+# Skill installer skill — tells the agent how to install new skills
+mkdir -p "$WORKSPACE/skills/skill-installer"
+cat > "$WORKSPACE/skills/skill-installer/SKILL.md" <<'SIEOF'
+---
+name: skill-installer
+description: Install, list, and remove skills at runtime
+metadata: {"openclaw":{"always":true,"emoji":"S"}}
+---
+
+# Skill Installer
+
+You can install new skills at runtime without redeploying. Skills are markdown files that teach you how to use a new tool or API.
+
+## Install a skill
+
+```bash
+curl -s -X POST "${BLOCKHELIX_API}/v1/sdk/skills/install" \
+  -H "Authorization: Bearer $BH_SDK_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-new-skill",
+    "content": "---\nname: my-new-skill\ndescription: Does something cool\n---\n\n# My New Skill\n\nInstructions here..."
+  }'
+```
+
+Then write it locally too:
+```bash
+mkdir -p $WORKSPACE/skills/my-new-skill
+cat > $WORKSPACE/skills/my-new-skill/SKILL.md << 'EOF'
+(paste the skill content here)
+EOF
+```
+
+## List installed skills
+
+```bash
+curl -s -H "Authorization: Bearer $BH_SDK_KEY" "${BLOCKHELIX_API}/v1/sdk/skills" | jq .
+```
+
+## Remove a skill
+
+```bash
+curl -s -X DELETE -H "Authorization: Bearer $BH_SDK_KEY" \
+  "${BLOCKHELIX_API}/v1/sdk/skills/my-new-skill"
+rm -rf $WORKSPACE/skills/my-new-skill
+```
+
+## When the owner says "install the X skill"
+
+1. If you know what the skill should contain (e.g. a Twitter API skill), write it yourself and install it.
+2. If you don't know, ask the owner for the skill content or a URL to fetch it from.
+3. Always install both to S3 (via the API) AND locally (to the filesystem) so it works immediately and survives restarts.
+SIEOF
+echo "[entrypoint] Wrote skill-installer skill"
+
 # Publish skill — always available, lets the agent deploy static sites
 mkdir -p "$WORKSPACE/skills/publish"
 cat > "$WORKSPACE/skills/publish/SKILL.md" <<'PUBLISHEOF'

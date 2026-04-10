@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import crypto from 'crypto';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { sdkAuth } from '../middleware/sdk-auth';
 import { agentStorage } from '../services/storage';
@@ -241,6 +241,99 @@ router.post('/upload', express.raw({ type: '*/*', limit: '50mb' }), async (req: 
   const publicUrl = `https://${UPLOAD_BUCKET}.s3.amazonaws.com/${key}`;
 
   res.json({ url, publicUrl, key, filename, expiresIn: '7d' });
+});
+
+// ------------------------------------------------------------------
+// Skills — install/list/remove skills at runtime
+// ------------------------------------------------------------------
+
+router.get('/skills', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const prefix = `skills/${agent.agentId}/`;
+  try {
+    const list = await s3.send(new ListObjectsV2Command({ Bucket: UPLOAD_BUCKET, Prefix: prefix, MaxKeys: 100 }));
+    const skills = (list.Contents || [])
+      .filter((o) => o.Key?.endsWith('/SKILL.md'))
+      .map((o) => {
+        const parts = o.Key!.split('/');
+        return { name: parts[parts.length - 2], key: o.Key!, size: o.Size || 0 };
+      });
+    res.json({ skills });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'list failed' });
+  }
+});
+
+router.post('/skills/install', express.json({ limit: '1mb' }), async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const { name, content } = req.body || {};
+  if (!name || typeof name !== 'string' || !/^[a-z0-9-]+$/.test(name)) {
+    res.status(400).json({ error: 'name required (lowercase alphanumeric + dashes)' });
+    return;
+  }
+  if (!content || typeof content !== 'string') {
+    res.status(400).json({ error: 'content (markdown) required' });
+    return;
+  }
+  if (content.length > 50_000) {
+    res.status(400).json({ error: 'skill too large (max 50KB)' });
+    return;
+  }
+  const key = `skills/${agent.agentId}/${name}/SKILL.md`;
+  await s3.send(new PutObjectCommand({
+    Bucket: UPLOAD_BUCKET,
+    Key: key,
+    Body: Buffer.from(content, 'utf-8'),
+    ContentType: 'text/markdown',
+  }));
+
+  // Also write to the running container if it has an IP
+  if (agent.isContainerized && agent.containerIp) {
+    try {
+      await fetch(`http://${agent.containerIp}:3001/v1/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: `A new skill "${name}" has been installed. Write the following content to $WORKSPACE/skills/${name}/SKILL.md:\n\n${content.slice(0, 10_000)}`,
+          stream: false,
+        }),
+      });
+    } catch {
+      // Container might be down — skill is in S3 for next boot
+    }
+  }
+
+  res.json({ ok: true, name, key });
+});
+
+router.get('/skills/:name', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const name = req.params.name;
+  const key = `skills/${agent.agentId}/${name}/SKILL.md`;
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: UPLOAD_BUCKET, Key: key }));
+    const text = await obj.Body?.transformToString('utf-8') || '';
+    res.setHeader('Content-Type', 'text/markdown');
+    res.send(text);
+  } catch (err: any) {
+    if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+      res.status(404).json({ error: 'skill not found' });
+    } else {
+      res.status(500).json({ error: err?.message || 'fetch failed' });
+    }
+  }
+});
+
+router.delete('/skills/:name', async (req: Request, res: Response) => {
+  const agent = req.agent!;
+  const name = req.params.name;
+  const key = `skills/${agent.agentId}/${name}/SKILL.md`;
+  try {
+    await s3.send(new DeleteObjectCommand({ Bucket: UPLOAD_BUCKET, Key: key }));
+    res.json({ ok: true, deleted: name });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'delete failed' });
+  }
 });
 
 // ------------------------------------------------------------------
