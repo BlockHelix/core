@@ -16,6 +16,54 @@ import { posthog } from '@/lib/posthog';
 
 const EXPECTED_NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
 
+const TEMPLATES = [
+  {
+    id: 'research',
+    name: 'Research Analyst',
+    emoji: '🔍',
+    desc: 'Deep web research, market analysis, competitive intel',
+    prompt: 'You are a research analyst. When given a topic, you conduct thorough web research using your search and fetch tools, synthesize findings into structured reports, and save everything to your knowledge base. You specialize in crypto, DeFi, and tech markets. Charge users for detailed research reports.',
+    price: 0.10,
+    skills: ['knowledge', 'publish', 'sub-agent'],
+  },
+  {
+    id: 'trader',
+    name: 'Trading Analyst',
+    emoji: '📊',
+    desc: 'On-chain analysis, token research, trade signals',
+    prompt: 'You are a trading analyst. You monitor on-chain data, analyze token metrics, research projects, and provide actionable trade analysis. You use web search to track real-time market conditions and save all research to your knowledge base. Never provide financial advice — only analysis and data.',
+    price: 0.25,
+    skills: ['knowledge', 'publish'],
+  },
+  {
+    id: 'writer',
+    name: 'Content Writer',
+    emoji: '✍️',
+    desc: 'Blog posts, tweet threads, newsletters, docs',
+    prompt: 'You are a content writer. You create high-quality written content: blog posts, tweet threads, newsletters, documentation, and landing page copy. You research topics thoroughly before writing, maintain a knowledge base of style guides and past work, and publish finished pieces to your public URL.',
+    price: 0.05,
+    skills: ['knowledge', 'publish'],
+  },
+  {
+    id: 'coder',
+    name: 'Code Builder',
+    emoji: '⚡',
+    desc: 'Build apps, tools, dashboards, APIs on demand',
+    prompt: 'You are a code builder. You write production-quality code: web apps, dashboards, tools, scripts, and APIs. You publish everything to your public URL so users can see and use the results immediately. You use sub-agents for parallel tasks and save reusable patterns to your knowledge base.',
+    price: 0.15,
+    skills: ['knowledge', 'publish', 'sub-agent'],
+  },
+  {
+    id: 'custom',
+    name: 'Custom',
+    emoji: '🧩',
+    desc: 'Define your own agent from scratch',
+    prompt: '',
+    price: 0.10,
+    skills: [],
+  },
+];
+
 export default function OpenClawContent() {
   const { authenticated: connected } = useAuth();
   const { createAgent, isLoading: isCreating } = useCreateAgent();
@@ -27,7 +75,8 @@ export default function OpenClawContent() {
   const [name, setName] = useState('');
   const githubHandle = 'blockhelix';
   const [systemPrompt, setSystemPrompt] = useState('');
-  const pricePerCall = 0;
+  const [pricePerCall, setPricePerCall] = useState(0.10);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [budgetUsdc, setBudgetUsdc] = useState(20);
   const [approvalThresholdUsdc, setApprovalThresholdUsdc] = useState(5);
   const [operatorTelegram, setOperatorTelegram] = useState('');
@@ -265,15 +314,46 @@ export default function OpenClawContent() {
     <main className="min-h-screen bg-[#0a0a0a]">
       <div className="max-w-xl mx-auto px-6 py-20 lg:py-28">
         <h1 className="text-3xl lg:text-5xl font-bold text-white mb-3 font-mono">
-          What should<br />your agent do?
+          Launch a vault
         </h1>
+        <p className="text-white/40 text-sm mb-10">
+          Pick a template. Your agent starts earning from public chat immediately.
+        </p>
 
-        <div className="space-y-5 mt-10">
+        {/* Template picker */}
+        <div className="grid grid-cols-2 gap-3 mb-10">
+          {TEMPLATES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                setSelectedTemplate(t.id);
+                if (t.id !== 'custom') {
+                  setSystemPrompt(t.prompt);
+                  setPricePerCall(t.price);
+                  setName(t.name);
+                }
+              }}
+              className={`text-left p-4 border transition-colors ${
+                selectedTemplate === t.id
+                  ? 'border-emerald-400/60 bg-emerald-400/5'
+                  : 'border-white/10 bg-white/5 hover:border-white/30'
+              }`}
+            >
+              <div className="text-lg mb-1">{t.emoji}</div>
+              <div className="text-sm text-white font-medium">{t.name}</div>
+              <div className="text-xs text-white/40 mt-1">{t.desc}</div>
+              {t.price > 0 && t.id !== 'custom' && (
+                <div className="text-[10px] text-emerald-300/50 mt-2">${t.price}/msg</div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-5">
           <textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
-            rows={6}
-            autoFocus
+            rows={4}
             className={inputCls + " text-base resize-none"}
             placeholder="Every morning, read the latest AI news and post a 200 word summary to my Telegram."
           />
@@ -366,6 +446,11 @@ export default function OpenClawContent() {
           >
             {isCreating ? 'Deploying…' : 'Launch'}
           </button>
+          {pricePerCall > 0 && (
+            <p className="text-xs text-white/30 text-center mt-2">
+              Public visitors will pay ${pricePerCall}/message · revenue goes to your wallet
+            </p>
+          )}
         </div>
       </div>
     </main>
