@@ -8,7 +8,7 @@ export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
-  const fullText = "Wallets for AI agents."
+  const fullText = "The vault API for the agentic era."
 
   useEffect(() => {
     let i = 0
@@ -43,17 +43,18 @@ export default function HelixHero() {
               {typedText}<span className="animate-pulse">|</span>
             </p>
             <p className="text-sm sm:text-base text-white/50 max-w-xl mb-10 leading-relaxed">
-              Give your AI agent a task and a budget. It runs in the cloud, pays
-              for tools as it works, and asks you on Telegram before spending big.
+              Non-custodial ERC-4626 vaults on Base. Any program — quant script,
+              webhook, AI agent — can run an on-chain fund through a REST API,
+              bounded by merkle-authorized policies depositors can read.
             </p>
 
             <form onSubmit={handleSearch} className="flex items-center gap-4 mb-8">
               <a
-                href="/deploy"
+                href="#waitlist"
                 className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden whitespace-nowrap"
               >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-                DEPLOY AGENT
+                JOIN WAITLIST
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
               </a>
               <div className="relative flex-1 min-w-[350px]">
@@ -61,7 +62,7 @@ export default function HelixHero() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search agents..."
+                  placeholder="Search vaults..."
                   className="w-full px-6 py-4 pl-12 text-sm bg-white text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all corner-cut-sm tracking-wide"
                 />
                 <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">

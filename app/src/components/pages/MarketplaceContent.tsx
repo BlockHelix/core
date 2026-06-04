@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import HelixHero from '@/components/HelixHero';
 
 const POLICY_TEMPLATES = [
   {
@@ -63,120 +64,11 @@ const CODE_SNIPPET = `POST /v1/vaults/:id/trade/swap
 export default function MarketplaceContent() {
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-[#e4e4e7]">
-      <HeroSection />
+      <HelixHero />
       <PillarsSection />
       <PolicySection />
       <WaitlistSection />
     </main>
-  );
-}
-
-function useTypewriter(text: string, speed = 60) {
-  const [typed, setTyped] = useState('');
-  useEffect(() => {
-    let i = 0;
-    const id = setInterval(() => {
-      if (i < text.length) {
-        setTyped(text.slice(0, i + 1));
-        i++;
-      } else clearInterval(id);
-    }, speed);
-    return () => clearInterval(id);
-  }, [text, speed]);
-  return typed;
-}
-
-function HeroCube() {
-  return (
-    <svg width="380" height="380" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="cubeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4EC9B0" />
-          <stop offset="100%" stopColor="#C586C0" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M16 2L30 9V23L16 30L2 23V9L16 2Z M16 16L30 9M16 16L2 9M16 16V30"
-        stroke="url(#cubeGradient)"
-        strokeWidth="0.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray="4 1"
-      >
-        <animate attributeName="stroke-dashoffset" values="5;0" dur="6s" repeatCount="indefinite" />
-      </path>
-    </svg>
-  );
-}
-
-function HeroSection() {
-  const typed = useTypewriter('The vault API for the agentic era.');
-  return (
-    <section className="relative border-b border-[#1e1e2e] overflow-hidden">
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34,211,238,0.07) 0%, transparent 70%)',
-        }}
-      />
-      <div className="max-w-[1280px] mx-auto px-6 lg:px-8 pt-32 pb-24 flex flex-col lg:flex-row items-center gap-12">
-        <div className="max-w-3xl lg:w-3/5">
-          <div className="flex items-center gap-2 mb-6">
-            <span
-              className="text-[10px] uppercase tracking-widest font-mono px-2 py-1 border"
-              style={{ color: '#22d3ee', borderColor: 'rgba(34,211,238,0.3)', background: 'rgba(34,211,238,0.05)' }}
-            >
-              Coming to Base
-            </span>
-            <span className="text-[10px] uppercase tracking-widest font-mono text-[#52525b]">
-              Pre-launch · Join the waitlist below
-            </span>
-          </div>
-
-          <h1
-            className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
-            style={{ fontFamily: 'var(--font-jetbrains-mono)', letterSpacing: '-0.02em' }}
-          >
-            <span style={{ color: '#22d3ee' }}>Block</span>
-            <span style={{ color: '#22d3ee' }}> Helix</span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-white/40 font-mono mb-6 min-h-[1.75rem]">
-            {typed}
-            <span className="animate-pulse">|</span>
-          </p>
-
-          <p className="text-base md:text-lg text-[#a1a1aa] leading-relaxed mb-10 max-w-2xl">
-            Non-custodial ERC-4626 vaults on Base where any program — quant script, TradingView webhook, LLM agent — can run an on-chain fund via a REST API. Operators can only execute merkle-authorized, slippage-capped actions. Depositors see every policy change 24 hours before it takes effect.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <a
-              href="#waitlist"
-              className="px-6 py-3 text-sm font-mono font-semibold rounded-md transition-all duration-200"
-              style={{
-                background: '#22d3ee',
-                color: '#0a0a0f',
-              }}
-            >
-              Join the waitlist
-            </a>
-            <Link
-              href="/docs"
-              className="px-6 py-3 text-sm font-mono border rounded-md transition-all duration-200 text-[#a1a1aa] hover:text-[#e4e4e7]"
-              style={{ borderColor: '#1e1e2e' }}
-            >
-              Read the docs
-            </Link>
-          </div>
-        </div>
-
-        <div className="hidden lg:flex lg:w-2/5 justify-center">
-          <HeroCube />
-        </div>
-      </div>
-    </section>
   );
 }
 
