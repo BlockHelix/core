@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
     from: 'BlockHelix Waitlist <onboarding@resend.dev>',
-    to: 'wmrs.work@gmail.com',
+    to: 'will@defidata.dev',
     subject: 'New waitlist signup',
     text: `New BlockHelix waitlist signup: ${email}`,
   });
