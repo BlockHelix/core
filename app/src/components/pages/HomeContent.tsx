@@ -1,24 +1,70 @@
 'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
 import HelixHero from '@/components/HelixHero';
 
-export default function HomeContent() {
+const TEMPLATES = [
+  {
+    tag: 'Bluechip',
+    tagColor: 'text-cyan-600',
+    title: 'Bluechip',
+    desc: 'USDC ↔ WETH/cbBTC on top-liquidity pools only. Slippage capped at 50 bps per trade.',
+    meta: 'Risk: conservative · Hooks: swap',
+  },
+  {
+    tag: 'Yield',
+    tagColor: 'text-emerald-600',
+    title: 'All Yield',
+    desc: 'Morpho, Aave v3, and Moonwell whitelisted markets. No directional swaps.',
+    meta: 'Risk: conservative–moderate · Hooks: yield',
+  },
+  {
+    tag: 'Balanced',
+    tagColor: 'text-violet-600',
+    title: 'Balanced',
+    desc: 'Bluechip pairs plus yield sources, with per-transaction notional caps.',
+    meta: 'Risk: moderate · Hooks: swap + yield',
+  },
+  {
+    tag: 'Momentum',
+    tagColor: 'text-amber-600',
+    title: 'Midcap Momentum',
+    desc: 'Curated, liquidity-screened midcap list. Tighter caps, wider slippage band.',
+    meta: 'Risk: aggressive · Hooks: swap',
+  },
+  {
+    tag: 'Perps',
+    tagColor: 'text-red-600',
+    title: 'Perps Midcap',
+    desc: 'Midcap perp markets, max 3× leverage, mandatory exit leaves. Ships in v2.',
+    meta: 'Risk: aggressive · Hooks: swap + perps',
+  },
+  {
+    tag: 'Custom',
+    tagColor: 'text-cyan-600',
+    title: 'Custom',
+    desc: 'Propose your own leaf set post-launch. Validated by the config service, activated via timelock.',
+    meta: 'Risk: you decide · Hooks: any',
+  },
+];
 
+export default function HomeContent() {
   return (
     <main className="min-h-screen">
       <HelixHero />
 
-      {/* Deploy flow — 3 steps */}
+      {/* Vault flow — 3 steps */}
       <section className="py-20 lg:py-48 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <p className="text-xs uppercase tracking-[0.2em] text-black/40 mb-8">Three steps</p>
           <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-black mb-8 lg:mb-12">
-            Deploy. Fund.<br />Approve.
+            Pick. Fund.<br />Trade.
           </h2>
           <p className="text-xl lg:text-2xl text-black/60 leading-relaxed max-w-3xl mb-16 lg:mb-24">
-            Your agent runs in an <span className="bg-black text-white px-3 py-1">isolated container</span>,
-            with its own Solana wallet and a hard spending cap.
-            It pays as it works. You stay in control.
+            Your vault is a <span className="bg-black text-white px-3 py-1">non-custodial ERC-4626 contract</span> on Base.
+            The operator trades through an API but can only execute what the policy allows.
+            Depositors stay in control.
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
@@ -28,58 +74,58 @@ export default function HomeContent() {
                 <div className="flex items-start gap-6">
                   <span className="text-black text-2xl font-bold">01</span>
                   <div>
-                    <p className="text-lg font-semibold text-black">Describe the task</p>
-                    <p className="text-black/50">Write a prompt. Pick a budget in USDC. Set an approval threshold. Takes 30 seconds.</p>
+                    <p className="text-lg font-semibold text-black">Pick a policy template</p>
+                    <p className="text-black/50">Bluechip, All Yield, Balanced, Momentum. The merkle root is set in the creation transaction. Takes 60 seconds.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-black text-2xl font-bold">02</span>
                   <div>
-                    <p className="text-lg font-semibold text-black">Fund the agent wallet</p>
-                    <p className="text-black/50">Your agent spins up with its own Solana wallet. Send it USDC. That&apos;s the hard cap — it can&apos;t spend more than you fund.</p>
+                    <p className="text-lg font-semibold text-black">Depositors fund the vault</p>
+                    <p className="text-black/50">USDC in, ERC-4626 shares out. The operator never holds funds — capital lives in the contract, bounded by the policy.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-black text-2xl font-bold">03</span>
                   <div>
-                    <p className="text-lg font-semibold text-black">Approve on Telegram</p>
-                    <p className="text-black/50">Agent runs 24/7. Small spends settle automatically. Big spends ping you on Telegram — reply <span className="bg-black text-white px-2 py-0.5">YES 42</span> to approve.</p>
+                    <p className="text-lg font-semibold text-black">Trade through the API</p>
+                    <p className="text-black/50">One REST call per action. The executor verifies every trade against the policy on-chain — <span className="bg-black text-white px-2 py-0.5">no leaf, no trade</span>.</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div>
-              <h3 className="text-3xl lg:text-4xl font-bold text-black mb-8">What it can do</h3>
+              <h3 className="text-3xl lg:text-4xl font-bold text-black mb-8">What the policy guarantees</h3>
               <div className="space-y-6">
                 <div className="flex items-start gap-6">
                   <span className="text-black text-2xl font-bold">&rarr;</span>
                   <div>
-                    <p className="text-lg font-semibold text-black">Run code &amp; shell commands</p>
-                    <p className="text-black/50">Deploy repos, call APIs, process data, write scripts. OpenClaw runtime, persistent memory.</p>
+                    <p className="text-lg font-semibold text-black">Bounded execution</p>
+                    <p className="text-black/50">Token pairs, venues, slippage, and per-tx caps are merkle-leaf constraints, enforced by the contract — not promises.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-black text-2xl font-bold">&rarr;</span>
                   <div>
-                    <p className="text-lg font-semibold text-black">Pay for tools autonomously</p>
-                    <p className="text-black/50">Web search, video generation, premium APIs. MPP + x402 payment rails. Every spend logged.</p>
+                    <p className="text-lg font-semibold text-black">24h warning on changes</p>
+                    <p className="text-black/50">Policy changes go through a timelock. Depositors see the exact diff and can exit before it activates.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-black text-2xl font-bold">&rarr;</span>
                   <div>
-                    <p className="text-lg font-semibold text-black">Report back via Telegram</p>
-                    <p className="text-black/50">Chat with your agent, request approvals, pause or resume. No dashboard required.</p>
+                    <p className="text-lg font-semibold text-black">Withdrawals never gated</p>
+                    <p className="text-black/50">Exit paths are guaranteed by construction — every position the policy can open, it can unwind.</p>
                   </div>
                 </div>
               </div>
 
               <a
-                href="/deploy"
+                href="#waitlist"
                 className="group inline-flex items-center gap-2 mt-10 px-8 py-4 text-sm font-medium tracking-widest bg-black text-white hover:bg-gray-900 transition-all duration-300"
               >
-                DEPLOY AN AGENT
+                JOIN THE WAITLIST
                 <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
               </a>
             </div>
@@ -92,30 +138,29 @@ export default function HomeContent() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">The insight</p>
           <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-8 lg:mb-12">
-            Agents need<br /><span className="text-cyan-600">wallets.</span>
+            Trust the policy,<br /><span className="text-cyan-600">not the manager.</span>
           </h2>
           <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed max-w-3xl mb-16 lg:mb-24">
-            Every major payments company shipped an agent payment rail this year — Google, Visa, Stripe, Coinbase.
-            Payments are solved. What&apos;s missing is the <span className="bg-gray-900 text-white px-3 py-1">custody layer</span>:
-            a safe way for a human to hand an AI agent real money and a real job.
+            Every on-chain fund asks you to trust a human. We replaced that with a{' '}
+            <span className="bg-gray-900 text-white px-3 py-1">machine-checkable policy</span>:
+            a merkle tree of exactly what the operator may do, enforced by the contract on every trade.
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
             <div>
-              <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">Hard cap, not vibes</h3>
+              <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">Leaves, not vibes</h3>
               <p className="text-lg text-gray-500 leading-relaxed mb-8">
-                Your agent&apos;s wallet IS the budget. It literally can&apos;t spend more
-                than what you fund. Every tool, every API call, every transaction
-                goes through preflight → approve → settle.
+                The vault&apos;s policy IS the strategy boundary. The operator literally can&apos;t
+                trade outside it. Every action goes through quote → simulate → prove → execute.
               </p>
               <div className="bg-gray-50 border border-gray-200 p-6 lg:p-8">
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">The safety stack</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">The trust stack</p>
                 <ul className="space-y-3 text-sm text-gray-700 font-mono">
-                  <li>1. Fund wallet with N USDC — hard cap.</li>
-                  <li>2. Preflight every spend against BlockHelix.</li>
-                  <li>3. Spends above threshold ping Telegram.</li>
-                  <li>4. Operator replies YES/NO in chat.</li>
-                  <li>5. Settle → logged, visible, auditable.</li>
+                  <li>1. Vault launches with a known policy template.</li>
+                  <li>2. Every trade needs a merkle proof on-chain.</li>
+                  <li>3. Policy changes wait 24h in a timelock.</li>
+                  <li>4. Depositors see the diff, exit if they want.</li>
+                  <li>5. Settle → logged, indexed, auditable.</li>
                 </ul>
               </div>
             </div>
@@ -126,37 +171,37 @@ export default function HomeContent() {
                 <div className="flex items-start gap-6">
                   <span className="text-red-400 text-2xl">✗</span>
                   <div>
-                    <p className="text-lg text-gray-400 line-through">Share your API keys</p>
+                    <p className="text-lg text-gray-400 line-through">Wire money to a fund manager</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-cyan-600 text-2xl">✓</span>
                   <div>
-                    <p className="text-lg font-semibold text-gray-900">Agent pays per call with its own wallet</p>
+                    <p className="text-lg font-semibold text-gray-900">Non-custodial vault, <span className="bg-emerald-500 text-white px-2 py-0.5">your shares</span></p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-red-400 text-2xl">✗</span>
                   <div>
-                    <p className="text-lg text-gray-400 line-through">Hope the agent stays within limits</p>
+                    <p className="text-lg text-gray-400 line-through">Strategy changes behind your back</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-cyan-600 text-2xl">✓</span>
                   <div>
-                    <p className="text-lg font-semibold text-gray-900">On-chain wallet = <span className="bg-emerald-500 text-white px-2 py-0.5">hard cap</span></p>
+                    <p className="text-lg font-semibold text-gray-900">24h timelock + human-readable diff</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-red-400 text-2xl">✗</span>
                   <div>
-                    <p className="text-lg text-gray-400 line-through">No idea what it spent money on</p>
+                    <p className="text-lg text-gray-400 line-through">No idea what the fund actually holds</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <span className="text-cyan-600 text-2xl">✓</span>
                   <div>
-                    <p className="text-lg font-semibold text-gray-900">Every spend logged + approvable</p>
+                    <p className="text-lg font-semibold text-gray-900">Live positions + NAV, on-chain</p>
                   </div>
                 </div>
               </div>
@@ -165,16 +210,16 @@ export default function HomeContent() {
         </div>
       </section>
 
-      {/* Payment stack */}
+      {/* Under the hood */}
       <section className="py-20 lg:py-48 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-8">Under the hood</p>
           <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-white mb-6">
-            Built on rails<br />agents already use.
+            Built on rails<br />DeFi already trusts.
           </h2>
           <p className="text-xl text-white/50 mb-16 lg:mb-24 max-w-2xl">
-            Solana for settlement. MPP and x402 for machine-to-machine payments.
-            No new standards to learn — if an API accepts a 402, your agent can pay for it.
+            Base for settlement. ERC-4626 for vault accounting. CoW Protocol for MEV-protected execution.
+            No new standards to learn — if your program speaks HTTP, it can run a fund.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
@@ -183,10 +228,10 @@ export default function HomeContent() {
                 <span className="bg-emerald-400 text-black font-mono text-lg font-bold w-12 h-12 flex items-center justify-center">01</span>
                 <div className="h-px flex-1 bg-white/10 group-hover:bg-emerald-400/50 transition-colors" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Wallet</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Vault</h3>
               <p className="text-lg text-white/60 leading-relaxed">
-                KMS-backed Solana wallet per agent. You fund it with USDC.
-                The wallet balance is the hard spending cap — no exceptions.
+                Standard ERC-4626 over USDC. Deposit, get shares, withdraw any time.
+                Synchronous exits served from an enforced idle buffer.
               </p>
             </div>
 
@@ -195,11 +240,10 @@ export default function HomeContent() {
                 <span className="bg-emerald-400 text-black font-mono text-lg font-bold w-12 h-12 flex items-center justify-center">02</span>
                 <div className="h-px flex-1 bg-white/10 group-hover:bg-emerald-400/50 transition-colors" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Runtime</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Policy</h3>
               <p className="text-lg text-white/60 leading-relaxed">
-                Isolated container on AWS Fargate with OpenClaw,
-                web search, persistent memory, and direct shell access.
-                Your agent runs 24/7.
+                A merkle root of authorized actions — pairs, venues, slippage, caps.
+                Updatable only through a <span className="text-emerald-400">24h timelock</span> depositors can see.
               </p>
             </div>
 
@@ -208,103 +252,123 @@ export default function HomeContent() {
                 <span className="bg-emerald-400 text-black font-mono text-lg font-bold w-12 h-12 flex items-center justify-center">03</span>
                 <div className="h-px flex-1 bg-white/10 group-hover:bg-emerald-400/50 transition-colors" />
               </div>
-              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">Payments</h3>
+              <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">API</h3>
               <p className="text-lg text-white/60 leading-relaxed">
-                <span className="bg-white text-black px-2 py-0.5 font-mono font-medium">MPP</span> (Stripe) and{' '}
-                <span className="bg-white text-black px-2 py-0.5 font-mono font-medium">x402</span> (Coinbase) supported.
-                Both return <span className="text-emerald-400">402 Payment Required</span>, your agent handles the rest.
+                <span className="bg-white text-black px-2 py-0.5 font-mono font-medium">POST /trade/swap</span> from any program.
+                MCP tools for AI agents. Wallet signature auth —{' '}
+                <span className="text-emerald-400">no signup</span>.
               </p>
             </div>
           </div>
-
         </div>
       </section>
 
-      {/* Use cases */}
+      {/* Policy templates */}
       <section className="py-20 lg:py-48 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">What people deploy</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">Policy templates</p>
           <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-8 lg:mb-12">
-            Real work.<br />Real budgets.
+            Pick a risk profile.<br />We maintain the tree.
           </h2>
           <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed max-w-3xl mb-16 lg:mb-24">
-            Developer agents. Research agents. Trading agents. Data pipelines.
-            Anything that runs 24/7, makes decisions, and pays for services.
+            Nobody hand-builds merkle trees. Operators choose a curated template;
+            we version the leaf sets and publish vetted updates they can adopt through the timelock.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            <div className="border border-gray-200 p-6 lg:p-8 bg-gray-50">
-              <div className="text-[10px] uppercase tracking-widest text-cyan-600 font-mono font-bold mb-3">Dev</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Monitor my repo</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                &ldquo;Watch this GitHub repo, review PRs, run tests, comment with findings.&rdquo;
-              </p>
-              <div className="text-xs text-gray-400 font-mono">Budget: $20/mo · Tools: gh, npm, brave search</div>
-            </div>
-
-            <div className="border border-gray-200 p-6 lg:p-8 bg-gray-50">
-              <div className="text-[10px] uppercase tracking-widest text-violet-600 font-mono font-bold mb-3">Research</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Competitive intel</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                &ldquo;Research the top 10 competitors to my startup and write a weekly report.&rdquo;
-              </p>
-              <div className="text-xs text-gray-400 font-mono">Budget: $10/wk · Tools: brave search, claude, s3</div>
-            </div>
-
-            <div className="border border-gray-200 p-6 lg:p-8 bg-gray-50">
-              <div className="text-[10px] uppercase tracking-widest text-emerald-600 font-mono font-bold mb-3">DeFi</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Watch my position</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                &ldquo;Monitor my DeFi position, alert me if yield drops below 5%, propose exit.&rdquo;
-              </p>
-              <div className="text-xs text-gray-400 font-mono">Budget: $5/mo · Tools: rpc, telegram, jupiter</div>
-            </div>
-
-            <div className="border border-gray-200 p-6 lg:p-8 bg-gray-50">
-              <div className="text-[10px] uppercase tracking-widest text-amber-600 font-mono font-bold mb-3">Content</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Twitter ghost</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                &ldquo;Read my drafts, post on schedule, reply to DMs, summarize engagement daily.&rdquo;
-              </p>
-              <div className="text-xs text-gray-400 font-mono">Budget: $15/mo · Tools: twitter api, claude, tg</div>
-            </div>
-
-            <div className="border border-gray-200 p-6 lg:p-8 bg-gray-50">
-              <div className="text-[10px] uppercase tracking-widest text-red-600 font-mono font-bold mb-3">Data</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">ETL pipeline</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                &ldquo;Pull this API every hour, transform, push to my warehouse, alert on anomalies.&rdquo;
-              </p>
-              <div className="text-xs text-gray-400 font-mono">Budget: $30/mo · Tools: shell, curl, s3, telegram</div>
-            </div>
-
-            <div className="border border-gray-200 p-6 lg:p-8 bg-gray-50">
-              <div className="text-[10px] uppercase tracking-widest text-cyan-600 font-mono font-bold mb-3">Build</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Your idea</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                Give it shell access, a task, and a budget. It figures the rest out.
-              </p>
-              <div className="text-xs text-gray-400 font-mono">Budget: you decide · Tools: you decide</div>
-            </div>
+            {TEMPLATES.map((t) => (
+              <div key={t.title} className="border border-gray-200 p-6 lg:p-8 bg-gray-50">
+                <div className={`text-[10px] uppercase tracking-widest ${t.tagColor} font-mono font-bold mb-3`}>{t.tag}</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{t.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{t.desc}</p>
+                <div className="text-xs text-gray-400 font-mono">{t.meta}</div>
+              </div>
+            ))}
           </div>
 
           <div className="mt-16 lg:mt-24 flex items-center justify-between flex-wrap gap-6">
             <p className="text-lg text-gray-500 max-w-xl">
               3rd place ($15k) at the{' '}
               <span className="text-gray-900 font-semibold">Colosseum Solana Agent Hackathon</span>
-              {' '}out of 454 projects.
+              {' '}out of 454 projects. Now building on Base.
             </p>
-            <a
-              href="/deploy"
+            <Link
+              href="/docs"
               className="group inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-gray-900 text-white hover:bg-black transition-all duration-300"
             >
-              DEPLOY YOUR AGENT
+              READ THE API DRAFT
               <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
-            </a>
+            </Link>
           </div>
         </div>
       </section>
 
+      <WaitlistSection />
     </main>
+  );
+}
+
+function WaitlistSection() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || status === 'sending') return;
+    setStatus('sending');
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      setStatus(res.ok ? 'done' : 'error');
+    } catch {
+      setStatus('error');
+    }
+  }
+
+  return (
+    <section id="waitlist" className="py-20 lg:py-48 bg-[#0a0a0a]">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
+        <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-8">Pre-launch · Base mainnet beta</p>
+        <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-8">
+          Get early access.
+        </h2>
+        <p className="text-xl text-white/50 mb-12 max-w-2xl mx-auto">
+          Guarded launch: $25k TVL cap per vault, allowlisted operators, protocol guardian active.
+          Audit before real TVL.
+        </p>
+
+        {status === 'done' ? (
+          <p className="text-emerald-400 font-mono text-lg">You&apos;re on the list. We&apos;ll be in touch.</p>
+        ) : (
+          <form onSubmit={submit} className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@domain.xyz"
+              className="flex-1 px-6 py-4 text-sm bg-white text-black placeholder-black/50 focus:outline-none focus:ring-2 focus:ring-emerald-400 font-mono"
+            />
+            <button
+              type="submit"
+              disabled={status === 'sending'}
+              className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 disabled:opacity-60 whitespace-nowrap"
+            >
+              {status === 'sending' ? 'JOINING…' : 'REQUEST ACCESS'}
+              <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+            </button>
+          </form>
+        )}
+        {status === 'error' && (
+          <p className="text-red-400 font-mono text-sm mt-4">Something went wrong — try again.</p>
+        )}
+        <p className="text-xs text-white/30 font-mono mt-10">
+          Legacy Solana devnet runtime is frozen — existing vaults are archived.
+        </p>
+      </div>
+    </section>
   );
 }
