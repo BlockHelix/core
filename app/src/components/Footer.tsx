@@ -41,7 +41,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-8 border-t border-white/5 text-center">
           <p className="text-white/30 text-xs font-mono">
-            ERC-4626 vaults on Base · merkle-authorized policies · x402 pay-per-call
+            ERC-4626 vaults on Base · merkle-authorized policies · policy timelock transparency
           </p>
         </div>
       </div>

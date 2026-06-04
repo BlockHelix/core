@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 
 const POLICY_TEMPLATES = [
@@ -152,8 +153,8 @@ function PillarsSection() {
           <PillarCard
             number="02"
             title="Agent-native"
-            subtitle="MCP + x402 pay-per-call"
-            body="An AI agent can create a vault, draft a policy config, wait out the timelock, and trade — all without human intervention. x402 is native on Base: agents pay per API call in USDC."
+            subtitle="MCP-native, wallet-auth"
+            body="An AI agent can create a vault, draft a policy config, wait out the timelock, and trade — all without human intervention. Auth is just a wallet signature — no signup, no human onboarding."
             accent="#a78bfa"
           />
           <PillarCard
@@ -287,6 +288,25 @@ function PolicyCard({
 }
 
 function WaitlistSection() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || status === 'sending') return;
+    setStatus('sending');
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      setStatus(res.ok ? 'done' : 'error');
+    } catch {
+      setStatus('error');
+    }
+  }
+
   return (
     <section id="waitlist" className="py-24">
       <div className="max-w-[1280px] mx-auto px-6 lg:px-8">
@@ -306,14 +326,35 @@ function WaitlistSection() {
           <p className="text-sm text-[#a1a1aa] mb-8 leading-relaxed">
             Guarded launch with a $25k TVL cap per vault, allowlisted operators, and the protocol guardian active. Audit before real TVL.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href="mailto:will@blockhelix.tech?subject=BlockHelix%20waitlist"
-              className="px-6 py-3 text-sm font-mono font-semibold rounded-md transition-all duration-200 text-center"
-              style={{ background: '#22d3ee', color: '#0a0a0f' }}
-            >
-              Request access
-            </a>
+          {status === 'done' ? (
+            <p className="text-sm font-mono mb-8" style={{ color: '#22d3ee' }}>
+              You&apos;re on the list. We&apos;ll be in touch.
+            </p>
+          ) : (
+            <form onSubmit={submit} className="flex flex-col sm:flex-row gap-3 justify-center mb-3 max-w-md mx-auto">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@domain.xyz"
+                className="flex-1 px-4 py-3 text-sm font-mono rounded-md bg-black/40 border text-[#e4e4e7] focus:outline-none transition-colors"
+                style={{ borderColor: '#1e1e2e' }}
+              />
+              <button
+                type="submit"
+                disabled={status === 'sending'}
+                className="px-6 py-3 text-sm font-mono font-semibold rounded-md transition-all duration-200 disabled:opacity-60"
+                style={{ background: '#22d3ee', color: '#0a0a0f' }}
+              >
+                {status === 'sending' ? 'Joining…' : 'Request access'}
+              </button>
+            </form>
+          )}
+          {status === 'error' && (
+            <p className="text-xs font-mono text-red-400 mb-3">Something went wrong — try again.</p>
+          )}
+          <div className="flex justify-center">
             <Link
               href="/docs"
               className="px-6 py-3 text-sm font-mono border rounded-md transition-all duration-200 text-center text-[#a1a1aa] hover:text-[#e4e4e7]"

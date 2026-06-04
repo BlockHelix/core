@@ -43,10 +43,15 @@ export default function Header({ showWallet = true }: { showWallet?: boolean }) 
   }
 
   const navLinks = [
-    { href: '/dashboard', label: 'DASHBOARD' },
-    { href: '/deploy', label: 'CREATE' },
-    { href: '/whitepaper', label: 'WHITEPAPER' },
+    { href: '/', label: 'MARKET' },
+    { href: '/portfolio', label: 'PORTFOLIO' },
+    { href: '/docs', label: 'DOCS' },
   ];
+
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname.startsWith(href);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10">
@@ -66,7 +71,7 @@ export default function Header({ showWallet = true }: { showWallet?: boolean }) 
                 href={link.href}
                 className={clsx(
                   'text-xs uppercase tracking-wider-2 font-medium transition-colors duration-300',
-                  pathname === link.href
+                  isActive(link.href)
                     ? 'text-emerald-400'
                     : 'text-white/60 hover:text-white'
                 )}
@@ -86,7 +91,7 @@ export default function Header({ showWallet = true }: { showWallet?: boolean }) 
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search agents..."
+                    placeholder="Search vaults..."
                     className="w-48 bg-black/40 border border-white/20 pl-8 pr-8 py-1.5 text-white font-mono text-xs focus:border-emerald-400 focus:outline-none transition-colors"
                   />
                   <button
@@ -102,7 +107,7 @@ export default function Header({ showWallet = true }: { showWallet?: boolean }) 
               <button
                 onClick={() => setSearchOpen(true)}
                 className="flex items-center gap-2 text-white/50 hover:text-white transition-colors"
-                title="Search agents (press /)"
+                title="Search vaults (press /)"
               >
                 <Search className="w-4 h-4" />
                 <kbd className="hidden md:inline text-[10px] font-mono text-white/20 border border-white/10 px-1.5 py-0.5">/</kbd>
