@@ -15,16 +15,22 @@ export async function POST(req: Request) {
   }
 
   const resend = new Resend(apiKey);
-  const { error } = await resend.emails.send({
-    from: 'BlockHelix Waitlist <onboarding@resend.dev>',
-    to: 'will@defidata.dev',
-    subject: 'New waitlist signup',
-    text: `New BlockHelix waitlist signup: ${email}`,
-  });
+  const audienceId = process.env.RESEND_AUDIENCE_ID || '07aff369-83ab-4f3b-9788-1df41d0da8f2';
 
+  const { error } = await resend.contacts.create({ email, audienceId });
   if (error) {
-    console.error('[waitlist]', error);
+    console.error('[waitlist] contact', error);
     return NextResponse.json({ error: 'Failed to register' }, { status: 502 });
   }
+
+  resend.emails
+    .send({
+      from: 'BlockHelix Waitlist <onboarding@resend.dev>',
+      to: 'will@defidata.dev',
+      subject: 'New waitlist signup',
+      text: `New BlockHelix waitlist signup: ${email}`,
+    })
+    .catch((err) => console.error('[waitlist] notify', err));
+
   return NextResponse.json({ ok: true });
 }
