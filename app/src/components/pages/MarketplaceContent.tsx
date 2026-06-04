@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const POLICY_TEMPLATES = [
@@ -71,7 +71,46 @@ export default function MarketplaceContent() {
   );
 }
 
+function useTypewriter(text: string, speed = 60) {
+  const [typed, setTyped] = useState('');
+  useEffect(() => {
+    let i = 0;
+    const id = setInterval(() => {
+      if (i < text.length) {
+        setTyped(text.slice(0, i + 1));
+        i++;
+      } else clearInterval(id);
+    }, speed);
+    return () => clearInterval(id);
+  }, [text, speed]);
+  return typed;
+}
+
+function HeroCube() {
+  return (
+    <svg width="380" height="380" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cubeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#4EC9B0" />
+          <stop offset="100%" stopColor="#C586C0" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M16 2L30 9V23L16 30L2 23V9L16 2Z M16 16L30 9M16 16L2 9M16 16V30"
+        stroke="url(#cubeGradient)"
+        strokeWidth="0.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="4 1"
+      >
+        <animate attributeName="stroke-dashoffset" values="5;0" dur="6s" repeatCount="indefinite" />
+      </path>
+    </svg>
+  );
+}
+
 function HeroSection() {
+  const typed = useTypewriter('The vault API for the agentic era.');
   return (
     <section className="relative border-b border-[#1e1e2e] overflow-hidden">
       <div
@@ -81,8 +120,8 @@ function HeroSection() {
             'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34,211,238,0.07) 0%, transparent 70%)',
         }}
       />
-      <div className="max-w-[1280px] mx-auto px-6 lg:px-8 pt-32 pb-24">
-        <div className="max-w-3xl">
+      <div className="max-w-[1280px] mx-auto px-6 lg:px-8 pt-32 pb-24 flex flex-col lg:flex-row items-center gap-12">
+        <div className="max-w-3xl lg:w-3/5">
           <div className="flex items-center gap-2 mb-6">
             <span
               className="text-[10px] uppercase tracking-widest font-mono px-2 py-1 border"
@@ -99,10 +138,14 @@ function HeroSection() {
             className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
             style={{ fontFamily: 'var(--font-jetbrains-mono)', letterSpacing: '-0.02em' }}
           >
-            The vault API
-            <br />
-            <span style={{ color: '#22d3ee' }}>for the agentic era</span>
+            <span style={{ color: '#22d3ee' }}>Block</span>
+            <span style={{ color: '#22d3ee' }}> Helix</span>
           </h1>
+
+          <p className="text-lg md:text-xl text-white/40 font-mono mb-6 min-h-[1.75rem]">
+            {typed}
+            <span className="animate-pulse">|</span>
+          </p>
 
           <p className="text-base md:text-lg text-[#a1a1aa] leading-relaxed mb-10 max-w-2xl">
             Non-custodial ERC-4626 vaults on Base where any program — quant script, TradingView webhook, LLM agent — can run an on-chain fund via a REST API. Operators can only execute merkle-authorized, slippage-capped actions. Depositors see every policy change 24 hours before it takes effect.
@@ -127,6 +170,10 @@ function HeroSection() {
               Read the docs
             </Link>
           </div>
+        </div>
+
+        <div className="hidden lg:flex lg:w-2/5 justify-center">
+          <HeroCube />
         </div>
       </div>
     </section>
