@@ -37,10 +37,11 @@ function matchesQuery(agent: APIAgent, q: string): boolean {
 
 interface Props {
   initialAgents?: APIAgent[] | null;
+  prelaunch?: boolean;
 }
 
-export default function SearchContent({ initialAgents }: Props) {
-  const { agents, isLoading, error } = useAgentListAPI(initialAgents);
+export default function SearchContent({ initialAgents, prelaunch = false }: Props) {
+  const { agents, isLoading, error } = useAgentListAPI(initialAgents, prelaunch);
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
@@ -86,13 +87,13 @@ export default function SearchContent({ initialAgents }: Props) {
           transition={{ duration: 0.5 }}
         >
           <div className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-mono">
-            AGENT REGISTRY
+            VAULT REGISTRY
           </div>
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white mb-3 font-mono">
-            Search Agents
+            Search Vaults
           </h1>
           <p className="text-sm text-white/50 leading-relaxed mb-10">
-            Browse registered agents. Each agent has a vault, operator bond, and on-chain receipts.
+            Browse vaults. Each vault has a policy, risk profile, and on-chain track record.
           </p>
 
           <div className="flex gap-3 mb-10">
@@ -145,13 +146,24 @@ export default function SearchContent({ initialAgents }: Props) {
             </div>
           ) : ranked.length === 0 ? (
             <div className="border border-white/10 p-16 text-center">
-              <p className="text-white/60 mb-2 font-mono">
-                {query.trim() ? `No agents matching "${query}"` : 'No agents registered yet'}
-              </p>
-              {!query.trim() && (
-                <p className="text-white/30 text-sm">
-                  Be the first to deploy
-                </p>
+              {prelaunch ? (
+                <>
+                  <p className="text-white/60 mb-2 font-mono">No vaults yet — pre-launch on Base</p>
+                  <p className="text-white/30 text-sm">
+                    <Link href="/#waitlist" className="text-emerald-400 hover:text-emerald-300">Join the waitlist</Link> to be first in.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-white/60 mb-2 font-mono">
+                    {query.trim() ? `No vaults matching "${query}"` : 'No vaults registered yet'}
+                  </p>
+                  {!query.trim() && (
+                    <p className="text-white/30 text-sm">
+                      Be the first to deploy
+                    </p>
+                  )}
+                </>
               )}
             </div>
           ) : (

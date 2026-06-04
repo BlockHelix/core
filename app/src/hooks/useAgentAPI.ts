@@ -19,12 +19,15 @@ export interface APIAgent {
   id: string;
   agentId: string;
   name: string;
+  purpose?: string;
+  archetype?: string | null;
   operator: string | null;
   vault: string | null;
   registry: string | null;
   priceUsdcMicro: number;
   model: string;
   isActive: boolean;
+  revenue7d?: number;
   stats: APIAgentStats | null;
 }
 
@@ -49,12 +52,12 @@ let cachedAgents: APIAgent[] | null = null;
 let cacheTime = 0;
 const CACHE_TTL = 30_000;
 
-export function useAgentListAPI(initialData?: APIAgent[] | null) {
+export function useAgentListAPI(initialData?: APIAgent[] | null, skip = false) {
   const hasInitial = !!(initialData && initialData.length > 0);
   const [agents, setAgents] = useState<APIAgent[]>(initialData ?? cachedAgents ?? []);
-  const [isLoading, setIsLoading] = useState(!hasInitial && !cachedAgents);
+  const [isLoading, setIsLoading] = useState(!skip && !hasInitial && !cachedAgents);
   const [error, setError] = useState<string | null>(null);
-  const fetchedRef = useRef(hasInitial);
+  const fetchedRef = useRef(skip || hasInitial);
 
   useEffect(() => {
     if (initialData && initialData.length > 0 && !cachedAgents) {
