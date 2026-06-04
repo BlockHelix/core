@@ -10,16 +10,19 @@ export default function Footer() {
               BlockHelix
             </Link>
             <p className="text-white/40 text-sm mt-2 font-mono">
-              Wallets for AI agents.
+              The vault API for the agentic era.
             </p>
           </div>
 
           <nav className="flex flex-wrap gap-6">
-            <Link href="/dashboard" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
-              Dashboard
+            <Link href="/" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
+              Market
             </Link>
-            <Link href="/deploy" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
-              Deploy
+            <Link href="/portfolio" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
+              Portfolio
+            </Link>
+            <Link href="/docs" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
+              Docs
             </Link>
             <Link href="/whitepaper" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
               Whitepaper
@@ -38,7 +41,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-8 border-t border-white/5 text-center">
           <p className="text-white/30 text-xs font-mono">
-            Give your agent a wallet, a task, and a budget. It handles the rest.
+            ERC-4626 vaults on Base · merkle-authorized policies · x402 pay-per-call
           </p>
         </div>
       </div>
