@@ -10,12 +10,18 @@ interface RevenueDataPoint {
 
 interface RevenueChartProps {
   data: RevenueDataPoint[];
+  title?: string;
+  seriesLabel?: string;
 }
 
-export function RevenueChart({ data }: RevenueChartProps) {
+export function RevenueChart({
+  data,
+  title = 'Revenue (Last 30 Days)',
+  seriesLabel = 'Revenue',
+}: RevenueChartProps) {
   return (
     <div className="bg-helix-card border border-helix-border rounded-lg p-6">
-      <h3 className="text-lg font-data text-helix-primary mb-6">Revenue (Last 30 Days)</h3>
+      <h3 className="text-lg font-data text-helix-primary mb-6">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
@@ -50,7 +56,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
             }}
             labelStyle={{ color: '#a1a1aa' }}
             itemStyle={{ color: '#22d3ee' }}
-            formatter={(value: number | undefined) => value !== undefined ? [`$${formatUSDC(value)}`, 'Revenue'] : ['-', 'Revenue']}
+            formatter={(value: number | undefined) => value !== undefined ? [`$${formatUSDC(value)}`, seriesLabel] : ['-', seriesLabel]}
             labelFormatter={(label) => {
               const date = new Date(label);
               return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

@@ -290,28 +290,6 @@ export interface HeartbeatParams {
   timezone?: string;
 }
 
-export interface DeployOpenClawParams {
-  agentId: string;
-  name: string;
-  systemPrompt: string;
-  priceUsdcMicro: number;
-  model?: string;
-  operator: string;
-  vault: string;
-  registry?: string;
-  apiKey: string;
-  ownerWallet?: string;
-  telegramBotToken?: string;
-  operatorTelegram?: string;
-  braveApiKey?: string;
-  jobSignerPubkey?: string;
-  heartbeat?: HeartbeatParams;
-  taskDescription?: string;
-  budgetUsdcMicro?: number;
-  approvalThresholdUsdcMicro?: number;
-  signMessage: WalletSignFn;
-}
-
 export async function requestJobSignerKeypair(): Promise<string> {
   if (!RUNTIME_URL) {
     throw new Error('Runtime URL not configured');
@@ -332,42 +310,6 @@ export async function requestJobSignerKeypair(): Promise<string> {
     throw new Error('Runtime did not return a job signer public key');
   }
   return data.publicKey as string;
-}
-
-export interface DeployOpenClawResponse {
-  message: string;
-  agent: {
-    agentId: string;
-    vault: string;
-    name: string;
-    priceUsdcMicro: number;
-    model: string;
-    isActive: boolean;
-    isContainerized: boolean;
-    deployStatus: string;
-  };
-}
-
-export async function deployOpenClaw(params: DeployOpenClawParams): Promise<DeployOpenClawResponse> {
-  if (!RUNTIME_URL) {
-    throw new Error('Runtime URL not configured');
-  }
-
-  const auth = await signAdminAuth(params.signMessage);
-  const { signMessage: _sm, ...rest } = params;
-
-  const response = await fetch(`${RUNTIME_URL}/admin/openclaw/deploy`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...rest, wallet: params.ownerWallet, signature: auth.signature, signedAt: auth.signedAt }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `OpenClaw deploy failed: ${response.status}`);
-  }
-
-  return response.json();
 }
 
 export interface DeployStatusResponse {

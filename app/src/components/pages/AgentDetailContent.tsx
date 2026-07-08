@@ -336,7 +336,6 @@ export default function AgentDetailContent({ initialData }: Props) {
               shareMint={shareMintPubkey}
               sharePrice={1}
               operatorBond={operatorBond}
-              operator={agent.operator}
             />
           </div>
         )}

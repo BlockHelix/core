@@ -8,7 +8,7 @@ export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
-  const fullText = "The vault API for the agentic era."
+  const fullText = "The execution risk layer for onchain funds."
 
   useEffect(() => {
     let i = 0
@@ -43,9 +43,9 @@ export default function HelixHero() {
               {typedText}<span className="animate-pulse">|</span>
             </p>
             <p className="text-sm sm:text-base text-white/50 max-w-xl mb-10 leading-relaxed">
-              Non-custodial ERC-4626 vaults on Base. Any program — quant script,
-              webhook, AI agent — can run an on-chain fund through a REST API,
-              bounded by merkle-authorized policies depositors can read.
+              Every trade a fund makes — swap, yield, perp — passes through a policy
+              that enforces slippage, size, and drawdown limits before it reaches the
+              chain. Bring your own vault or spin one up. Non-custodial, on Base.
             </p>
 
             <form onSubmit={handleSearch} className="flex items-center gap-4 mb-8">

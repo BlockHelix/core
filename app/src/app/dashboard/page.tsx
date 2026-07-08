@@ -1,9 +1,5 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import dynamic from 'next/dynamic';
-
-const DashboardContent = dynamic(() => import('@/components/pages/DashboardContent'), { ssr: false });
-
-export default function Dashboard() {
-  return <DashboardContent />;
+export default function DashboardAliasPage() {
+  redirect('/portfolio');
 }

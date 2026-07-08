@@ -1,10 +1,10 @@
-import VaultLifeContent from '@/components/pages/VaultLifeContent';
+import VaultDetailContent from '@/components/pages/VaultDetailContent';
 
 const RUNTIME_URL = process.env.NEXT_PUBLIC_RUNTIME_URL || 'https://agents.blockhelix.tech';
 
-async function getLife(id: string) {
+async function getVaultDetail(id: string) {
   try {
-    const res = await fetch(`${RUNTIME_URL}/v1/vaults/${id}/life`, {
+    const res = await fetch(`${RUNTIME_URL}/v1/agent/${id}`, {
       next: { revalidate: 15 },
     });
     if (!res.ok) return null;
@@ -16,6 +16,6 @@ async function getLife(id: string) {
 
 export default async function VaultLifePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const initialData = await getLife(id);
-  return <VaultLifeContent agentId={id} initialData={initialData} />;
+  const initialData = await getVaultDetail(id);
+  return <VaultDetailContent agentId={id} initialData={initialData} />;
 }
