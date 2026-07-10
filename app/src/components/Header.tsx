@@ -28,24 +28,23 @@ export default function Header({ showWallet = true }: { showWallet?: boolean }) 
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={clsx(
-                  'text-xs uppercase tracking-wider-2 font-medium transition-colors duration-300',
-                  isActive(link.href)
-                    ? 'text-emerald-400'
-                    : 'text-white/60 hover:text-white'
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={clsx(
+                    'text-xs uppercase tracking-wider-2 font-medium transition-colors duration-300',
+                    isActive(link.href)
+                      ? 'text-emerald-400'
+                      : 'text-white/60 hover:text-white'
+                  )}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
             {showWallet && <WalletButton />}
           </div>
         </div>
