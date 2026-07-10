@@ -10,7 +10,6 @@ import { initPosthog } from '@/lib/posthog';
 const Providers = dynamic(() => import('@/components/Providers'), { ssr: false });
 
 const WALLET_PATH_PREFIXES = [
-  '/portfolio',
   '/dashboard',
   '/deploy',
   '/agent',

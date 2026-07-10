@@ -15,12 +15,6 @@ export default function Footer() {
           </div>
 
           <nav className="flex flex-wrap gap-6">
-            <Link href="/" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
-              Market
-            </Link>
-            <Link href="/portfolio" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
-              Portfolio
-            </Link>
             <Link href="/docs" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors">
               Docs
             </Link>

@@ -17,6 +17,8 @@ deploy.zip
 # Private docs (whitepaper, research, strategy)
 .private/
 docs/
+!app/src/app/docs/
+!app/src/app/docs/**
 
 # Terraform
 .terraform/
