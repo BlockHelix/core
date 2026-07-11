@@ -71,6 +71,22 @@ export default function DocsContent() {
         </section>
 
         <section className="border border-white/10 p-6 mb-6 bg-white/[0.01]">
+          <h2 className="text-lg text-white font-mono mb-3">Vault type: Veda</h2>
+          <p className="text-sm text-white/60 leading-relaxed">
+            Vaults deploy Veda&apos;s BoringVault — an institutional, audited, battle-tested vault
+            architecture. BlockHelix deploys a pinned version, unmodified:{' '}
+            <a
+              href="https://github.com/Veda-Labs/boring-vault/tree/6413774882380af8051bd7b386a4d07e5fac30c1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 font-mono text-xs underline underline-offset-2"
+            >
+              Veda-Labs/boring-vault@6413774 ↗
+            </a>
+          </p>
+        </section>
+
+        <section className="border border-white/10 p-6 mb-6 bg-white/[0.01]">
           <h2 className="text-lg text-white font-mono mb-3">2) Trade</h2>
           <pre className="bg-black/40 border border-white/10 p-4 overflow-x-auto text-xs text-white/75 font-mono">
             {swapExample}

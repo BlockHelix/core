@@ -167,17 +167,16 @@ export default function DeploymentStatusView({ id }: { id: string }) {
 
       {error && record && <p className="text-xs text-amber-400/80">{error}</p>}
 
-      <p className="text-[11px] leading-relaxed text-white/40">
-        Vault type: Veda BoringVault — Arctic Architecture. Deployed from the pinned source at{' '}
+      <p className="text-[11px] text-white/40">
+        Type: Veda ·{' '}
         <a
           href="https://github.com/Veda-Labs/boring-vault/tree/6413774882380af8051bd7b386a4d07e5fac30c1"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-data text-white/60 hover:text-emerald-400 underline underline-offset-2"
+          className="text-white/60 hover:text-emerald-400 underline underline-offset-2"
         >
-          Veda-Labs/boring-vault@6413774 ↗
+          codebase ↗
         </a>
-        .
       </p>
 
       <Link
