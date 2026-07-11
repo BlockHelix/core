@@ -128,7 +128,7 @@ export default function HomeContent() {
                 href="/sign-up"
                 className="group inline-flex items-center gap-2 mt-10 px-8 py-4 text-sm font-medium tracking-widest bg-black text-white hover:bg-gray-900 transition-all duration-300"
               >
-                LAUNCH VAULT
+                GET STARTED
                 <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
               </Link>
             </div>

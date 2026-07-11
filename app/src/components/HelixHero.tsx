@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
@@ -41,14 +42,14 @@ export default function HelixHero() {
             </p>
 
             <div className="flex items-center gap-4 mb-8">
-              <a
-                href="#waitlist"
+              <Link
+                href="/sign-up"
                 className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden whitespace-nowrap"
               >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-                JOIN WAITLIST
+                GET STARTED
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-              </a>
+              </Link>
             </div>
           </div>
         </div>
