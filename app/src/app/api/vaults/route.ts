@@ -110,7 +110,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { deploymentId, status } = await createVaultUpstream(result.payload);
+    const { deploymentId, status } = await createVaultUpstream(result.payload, userId);
     await appendUserDeploymentId(userId, deploymentId);
     return NextResponse.json({ deploymentId, status }, { status: 202 });
   } catch (err) {
@@ -132,7 +132,7 @@ export async function GET() {
     const deployments = await Promise.all(
       ids.map(async (id) => {
         try {
-          return await getDeploymentUpstream(id);
+          return await getDeploymentUpstream(id, userId);
         } catch {
           return null;
         }

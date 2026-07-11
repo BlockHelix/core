@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       // Same response as a missing record so ids can't be probed.
       return NextResponse.json({ error: 'Deployment not found' }, { status: 404 });
     }
-    const record = await getDeploymentUpstream(id);
+    const record = await getDeploymentUpstream(id, userId);
     return NextResponse.json(record);
   } catch (err) {
     if (err instanceof UpstreamError) {
