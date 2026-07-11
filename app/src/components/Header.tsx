@@ -8,9 +8,7 @@ import { clsx } from 'clsx';
 export default function Header() {
   const pathname = usePathname();
 
-  const navLinks = [
-    { href: '/docs', label: 'DOCS' },
-  ];
+  const navLinks: { href: string; label: string }[] = [];
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
