@@ -170,7 +170,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
       <p className="text-[11px] text-white/40">
         Type: Veda ·{' '}
         <a
-          href="https://github.com/Veda-Labs/boring-vault/tree/6413774882380af8051bd7b386a4d07e5fac30c1"
+          href="https://github.com/Veda-Labs/boring-vault/tree/60b5528adca0543fcc22ab2ce4e533df4e79f734"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white/60 hover:text-emerald-400 underline underline-offset-2"

@@ -76,12 +76,12 @@ export default function DocsContent() {
             Vaults deploy Veda&apos;s BoringVault — an institutional, audited, battle-tested vault
             architecture. BlockHelix deploys a pinned version, unmodified:{' '}
             <a
-              href="https://github.com/Veda-Labs/boring-vault/tree/6413774882380af8051bd7b386a4d07e5fac30c1"
+              href="https://github.com/Veda-Labs/boring-vault/tree/60b5528adca0543fcc22ab2ce4e533df4e79f734"
               target="_blank"
               rel="noopener noreferrer"
               className="text-emerald-400 hover:text-emerald-300 font-mono text-xs underline underline-offset-2"
             >
-              Veda-Labs/boring-vault@6413774 ↗
+              Veda-Labs/boring-vault@60b5528 ↗
             </a>
           </p>
         </section>
