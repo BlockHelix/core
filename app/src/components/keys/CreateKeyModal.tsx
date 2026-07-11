@@ -1,0 +1,171 @@
+'use client';
+
+import { useState } from 'react';
+import Modal from '@/components/ui/Modal';
+import { CopyField } from '@/components/ui/CopyButton';
+import { useToast } from '@/components/ui/Toast';
+import {
+  API_KEY_NAME_RE,
+  MAX_API_KEY_NAME_LEN,
+  type CreatedApiKey,
+} from '@/lib/api-keys-types';
+
+type Phase =
+  | { kind: 'form' }
+  | { kind: 'created'; key: CreatedApiKey };
+
+export default function CreateKeyModal({
+  open,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const toast = useToast();
+  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>({ kind: 'form' });
+
+  const trimmed = name.trim();
+  const nameValid =
+    trimmed.length > 0 && trimmed.length <= MAX_API_KEY_NAME_LEN && API_KEY_NAME_RE.test(trimmed);
+
+  function reset() {
+    setName('');
+    setError(null);
+    setSubmitting(false);
+    setPhase({ kind: 'form' });
+  }
+
+  function handleClose() {
+    // If a key was just revealed, closing means the list should refresh.
+    if (phase.kind === 'created') onCreated();
+    reset();
+    onClose();
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nameValid || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.key) {
+        setError(body?.error ?? `Request failed (${res.status})`);
+        setSubmitting(false);
+        return;
+      }
+      setPhase({ kind: 'created', key: body as CreatedApiKey });
+      setSubmitting(false);
+      toast('API key created', 'success');
+    } catch {
+      setError('Network error, try again');
+      setSubmitting(false);
+    }
+  }
+
+  const created = phase.kind === 'created';
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      dismissible={!created}
+      title={created ? 'Save your API key' : 'Create API key'}
+      description={
+        created
+          ? undefined
+          : 'Give this key a name so you can recognize it later — e.g. “Production” or “Local dev”.'
+      }
+    >
+      {phase.kind === 'form' ? (
+        <form onSubmit={submit} className="space-y-5">
+          <div>
+            <label
+              htmlFor="key-name"
+              className="mb-2 block text-[11px] uppercase tracking-wider-2 font-medium text-white/50"
+            >
+              Key name
+            </label>
+            <input
+              id="key-name"
+              autoComplete="off"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Production"
+              maxLength={MAX_API_KEY_NAME_LEN}
+              className="w-full border border-white/15 bg-[#0a0a0a] px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-emerald-400/60 focus:outline-none"
+            />
+            {name && !nameValid && (
+              <p className="mt-2 text-xs text-red-400">
+                1-{MAX_API_KEY_NAME_LEN} chars: letters, numbers, spaces, ._-
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="text-xs font-medium uppercase tracking-wider-2 text-white/50 transition-colors hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!nameValid || submitting}
+              className="bg-emerald-400 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-black transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {submitting ? 'Creating…' : 'Create key'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="space-y-5">
+          <div className="flex items-start gap-3 border border-amber-400/40 bg-amber-400/10 px-4 py-3">
+            <span aria-hidden className="mt-0.5 text-amber-400">⚠</span>
+            <p className="text-sm text-amber-200/90 leading-relaxed">
+              Copy this key now. For your security,{' '}
+              <span className="font-medium text-amber-100">you won&apos;t be able to see it again.</span>
+            </p>
+          </div>
+
+          <div>
+            <p className="mb-2 text-[11px] uppercase tracking-wider-2 font-medium text-white/50">
+              {phase.key.name}
+            </p>
+            <CopyField
+              value={phase.key.key}
+              onCopied={(ok) => toast(ok ? 'Key copied to clipboard' : 'Copy failed', ok ? 'success' : 'error')}
+            />
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="bg-emerald-400 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-black transition-colors hover:bg-emerald-300"
+            >
+              Done — I saved it
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}

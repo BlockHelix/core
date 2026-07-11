@@ -168,10 +168,10 @@ export default function DeploymentStatusView({ id }: { id: string }) {
       {error && record && <p className="text-xs text-amber-400/80">{error}</p>}
 
       <Link
-        href="/dashboard"
+        href="/dashboard/vaults"
         className="inline-block text-xs uppercase tracking-wider-2 font-medium text-white/60 hover:text-white transition-colors"
       >
-        ← Back to dashboard
+        ← Back to vaults
       </Link>
     </div>
   );
