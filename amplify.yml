@@ -9,6 +9,9 @@ applications:
             - npm ci --legacy-peer-deps
         build:
           commands:
+            # Amplify injects console env vars at build time only; bridge the server-side
+            # ones into .env.production so the Next.js SSR runtime can read them.
+            - env | grep -E '^(CLERK_SECRET_KEY|VAULT_API_KEY|VAULT_API_URL|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY|NEXT_PUBLIC_BASE_RPC_URL)=' >> .env.production
             - npm run build
       artifacts:
         baseDirectory: .next
