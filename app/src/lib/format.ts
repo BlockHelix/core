@@ -48,3 +48,25 @@ export function timeAgo(date: Date | string): string {
 
   return 'just now';
 }
+
+export function timeUntil(date: Date | string): string {
+  const now = new Date();
+  const future = new Date(date);
+  const seconds = Math.floor((future.getTime() - now.getTime()) / 1000);
+  if (!Number.isFinite(seconds) || seconds <= 0) return 'soon';
+
+  const intervals = [
+    { label: 'day', seconds: 86400 },
+    { label: 'hour', seconds: 3600 },
+    { label: 'minute', seconds: 60 },
+  ];
+
+  for (const interval of intervals) {
+    const count = Math.floor(seconds / interval.seconds);
+    if (count >= 1) {
+      return `in ${count} ${interval.label}${count !== 1 ? 's' : ''}`;
+    }
+  }
+
+  return 'in under a minute';
+}

@@ -21,7 +21,7 @@ export class UpstreamError extends Error {
   }
 }
 
-async function upstream(path: string, init?: RequestInit): Promise<unknown> {
+async function upstream(path: string, userId: string, init?: RequestInit): Promise<unknown> {
   const config = vaultApiConfig();
   if (!config) {
     throw new UpstreamError(503, 'Vault deployment service is not configured');
@@ -33,6 +33,7 @@ async function upstream(path: string, init?: RequestInit): Promise<unknown> {
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': config.apiKey,
+        'X-User-Id': userId,
         ...(init?.headers ?? {}),
       },
       cache: 'no-store',
@@ -54,8 +55,8 @@ async function upstream(path: string, init?: RequestInit): Promise<unknown> {
   return body;
 }
 
-export async function createVaultUpstream(payload: unknown): Promise<{ deploymentId: string; status: string }> {
-  const body = (await upstream('/vaults', {
+export async function createVaultUpstream(payload: unknown, userId: string): Promise<{ deploymentId: string; status: string }> {
+  const body = (await upstream('/vaults', userId, {
     method: 'POST',
     body: JSON.stringify(payload),
   })) as { deploymentId?: string; status?: string } | null;
@@ -67,8 +68,8 @@ export async function createVaultUpstream(payload: unknown): Promise<{ deploymen
 
 // Whitelist the fields we expose; the raw record includes internal config
 // (configJson, configHash, vedaCommit, artifactPath) that stays server-side.
-export async function getDeploymentUpstream(id: string): Promise<DeploymentRecord> {
-  const r = (await upstream(`/vaults/${encodeURIComponent(id)}`)) as Record<string, unknown>;
+export async function getDeploymentUpstream(id: string, userId: string): Promise<DeploymentRecord> {
+  const r = (await upstream(`/vaults/${encodeURIComponent(id)}`, userId)) as Record<string, unknown>;
   return {
     id: String(r.id ?? id),
     chainId: Number(r.chainId ?? 0),
