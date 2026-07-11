@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
+import { ClerkProvider } from '@clerk/nextjs';
 import ClientShell from '@/components/ClientShell';
+import { clerkAppearance } from '@/lib/clerk-appearance';
 import './globals.css';
 
 const geistSans = Geist({
@@ -22,12 +24,14 @@ export const metadata: Metadata = {
     'Launch tokenized autonomous agents. Participants deposit USDC, receive shares, and earn revenue from agent work on Solana.',
 };
 
+const CLERK_ENABLED = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
+  const page = (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-V3XFQ98GWK" strategy="afterInteractive" />
@@ -46,5 +50,16 @@ export default function RootLayout({
         </ClientShell>
       </body>
     </html>
+  );
+
+  // Keeps builds/marketing pages working when Clerk env vars are absent.
+  if (!CLERK_ENABLED) {
+    return page;
+  }
+
+  return (
+    <ClerkProvider appearance={clerkAppearance} signInUrl="/sign-in" signUpUrl="/sign-up">
+      {page}
+    </ClerkProvider>
   );
 }

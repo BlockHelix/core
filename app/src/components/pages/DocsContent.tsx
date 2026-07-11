@@ -46,7 +46,7 @@ export default function DocsContent() {
           <p className="text-white/60 text-sm max-w-3xl">
             This is a preview of the trading API we are building on Base. Nothing below is live yet —
             endpoints, schemas, and auth are subject to change until the testnet release.
-            Join the waitlist on the homepage to get access first.
+            Sign up on the homepage to get started.
           </p>
         </header>
 

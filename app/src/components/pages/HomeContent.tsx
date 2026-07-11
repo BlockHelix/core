@@ -124,13 +124,13 @@ export default function HomeContent() {
                 </div>
               </div>
 
-              <a
-                href="#waitlist"
+              <Link
+                href="/sign-up"
                 className="group inline-flex items-center gap-2 mt-10 px-8 py-4 text-sm font-medium tracking-widest bg-black text-white hover:bg-gray-900 transition-all duration-300"
               >
-                REQUEST ACCESS
+                GET STARTED
                 <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

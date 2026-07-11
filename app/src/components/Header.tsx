@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import WalletButton from './WalletButton';
+import AuthNav from './AuthNav';
 import { clsx } from 'clsx';
 
-export default function Header({ showWallet = true }: { showWallet?: boolean }) {
+export default function Header() {
   const pathname = usePathname();
 
   const navLinks = [
@@ -45,7 +45,7 @@ export default function Header({ showWallet = true }: { showWallet?: boolean }) 
                 </Link>
               ))}
             </nav>
-            {showWallet && <WalletButton />}
+            <AuthNav />
           </div>
         </div>
       </div>
