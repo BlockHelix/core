@@ -14,7 +14,7 @@ export default function WaitlistPage() {
   }
   return (
     <div className="flex justify-center py-16 px-6">
-      <Waitlist />
+      <Waitlist afterJoinWaitlistUrl="/" />
     </div>
   );
 }
