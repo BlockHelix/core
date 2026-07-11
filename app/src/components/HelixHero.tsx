@@ -1,8 +1,22 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+
+// Below the lg breakpoint the SVG blur filters + 200-point pathLength animation
+// tank mobile GPUs. Render a lighter helix there (no blur, fewer points/lines).
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return isMobile
+}
 
 export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
@@ -66,12 +80,17 @@ export default function HelixHero() {
 
 
 function HelixAnimation() {
+  const reducedMotion = useReducedMotion();
+  const lite = useIsMobile();
+
   const totalStrands = 4;
-  const pointsPerStrand = 200;
+  const pointsPerStrand = lite ? 80 : 200;
   const radius = 100;
   const height = 1000;
   const rotations = 6;
-  const paintSpinLines = 8;
+  const paintSpinLines = lite ? 2 : 8;
+  const glow = lite ? undefined : 'url(#glow)';
+  const glowStrong = lite ? undefined : 'url(#glowStrong)';
 
   const generateHelix = (strandIndex: number) => {
     return Array.from({ length: pointsPerStrand }, (_, i) => {
@@ -139,23 +158,25 @@ function HelixAnimation() {
           fill="none"
           stroke={`url(#paintGradient${lineIndex})`}
           strokeWidth="2"
-          style={{
-            filter: 'url(#glow)',
-          }}
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{
-            pathLength: [0, 1, 1],
-            opacity: [0, 0.35, 0],
-            y: ["0%", "100%", "0%"],
-          }}
+          style={{ filter: glow }}
+          initial={reducedMotion ? false : { pathLength: 0, opacity: 0 }}
+          animate={
+            reducedMotion
+              ? { pathLength: 1, opacity: 0.2 }
+              : { pathLength: [0, 1, 1], opacity: [0, 0.35, 0], y: ['0%', '100%', '0%'] }
+          }
           strokeDasharray={lineIndex % 2 === 0 ? '6,3' : 'none'}
-          transition={{
-            duration: 10,
-            ease: 'easeInOut',
-            times: [0, 0.5, 1],
-            delay: lineIndex * 0.08,
-            repeat: Infinity,
-          }}
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : {
+                  duration: 10,
+                  ease: 'easeInOut',
+                  times: [0, 0.5, 1],
+                  delay: lineIndex * 0.08,
+                  repeat: Infinity,
+                }
+          }
         />
       ))}
       {helices.map((helix, strandIndex) => (
@@ -163,25 +184,27 @@ function HelixAnimation() {
           key={`strand-${strandIndex}`}
           d={helix.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}
           fill="none"
-          style={{
-            filter: 'url(#glowStrong)',
-          }}
+          style={{ filter: glowStrong }}
           stroke={`url(#helixGradient${strandIndex})`}
           strokeWidth={strandIndex === 0 ? '4' : '2'}
           strokeDasharray={strandIndex % 2 === 0 ? '8,4' : 'none'}
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{
-            pathLength: [0, 1, 1],
-            opacity: [0, 1, 0],
-            y: ["0%", "100%", "0%"],
-          }}
-          transition={{
-            duration: 12,
-            ease: 'easeInOut',
-            times: [0, 0.5, 1],
-            delay: 1.5 + strandIndex * 0.15,
-            repeat: Infinity,
-          }}
+          initial={reducedMotion ? false : { pathLength: 0, opacity: 0 }}
+          animate={
+            reducedMotion
+              ? { pathLength: 1, opacity: 0.7 }
+              : { pathLength: [0, 1, 1], opacity: [0, 1, 0], y: ['0%', '100%', '0%'] }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : {
+                  duration: 12,
+                  ease: 'easeInOut',
+                  times: [0, 0.5, 1],
+                  delay: 1.5 + strandIndex * 0.15,
+                  repeat: Infinity,
+                }
+          }
         />
       ))}
       <defs>
