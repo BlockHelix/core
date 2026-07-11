@@ -58,7 +58,12 @@ export default function RootLayout({
   }
 
   return (
-    <ClerkProvider appearance={clerkAppearance} signInUrl="/sign-in" signUpUrl="/sign-up">
+    <ClerkProvider
+      appearance={clerkAppearance}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      waitlistUrl="/waitlist"
+    >
       {page}
     </ClerkProvider>
   );
