@@ -6,6 +6,8 @@ import { clsx } from 'clsx';
 import StatusBadge from './StatusBadge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
+import { LastUpdated, RefreshButton } from '@/components/dashboard/Freshness';
+import { useEventStream, type StreamEvent } from '@/lib/use-event-stream';
 import { requeueVault } from '@/lib/vault-requeue';
 import {
   BASESCAN_URL,
@@ -16,7 +18,8 @@ import {
   type DeploymentRecord,
 } from '@/lib/vault-types';
 
-const POLL_MS = 5000;
+// Slow safety net only — the SSE stream drives the real-time updates now.
+const POLL_MS = 30_000;
 
 export default function DeploymentStatusView({ id }: { id: string }) {
   const toast = useToast();
@@ -24,32 +27,73 @@ export default function DeploymentStatusView({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [requeuing, setRequeuing] = useState(false);
   const [forceOpen, setForceOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(() => Date.now());
+  // Bumping this restarts the safety poll (e.g. after a re-run sends the record
+  // back through queued -> ...).
+  const [pollNonce, setPollNonce] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const poll = useCallback(async () => {
+  // One fetch of the record. Returns how the poll loop should proceed:
+  // 'terminal'/'stop' end the loop; 'active'/'error' keep it going.
+  const refetch = useCallback(async (): Promise<'terminal' | 'active' | 'stop' | 'error'> => {
     try {
       const res = await fetch(`/api/vaults/${encodeURIComponent(id)}`, { cache: 'no-store' });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         setError(body?.error ?? `Request failed (${res.status})`);
-        if (res.status === 404 || res.status === 401 || res.status === 403) return;
-      } else if (body) {
+        // Auth / not-found are permanent for this session.
+        if (res.status === 404 || res.status === 401 || res.status === 403) return 'stop';
+        return 'error';
+      }
+      if (body) {
         setError(null);
         setRecord(body as DeploymentRecord);
-        if (TERMINAL_STATUSES.includes((body as DeploymentRecord).status)) return;
+        setUpdatedAt(Date.now());
+        return TERMINAL_STATUSES.includes((body as DeploymentRecord).status) ? 'terminal' : 'active';
       }
+      return 'error';
     } catch {
       setError('Network error while polling; retrying…');
+      return 'error';
     }
-    timer.current = setTimeout(poll, POLL_MS);
   }, [id]);
 
+  // Slow safety poll. The stream (below) does the real-time work; this only
+  // catches a missed event. It stops once the deployment reaches a terminal
+  // state (or a permanent error) and restarts when pollNonce changes.
   useEffect(() => {
-    poll();
+    let stopped = false;
+    const tick = async () => {
+      const result = await refetch();
+      if (stopped) return;
+      if (result === 'terminal' || result === 'stop') return;
+      timer.current = setTimeout(tick, POLL_MS);
+    };
+    void tick();
     return () => {
+      stopped = true;
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [poll]);
+  }, [refetch, pollNonce]);
+
+  // Live stream: refetch instantly when an event targets THIS deployment, so the
+  // stepper advances the moment the backend reports progress.
+  useEventStream(
+    useCallback(
+      (evt: StreamEvent) => {
+        if (evt.type === 'deployment' && evt.deploymentId === id) {
+          void refetch();
+        }
+      },
+      [id, refetch],
+    ),
+  );
+
+  const manualRefresh = useCallback(() => {
+    setRefreshing(true);
+    void refetch().finally(() => setRefreshing(false));
+  }, [refetch]);
 
   const rerun = useCallback(
     async (force: boolean) => {
@@ -60,9 +104,9 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         setForceOpen(false);
         toast('Re-running deployment — same vault, no new quota used', 'success');
         setError(null);
-        // The record goes back through queued → … ; resume polling.
-        if (timer.current) clearTimeout(timer.current);
-        void poll();
+        // The record goes back through queued → … ; restart the safety poll
+        // (the stream also pushes the new progress live).
+        setPollNonce((n) => n + 1);
         return;
       }
       if (result.needsForce) {
@@ -72,7 +116,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
       setForceOpen(false);
       toast(result.error, 'error');
     },
-    [id, poll, toast],
+    [id, toast],
   );
 
   if (!record) {
@@ -100,7 +144,13 @@ export default function DeploymentStatusView({ id }: { id: string }) {
               {record.vaultSymbol} · Base ({record.chainId}) · {record.id}
             </p>
           </div>
-          <StatusBadge status={record.status} />
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={record.status} />
+            <span className="flex items-center gap-1">
+              <LastUpdated since={updatedAt} />
+              <RefreshButton onClick={manualRefresh} spinning={refreshing} />
+            </span>
+          </div>
         </div>
 
         <ol className="mt-8 space-y-0">
