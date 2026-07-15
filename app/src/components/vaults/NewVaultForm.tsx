@@ -15,6 +15,10 @@ import {
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
+// Versioned localStorage key for the in-progress deploy form. Only the user's
+// input is persisted — never the transient Safe-check / validation state.
+const DRAFT_KEY = 'bh:new-vault-draft';
+
 type SafeState =
   | { phase: 'idle' }
   | { phase: 'checking' }
@@ -36,6 +40,51 @@ export default function NewVaultForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const checkSeq = useRef(0);
+  const hydrated = useRef(false);
+
+  // Restore a saved draft on mount so navigating back after a failure keeps input.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as Record<string, unknown>;
+        if (d && typeof d === 'object') {
+          if (typeof d.vaultName === 'string') setVaultName(d.vaultName);
+          if (typeof d.vaultSymbol === 'string') setVaultSymbol(d.vaultSymbol);
+          if (typeof d.adminAddress === 'string') setAdminAddress(d.adminAddress);
+          if (typeof d.payoutAddress === 'string') setPayoutAddress(d.payoutAddress);
+          if (typeof d.platformFeeBps === 'number') setPlatformFeeBps(d.platformFeeBps);
+          if (typeof d.performanceFeeBps === 'number') setPerformanceFeeBps(d.performanceFeeBps);
+        }
+      }
+    } catch {
+      // Ignore malformed drafts.
+    }
+    hydrated.current = true;
+  }, []);
+
+  // Persist the draft (debounced) on any field change, once hydrated.
+  useEffect(() => {
+    if (!hydrated.current) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({
+            vaultName,
+            vaultSymbol,
+            adminAddress,
+            payoutAddress,
+            platformFeeBps,
+            performanceFeeBps,
+          }),
+        );
+      } catch {
+        // Storage full / unavailable — draft persistence is best-effort.
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [vaultName, vaultSymbol, adminAddress, payoutAddress, platformFeeBps, performanceFeeBps]);
 
   useEffect(() => {
     const addr = adminAddress.trim();
@@ -91,6 +140,12 @@ export default function NewVaultForm() {
         setSubmitting(false);
         return;
       }
+      // Successful submit — clear the saved draft before leaving.
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // ignore
+      }
       router.push(`/dashboard/vaults/${body.deploymentId}`);
     } catch {
       setSubmitError('Network error, try again');
@@ -99,12 +154,12 @@ export default function NewVaultForm() {
   }
 
   const inputClass =
-    'w-full bg-[#0a0a0a] border border-white/15 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-emerald-400/60 focus:outline-none font-data';
-  const labelClass = 'block text-[11px] uppercase tracking-wider-2 font-medium text-white/50 mb-2';
+    'w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 font-data';
+  const labelClass = 'block text-[11px] uppercase tracking-wider-2 font-medium text-zinc-500 mb-2';
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <div>
           <label className={labelClass} htmlFor="vaultName">Vault Name</label>
           <input
@@ -116,7 +171,7 @@ export default function NewVaultForm() {
             maxLength={64}
           />
           {vaultName && !nameValid && (
-            <p className="mt-2 text-xs text-red-400">1-64 chars: letters, numbers, spaces, ._-</p>
+            <p className="mt-2 text-xs text-red-600">1-64 chars: letters, numbers, spaces, ._-</p>
           )}
         </div>
         <div>
@@ -130,21 +185,21 @@ export default function NewVaultForm() {
             maxLength={16}
           />
           {vaultSymbol && !symbolValid && (
-            <p className="mt-2 text-xs text-red-400">1-16 chars: letters, numbers, ._-</p>
+            <p className="mt-2 text-xs text-red-600">1-16 chars: letters, numbers, ._-</p>
           )}
         </div>
       </div>
 
       <div>
         <label className={labelClass}>Base Asset</label>
-        <div className="border border-white/10 bg-white/[0.02] px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-[#f7f7f8] px-4 py-3">
           <div>
-            <span className="text-sm text-white font-medium">USDC</span>
-            <span className="ml-3 text-xs text-white/50">Base · chain {BASE_CHAIN_ID}</span>
+            <span className="text-sm font-medium text-zinc-900">USDC</span>
+            <span className="ml-3 text-xs text-zinc-500">Base · chain {BASE_CHAIN_ID}</span>
           </div>
-          <span className="text-xs text-white/40 font-data break-all">{BASE_USDC_ADDRESS}</span>
+          <span className="break-all font-data text-xs text-zinc-400">{BASE_USDC_ADDRESS}</span>
         </div>
-        <p className="mt-2 text-xs text-white/40">Fixed to USDC on Base for v1.</p>
+        <p className="mt-2 text-xs text-zinc-400">Fixed to USDC on Base for v1.</p>
       </div>
 
       <div>
@@ -158,23 +213,23 @@ export default function NewVaultForm() {
           spellCheck={false}
         />
         <div className="mt-2 text-xs">
-          {safeState.phase === 'checking' && <p className="text-white/50">Checking Safe on Base…</p>}
+          {safeState.phase === 'checking' && <p className="text-zinc-500">Checking Safe on Base…</p>}
           {safeState.phase === 'done' && safeState.result.ok && (
-            <div className="text-emerald-400">
+            <div className="text-emerald-700">
               <p>
                 ✓ Safe v{safeState.result.version} — {safeState.result.owners.length} owner{safeState.result.owners.length === 1 ? '' : 's'}, threshold {safeState.result.threshold}
               </p>
-              <p className="mt-1 text-white/50 font-data">
+              <p className="mt-1 font-data text-zinc-500">
                 {safeState.result.owners.slice(0, 3).map((o) => truncateAddress(o, 6)).join(' · ')}
                 {safeState.result.owners.length > 3 && ` · +${safeState.result.owners.length - 3} more`}
               </p>
             </div>
           )}
           {safeState.phase === 'done' && !safeState.result.ok && (
-            <p className="text-red-400">✕ {safeState.result.reason}</p>
+            <p className="text-red-600">✕ {safeState.result.reason}</p>
           )}
           {safeState.phase === 'idle' && (
-            <p className="text-white/40">
+            <p className="text-zinc-400">
               The Safe becomes the vault admin (RolesAuthority owner). It is re-verified on-chain by the deployment service.
             </p>
           )}
@@ -192,12 +247,12 @@ export default function NewVaultForm() {
           spellCheck={false}
         />
         {payoutAddress && !payoutValid && (
-          <p className="mt-2 text-xs text-red-400">Must be a valid 0x address</p>
+          <p className="mt-2 text-xs text-red-600">Must be a valid 0x address</p>
         )}
-        <p className="mt-2 text-xs text-white/40">Where fees are paid. Can be any Base address.</p>
+        <p className="mt-2 text-xs text-zinc-400">Where fees are paid. Can be any Base address.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <div>
           <label className={labelClass} htmlFor="platformFee">Platform Fee (bps)</label>
           <input
@@ -210,7 +265,7 @@ export default function NewVaultForm() {
             value={platformFeeBps}
             onChange={(e) => setPlatformFeeBps(Number(e.target.value))}
           />
-          <p className="mt-2 text-xs text-white/40">
+          <p className="mt-2 text-xs text-zinc-400">
             {platformValid ? `${bpsToPercent(platformFeeBps)}% annual on TVL` : `0 – ${MAX_PLATFORM_FEE_BPS} bps`}
           </p>
         </div>
@@ -226,14 +281,14 @@ export default function NewVaultForm() {
             value={performanceFeeBps}
             onChange={(e) => setPerformanceFeeBps(Number(e.target.value))}
           />
-          <p className="mt-2 text-xs text-white/40">
+          <p className="mt-2 text-xs text-zinc-400">
             {performanceValid ? `${bpsToPercent(performanceFeeBps)}% of profits` : `0 – ${MAX_PERFORMANCE_FEE_BPS} bps`}
           </p>
         </div>
       </div>
 
       {submitError && (
-        <div className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
           {submitError}
         </div>
       )}
@@ -241,7 +296,7 @@ export default function NewVaultForm() {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-medium tracking-widest uppercase bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="bh-btn-primary inline-flex items-center justify-center gap-2 rounded-lg px-8 py-4 text-sm font-medium uppercase tracking-widest"
       >
         {submitting ? 'Deploying…' : 'Deploy Vault'}
       </button>

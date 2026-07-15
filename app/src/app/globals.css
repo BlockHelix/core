@@ -122,6 +122,27 @@ html::after {
     text-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
   }
 
+  /* Light developer-console design system (dashboard). */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 1px 3px rgba(16, 24, 40, 0.06);
+  }
+
+  .bh-btn-primary {
+    background-color: #059669; /* emerald-600 */
+    color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  .bh-btn-primary:hover {
+    background-color: #047857; /* emerald-700 */
+  }
+  .bh-btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background-color: #059669;
+  }
+
 }
 
 @keyframes shimmer {
@@ -213,15 +234,17 @@ html::after {
   }
 }
 
+/* Skeleton shimmer — used only on the light dashboard surfaces. */
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 100%
   );
   background-size: 1000px 100%;
   animation: shimmer 2s infinite linear;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar {

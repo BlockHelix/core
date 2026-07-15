@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import StatusBadge from './StatusBadge';
+import Modal from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/Toast';
+import { requeueVault } from '@/lib/vault-requeue';
 import {
   BASESCAN_URL,
   COMPONENT_LABELS,
@@ -16,8 +19,11 @@ import {
 const POLL_MS = 5000;
 
 export default function DeploymentStatusView({ id }: { id: string }) {
+  const toast = useToast();
   const [record, setRecord] = useState<DeploymentRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requeuing, setRequeuing] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const poll = useCallback(async () => {
@@ -45,30 +51,52 @@ export default function DeploymentStatusView({ id }: { id: string }) {
     };
   }, [poll]);
 
+  const rerun = useCallback(
+    async (force: boolean) => {
+      setRequeuing(true);
+      const result = await requeueVault(id, force);
+      setRequeuing(false);
+      if (result.ok) {
+        setForceOpen(false);
+        toast('Re-running deployment — same vault, no new quota used', 'success');
+        setError(null);
+        // The record goes back through queued → … ; resume polling.
+        if (timer.current) clearTimeout(timer.current);
+        void poll();
+        return;
+      }
+      if (result.needsForce) {
+        setForceOpen(true);
+        return;
+      }
+      setForceOpen(false);
+      toast(result.error, 'error');
+    },
+    [id, poll, toast],
+  );
+
   if (!record) {
     return (
-      <div className="border border-white/10 p-8">
+      <div className="rounded-xl border border-black/[0.06] bg-white p-8 shadow-soft">
         {error ? (
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-red-700">{error}</p>
         ) : (
-          <p className="text-sm text-white/50">Loading deployment…</p>
+          <p className="text-sm text-zinc-500">Loading deployment…</p>
         )}
       </div>
     );
   }
 
   const failed = record.status === 'failed';
-  // On failure the record keeps its last in-flight stage? No — status becomes
-  // 'failed'; we mark every non-complete step as inactive and show the reason.
   const activeIndex = failed ? -1 : PROGRESS_STEPS.indexOf(record.status);
 
   return (
     <div className="space-y-8">
-      <div className="border border-white/10 p-6 md:p-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-medium text-white">{record.vaultName}</h1>
-            <p className="mt-1 text-xs text-white/50 font-data">
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-950">{record.vaultName}</h1>
+            <p className="mt-1 font-data text-xs text-zinc-400">
               {record.vaultSymbol} · Base ({record.chainId}) · {record.id}
             </p>
           </div>
@@ -86,25 +114,25 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                 <div className="flex flex-col items-center">
                   <div
                     className={clsx(
-                      'w-6 h-6 flex items-center justify-center border text-[10px] font-mono',
-                      (done || completed) && 'border-emerald-400 bg-emerald-400 text-black',
-                      active && 'border-cyan-300 text-cyan-300 status-pulse',
-                      !done && !active && !completed && 'border-white/15 text-white/30',
+                      'flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-mono',
+                      (done || completed) && 'border-emerald-600 bg-emerald-600 text-white',
+                      active && 'border-blue-500 text-blue-600 status-pulse',
+                      !done && !active && !completed && 'border-black/[0.12] text-zinc-300',
                     )}
                   >
                     {done || completed ? '✓' : i + 1}
                   </div>
                   {!isLast && (
-                    <div className={clsx('w-px flex-1 min-h-5', done ? 'bg-emerald-400/50' : 'bg-white/10')} />
+                    <div className={clsx('min-h-5 w-px flex-1', done ? 'bg-emerald-600/40' : 'bg-black/[0.08]')} />
                   )}
                 </div>
                 <div className="pb-5">
                   <p
                     className={clsx(
-                      'text-xs uppercase tracking-wider-2 font-medium leading-6',
-                      (done || completed) && 'text-emerald-400',
-                      active && 'text-cyan-300',
-                      !done && !active && !completed && 'text-white/40',
+                      'text-xs font-medium uppercase leading-6 tracking-wider-2',
+                      (done || completed) && 'text-emerald-700',
+                      active && 'text-blue-600',
+                      !done && !active && !completed && 'text-zinc-400',
                     )}
                   >
                     {statusLabel(step)}
@@ -116,27 +144,40 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         </ol>
 
         {failed && (
-          <div className="mt-4 border border-red-400/40 bg-red-400/10 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wider-2 font-medium text-red-400">Deployment Failed</p>
-            <p className="mt-2 text-sm text-red-300/90 font-data break-all whitespace-pre-wrap">
+          <div className="mt-4 rounded-lg border border-red-600/20 bg-red-50 px-4 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider-2 text-red-700">Deployment Failed</p>
+            <p className="mt-2 whitespace-pre-wrap break-all font-data text-sm text-red-600">
               {record.failureReason ?? 'No failure reason reported.'}
             </p>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                disabled={requeuing}
+                onClick={() => rerun(false)}
+                className="bh-btn-primary rounded-lg px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2"
+              >
+                {requeuing ? 'Re-running…' : '↻ Re-run deployment'}
+              </button>
+              <span className="text-xs text-zinc-500">
+                Retries this same vault — it won&apos;t create a new one or use another quota slot.
+              </span>
+            </div>
           </div>
         )}
       </div>
 
       {record.status === 'complete' && record.addresses && (
-        <div className="border border-white/10 p-6 md:p-8">
-          <h2 className="text-[11px] uppercase tracking-wider-2 font-medium text-white/50">Deployed Components</h2>
-          <div className="mt-4 divide-y divide-white/5">
+        <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+          <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Deployed Components</h2>
+          <div className="mt-4 divide-y divide-black/[0.05]">
             {Object.entries(record.addresses).map(([key, address]) => (
-              <div key={key} className="py-3 flex items-center justify-between gap-4 flex-wrap">
-                <span className="text-sm text-white/80">{COMPONENT_LABELS[key] ?? key}</span>
+              <div key={key} className="flex flex-wrap items-center justify-between gap-4 py-3">
+                <span className="text-sm text-zinc-700">{COMPONENT_LABELS[key] ?? key}</span>
                 <a
                   href={`${BASESCAN_URL}/address/${address}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-data text-emerald-400 hover:text-emerald-300 break-all"
+                  className="break-all font-data text-xs text-emerald-700 hover:text-emerald-800"
                 >
                   {address} ↗
                 </a>
@@ -147,8 +188,8 @@ export default function DeploymentStatusView({ id }: { id: string }) {
       )}
 
       {record.transactionHashes.length > 0 && (
-        <div className="border border-white/10 p-6 md:p-8">
-          <h2 className="text-[11px] uppercase tracking-wider-2 font-medium text-white/50">Transactions</h2>
+        <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+          <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Transactions</h2>
           <div className="mt-4 space-y-2">
             {record.transactionHashes.map((hash) => (
               <a
@@ -156,7 +197,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                 href={`${BASESCAN_URL}/tx/${hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-xs font-data text-white/60 hover:text-emerald-400 break-all"
+                className="block break-all font-data text-xs text-zinc-500 hover:text-emerald-700"
               >
                 {hash} ↗
               </a>
@@ -165,15 +206,15 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         </div>
       )}
 
-      {error && record && <p className="text-xs text-amber-400/80">{error}</p>}
+      {error && record && <p className="text-xs text-amber-600">{error}</p>}
 
-      <p className="text-[11px] text-white/40">
+      <p className="text-[11px] text-zinc-400">
         Type: Veda ·{' '}
         <a
           href="https://github.com/Veda-Labs/boring-vault/tree/bdc38405a02366cb5b25b358aa8e4a0b5ee3ae77"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-white/60 hover:text-emerald-400 underline underline-offset-2"
+          className="text-zinc-500 underline underline-offset-2 hover:text-emerald-700"
         >
           codebase ↗
         </a>
@@ -181,10 +222,35 @@ export default function DeploymentStatusView({ id }: { id: string }) {
 
       <Link
         href="/dashboard/vaults"
-        className="inline-block text-xs uppercase tracking-wider-2 font-medium text-white/60 hover:text-white transition-colors"
+        className="inline-block text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
       >
         ← Back to vaults
       </Link>
+
+      <Modal
+        open={forceOpen}
+        onClose={() => setForceOpen(false)}
+        title="Retry this deployment?"
+        description="The backend didn't accept a plain re-run for this vault (it may already be queued or in progress). Retrying with force restarts the SAME vault — it won't create a new one or use another quota slot."
+      >
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setForceOpen(false)}
+            className="text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={requeuing}
+            onClick={() => rerun(true)}
+            className="bh-btn-primary rounded-lg px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2"
+          >
+            {requeuing ? 'Retrying…' : 'Retry with force'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

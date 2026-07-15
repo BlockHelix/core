@@ -52,14 +52,14 @@ export default function RevokeKeyModal({
     >
       <div className="space-y-5">
         {apiKey && (
-          <div className="border border-white/10 bg-white/[0.02] px-4 py-3">
-            <p className="text-sm font-medium text-white">{apiKey.name}</p>
-            <p className="mt-1 font-data text-xs text-white/50">{maskKey(apiKey.keyPrefix)}</p>
+          <div className="rounded-lg border border-black/[0.06] bg-[#f7f7f8] px-4 py-3">
+            <p className="text-sm font-medium text-zinc-900">{apiKey.name}</p>
+            <p className="mt-1 font-data text-xs text-zinc-500">{maskKey(apiKey.keyPrefix)}</p>
           </div>
         )}
 
         {error && (
-          <div className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-400">
+          <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -71,7 +71,7 @@ export default function RevokeKeyModal({
               setError(null);
               onClose();
             }}
-            className="text-xs font-medium uppercase tracking-wider-2 text-white/50 transition-colors hover:text-white"
+            className="text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
           >
             Cancel
           </button>
@@ -79,7 +79,7 @@ export default function RevokeKeyModal({
             type="button"
             onClick={revoke}
             disabled={submitting}
-            className="border border-red-400/50 bg-red-400/10 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-red-300 transition-colors hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-red-600/30 bg-red-600 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? 'Revoking…' : 'Revoke key'}
           </button>

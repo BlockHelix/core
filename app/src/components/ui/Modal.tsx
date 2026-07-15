@@ -82,22 +82,22 @@ export default function Modal({
         if (dismissible && e.target === e.currentTarget) close();
       }}
     >
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" aria-hidden />
+      <div className="fixed inset-0 bg-zinc-900/30 backdrop-blur-sm" aria-hidden />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
-        className="relative w-full max-w-lg border border-white/15 bg-[#0c0c0c] shadow-2xl corner-cut"
+        className="relative w-full max-w-lg rounded-xl border border-black/[0.08] bg-white shadow-xl"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] px-6 py-5">
           <div>
-            <h2 id={titleId} className="text-sm font-medium text-white">
+            <h2 id={titleId} className="text-sm font-semibold text-zinc-950">
               {title}
             </h2>
             {description && (
-              <p id={descId} className="mt-1 text-xs text-white/50 leading-relaxed">
+              <p id={descId} className="mt-1 text-xs text-zinc-500 leading-relaxed">
                 {description}
               </p>
             )}
@@ -107,7 +107,7 @@ export default function Modal({
               type="button"
               onClick={close}
               aria-label="Close dialog"
-              className="-mr-1 -mt-1 p-1 text-white/40 hover:text-white transition-colors"
+              className="-mr-1 -mt-1 p-1 text-zinc-400 hover:text-zinc-900 transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

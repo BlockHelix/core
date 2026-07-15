@@ -56,7 +56,7 @@ export function CopyButton({
       aria-label={copied ? 'Copied' : label}
       className={clsx(
         'inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider-2 font-medium transition-colors',
-        copied ? 'text-emerald-400' : 'text-white/60 hover:text-white',
+        copied ? 'text-emerald-600' : 'text-zinc-500 hover:text-zinc-900',
         className,
       )}
     >
@@ -77,16 +77,16 @@ export function CopyField({
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-stretch border border-white/15 bg-[#0a0a0a]">
+    <div className="flex items-stretch rounded-lg border border-black/10 bg-[#f7f7f8]">
       <code
         className={clsx(
-          'flex-1 min-w-0 overflow-x-auto whitespace-nowrap px-3 py-3 text-xs text-white',
+          'flex-1 min-w-0 overflow-x-auto whitespace-nowrap px-3 py-3 text-xs text-zinc-900',
           mono && 'font-data',
         )}
       >
         {value}
       </code>
-      <div className="flex items-center border-l border-white/15 px-3">
+      <div className="flex items-center border-l border-black/10 px-3">
         <CopyButton value={value} onCopied={onCopied} />
       </div>
     </div>
