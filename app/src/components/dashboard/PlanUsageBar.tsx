@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { clsx } from 'clsx';
 import Modal from '@/components/ui/Modal';
 import { timeUntil } from '@/lib/format';
+import { fetcher } from '@/lib/swr-fetcher';
 import type { AccountUsage } from '@/lib/api-keys-types';
 
 type State =
@@ -12,29 +14,18 @@ type State =
   | { phase: 'ready'; usage: AccountUsage };
 
 export default function PlanUsageBar() {
-  const [state, setState] = useState<State>({ phase: 'loading' });
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('/api/account/usage', { cache: 'no-store' });
-        const body = await res.json().catch(() => null);
-        if (cancelled) return;
-        if (!res.ok) {
-          setState({ phase: 'error', message: body?.error ?? `Request failed (${res.status})` });
-        } else {
-          setState({ phase: 'ready', usage: body as AccountUsage });
-        }
-      } catch {
-        if (!cancelled) setState({ phase: 'error', message: 'Could not load plan usage' });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // SWR caches usage in memory so it renders instantly on tab switches, then
+  // revalidates on focus. The child views still consume a discriminated State.
+  const { data, error } = useSWR<AccountUsage>('/api/account/usage', fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 5000,
+  });
+  const state: State = data
+    ? { phase: 'ready', usage: data }
+    : error
+      ? { phase: 'error', message: error.message }
+      : { phase: 'loading' };
 
   return (
     <>

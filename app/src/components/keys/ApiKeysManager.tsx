@@ -1,58 +1,43 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import useSWR from 'swr';
 import { clsx } from 'clsx';
 import { timeAgo } from '@/lib/format';
-import { maskKey, type ApiKey } from '@/lib/api-keys-types';
+import { fetcher } from '@/lib/swr-fetcher';
+import { maskKey, type ApiKey, type ApiKeysListResponse } from '@/lib/api-keys-types';
 import CreateKeyModal from './CreateKeyModal';
 import RevokeKeyModal from './RevokeKeyModal';
 import CurlQuickstart from './CurlQuickstart';
 
-type State =
-  | { phase: 'loading' }
-  | { phase: 'error'; message: string }
-  | { phase: 'ready'; keys: ApiKey[] };
-
 const GRID = 'grid-cols-[1.3fr_1.7fr_0.9fr_0.9fr_0.7fr_auto]';
 
 export default function ApiKeysManager() {
-  const [state, setState] = useState<State>({ phase: 'loading' });
+  // SWR's in-memory cache renders the last list instantly on tab switches, then
+  // revalidates. mutate() replaces the manual refetch after create/revoke.
+  const { data, error, mutate } = useSWR<ApiKeysListResponse>('/api/keys', fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 5000,
+  });
   const [createOpen, setCreateOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<ApiKey | null>(null);
-
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setState((s) => (s.phase === 'ready' ? s : { phase: 'loading' }));
-    try {
-      const res = await fetch('/api/keys', { cache: 'no-store' });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        setState({ phase: 'error', message: body?.error ?? `Request failed (${res.status})` });
-        return;
-      }
-      setState({ phase: 'ready', keys: Array.isArray(body?.keys) ? body.keys : [] });
-    } catch {
-      setState({ phase: 'error', message: 'Network error, refresh to retry' });
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const onRevoked = useCallback(
     (id: string) => {
       // Optimistic: flip status immediately, then reconcile with the server.
-      setState((s) =>
-        s.phase === 'ready'
-          ? { phase: 'ready', keys: s.keys.map((k) => (k.id === id ? { ...k, revoked: true } : k)) }
-          : s,
+      void mutate(
+        (current) =>
+          current
+            ? { keys: current.keys.map((k) => (k.id === id ? { ...k, revoked: true } : k)) }
+            : current,
+        { revalidate: true },
       );
-      void load(true);
     },
-    [load],
+    [mutate],
   );
 
-  const keys = state.phase === 'ready' ? state.keys : [];
+  const loading = !data && !error;
+  const keys = data?.keys ?? [];
   const activeCount = keys.filter((k) => !k.revoked).length;
 
   return (
@@ -76,16 +61,16 @@ export default function ApiKeysManager() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-soft">
-        {state.phase === 'loading' && <SkeletonTable />}
+        {loading && <SkeletonTable />}
 
-        {state.phase === 'error' && (
+        {error && !data && (
           <div className="p-6">
             <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {state.message}
+              {error.message}
             </div>
             <button
               type="button"
-              onClick={() => load()}
+              onClick={() => mutate()}
               className="mt-4 text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
             >
               ↻ Retry
@@ -93,11 +78,11 @@ export default function ApiKeysManager() {
           </div>
         )}
 
-        {state.phase === 'ready' && keys.length === 0 && (
+        {data && keys.length === 0 && (
           <EmptyState onCreate={() => setCreateOpen(true)} />
         )}
 
-        {state.phase === 'ready' && keys.length > 0 && (
+        {data && keys.length > 0 && (
           <>
             <div className={clsx('hidden gap-4 border-b border-black/[0.06] bg-[#f7f7f8] px-5 py-3 md:grid', GRID)}>
               {['Name', 'Key', 'Created', 'Last used', 'Status', ''].map((h, i) => (
@@ -121,7 +106,7 @@ export default function ApiKeysManager() {
         )}
       </div>
 
-      {state.phase === 'ready' && keys.length > 0 && (
+      {data && keys.length > 0 && (
         <p className="text-xs text-zinc-500">
           {activeCount} active key{activeCount === 1 ? '' : 's'} · {keys.length} total
         </p>
@@ -130,7 +115,7 @@ export default function ApiKeysManager() {
       <CreateKeyModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => load(true)}
+        onCreated={() => mutate()}
       />
       <RevokeKeyModal
         apiKey={revokeTarget}
