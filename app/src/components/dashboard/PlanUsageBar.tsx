@@ -78,7 +78,7 @@ export default function PlanUsageBar() {
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <a
-              href="mailto:founders@blockhelix.tech?subject=BlockHelix%20API%20—%20higher%20limits"
+              href="mailto:will@blockhelix.tech?subject=BlockHelix%20API%20—%20higher%20limits"
               className="bh-btn-primary inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2"
             >
               Contact the team
