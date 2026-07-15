@@ -1,17 +1,20 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import StatusBadge from './StatusBadge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
+import { LastUpdated, RefreshButton } from '@/components/dashboard/Freshness';
 import { timeAgo } from '@/lib/format';
 import { fetcher } from '@/lib/swr-fetcher';
+import { useEventStream, type StreamEvent } from '@/lib/use-event-stream';
+import { useUpdatedAt } from '@/lib/use-updated-at';
 import { requeueVault } from '@/lib/vault-requeue';
-import type { DeploymentRecord, VaultListResponse } from '@/lib/vault-types';
+import { TERMINAL_STATUSES, type DeploymentRecord, type DeploymentStatus, type VaultListResponse } from '@/lib/vault-types';
 
 const GRID = 'sm:grid-cols-[1.6fr_0.9fr_0.9fr_auto]';
 
@@ -20,12 +23,30 @@ export default function VaultList() {
   const toast = useToast();
   // SWR keeps the last result in an in-memory cache, so switching back to this
   // tab renders instantly from cache and revalidates in the background.
-  const { data, error, mutate } = useSWR<VaultListResponse>('/api/vaults', fetcher, {
+  const { data, error, mutate, isValidating } = useSWR<VaultListResponse>('/api/vaults', fetcher, {
     revalidateOnFocus: true,
     dedupingInterval: 5000,
   });
+  const { mutate: globalMutate } = useSWRConfig();
   const [requeuingId, setRequeuingId] = useState<string | null>(null);
   const [forceTarget, setForceTarget] = useState<DeploymentRecord | null>(null);
+  const updatedAt = useUpdatedAt(data);
+
+  // Live stream: any deployment event refreshes the list so a vault ticking
+  // queued -> ... -> complete updates without a poll or navigation. Terminal
+  // events also refresh the quota meter, since a completed vault consumes a slot.
+  useEventStream(
+    useCallback(
+      (evt: StreamEvent) => {
+        if (evt.type !== 'deployment') return;
+        void mutate();
+        if (evt.status && TERMINAL_STATUSES.includes(evt.status as DeploymentStatus)) {
+          void globalMutate('/api/account/usage');
+        }
+      },
+      [mutate, globalMutate],
+    ),
+  );
 
   const rerun = useCallback(
     async (d: DeploymentRecord, force: boolean) => {
@@ -65,9 +86,15 @@ export default function VaultList() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-[11px] uppercase tracking-wider-2 text-zinc-500">
-          {data.quota.used} of {data.quota.limit} free vault{data.quota.limit === 1 ? '' : 's'} used
-        </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <p className="text-[11px] uppercase tracking-wider-2 text-zinc-500">
+            {data.quota.used} of {data.quota.limit} free vault{data.quota.limit === 1 ? '' : 's'} used
+          </p>
+          <span className="flex items-center gap-1">
+            <LastUpdated since={updatedAt} />
+            <RefreshButton onClick={() => void mutate()} spinning={isValidating} />
+          </span>
+        </div>
         {quotaReached ? (
           <span className="rounded-lg border border-black/[0.08] px-4 py-2 text-[11px] uppercase tracking-wider-2 text-zinc-400">
             Free vault used

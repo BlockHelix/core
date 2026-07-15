@@ -2,7 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 const isProtectedPage = createRouteMatcher(['/dashboard(.*)']);
-const isProtectedApi = createRouteMatcher(['/api/vaults(.*)', '/api/keys(.*)', '/api/account(.*)']);
+const isProtectedApi = createRouteMatcher([
+  '/api/vaults(.*)',
+  '/api/keys(.*)',
+  '/api/account(.*)',
+  '/api/stream-token(.*)',
+]);
 
 const clerkConfigured =
   !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
@@ -29,7 +34,8 @@ export default clerkConfigured
         pathname.startsWith('/dashboard') ||
         pathname.startsWith('/api/vaults') ||
         pathname.startsWith('/api/keys') ||
-        pathname.startsWith('/api/account')
+        pathname.startsWith('/api/account') ||
+        pathname.startsWith('/api/stream-token')
       ) {
         return NextResponse.json({ error: 'Auth is not configured' }, { status: 503 });
       }

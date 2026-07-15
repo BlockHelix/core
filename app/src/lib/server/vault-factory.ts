@@ -58,6 +58,27 @@ async function upstream(path: string, userId: string, init?: RequestInit): Promi
   return body;
 }
 
+// Mint a short-lived (HMAC) token the browser uses to open the SSE stream. The
+// service key (X-API-Key) stays server-side; only the token + the public events
+// URL cross to the client. The token expires in ~5 min, so the browser re-mints
+// and reconnects before then (see useEventStream).
+export async function mintStreamTokenUpstream(
+  userId: string,
+): Promise<{ token: string; expiresIn: number; streamUrl: string }> {
+  const config = vaultApiConfig();
+  if (!config) {
+    throw new UpstreamError(503, 'Vault deployment service is not configured');
+  }
+  const body = (await upstream('/stream-token', userId, { method: 'POST' })) as
+    | { token?: unknown; expiresIn?: unknown }
+    | null;
+  if (!body || typeof body.token !== 'string') {
+    throw new UpstreamError(502, 'Vault deployment service returned an unexpected response');
+  }
+  const expiresIn = typeof body.expiresIn === 'number' ? body.expiresIn : 300;
+  return { token: body.token, expiresIn, streamUrl: `${config.url}/events` };
+}
+
 export async function createVaultUpstream(payload: unknown, userId: string): Promise<{ deploymentId: string; status: string }> {
   const body = (await upstream('/vaults', userId, {
     method: 'POST',
