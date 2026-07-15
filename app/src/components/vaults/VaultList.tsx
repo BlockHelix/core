@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
@@ -8,6 +9,7 @@ import StatusBadge from './StatusBadge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { timeAgo } from '@/lib/format';
+import { fetcher } from '@/lib/swr-fetcher';
 import { requeueVault } from '@/lib/vault-requeue';
 import type { DeploymentRecord, VaultListResponse } from '@/lib/vault-types';
 
@@ -16,30 +18,14 @@ const GRID = 'sm:grid-cols-[1.6fr_0.9fr_0.9fr_auto]';
 export default function VaultList() {
   const router = useRouter();
   const toast = useToast();
-  const [data, setData] = useState<VaultListResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // SWR keeps the last result in an in-memory cache, so switching back to this
+  // tab renders instantly from cache and revalidates in the background.
+  const { data, error, mutate } = useSWR<VaultListResponse>('/api/vaults', fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 5000,
+  });
   const [requeuingId, setRequeuingId] = useState<string | null>(null);
   const [forceTarget, setForceTarget] = useState<DeploymentRecord | null>(null);
-
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setError(null);
-    try {
-      const res = await fetch('/api/vaults', { cache: 'no-store' });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(body?.error ?? `Request failed (${res.status})`);
-      } else {
-        setData(body as VaultListResponse);
-        setError(null);
-      }
-    } catch {
-      setError('Network error, refresh to retry');
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const rerun = useCallback(
     async (d: DeploymentRecord, force: boolean) => {
@@ -49,7 +35,7 @@ export default function VaultList() {
       if (result.ok) {
         setForceTarget(null);
         toast('Re-running deployment — same vault, no new quota used', 'success');
-        void load(true);
+        void mutate();
         router.push(`/dashboard/vaults/${d.id}`);
         return;
       }
@@ -60,13 +46,13 @@ export default function VaultList() {
       setForceTarget(null);
       toast(result.error, 'error');
     },
-    [load, router, toast],
+    [mutate, router, toast],
   );
 
   if (error && !data) {
     return (
       <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {error}
+        {error.message}
       </div>
     );
   }

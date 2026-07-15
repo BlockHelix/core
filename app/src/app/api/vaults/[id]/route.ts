@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import {
-  getDeploymentUpstream,
-  getUserDeploymentIds,
-  UpstreamError,
-} from '@/lib/server/vault-factory';
+import { getDeploymentUpstream, UpstreamError } from '@/lib/server/vault-factory';
 import { rateLimit } from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
@@ -21,11 +17,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
 
   try {
-    const ids = await getUserDeploymentIds(userId);
-    if (!ids.includes(id)) {
-      // Same response as a missing record so ids can't be probed.
-      return NextResponse.json({ error: 'Deployment not found' }, { status: 404 });
-    }
+    // The backend scopes by X-User-Id and answers 404 if the caller doesn't own
+    // the id, so its response is authoritative — no Clerk-metadata pre-check needed.
     const record = await getDeploymentUpstream(id, userId);
     return NextResponse.json(record);
   } catch (err) {

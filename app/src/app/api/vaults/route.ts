@@ -4,8 +4,7 @@ import {
   appendUserDeploymentId,
   createVaultUpstream,
   FREE_VAULT_LIMIT,
-  getDeploymentUpstream,
-  getUserDeploymentIds,
+  listVaultsUpstream,
   UpstreamError,
 } from '@/lib/server/vault-factory';
 import { rateLimit } from '@/lib/server/rate-limit';
@@ -16,7 +15,6 @@ import {
   MAX_PLATFORM_FEE_BPS,
   VAULT_NAME_RE,
   VAULT_SYMBOL_RE,
-  type DeploymentRecord,
 } from '@/lib/vault-types';
 
 export const runtime = 'nodejs';
@@ -134,19 +132,11 @@ export async function GET() {
   }
 
   try {
-    const ids = await getUserDeploymentIds(userId);
-    const records = await Promise.all(
-      ids.map(async (id) => {
-        try {
-          return await getDeploymentUpstream(id, userId);
-        } catch {
-          return null;
-        }
-      }),
-    );
-    const deployments = records.filter((d): d is DeploymentRecord => d !== null);
+    // One backend call returns every deployment for this user (X-User-Id scoped),
+    // replacing the old getUser + per-id fan-out (N+1).
+    const deployments = await listVaultsUpstream(userId);
     // Quota mirrors the backend: only NON-FAILED deployments consume a slot, so
-    // a user whose only vault failed sees 0 used and can retry. Never ids.length.
+    // a user whose only vault failed sees 0 used and can retry.
     const used = deployments.filter((d) => d.status !== 'failed').length;
     return NextResponse.json({
       deployments,

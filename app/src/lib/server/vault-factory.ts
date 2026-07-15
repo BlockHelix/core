@@ -107,6 +107,36 @@ export async function getDeploymentUpstream(id: string, userId: string): Promise
   };
 }
 
+// List all of the user's deployments in one backend call. The backend scopes by
+// X-User-Id, so this replaces the old getUser + per-id fan-out (N+1). The list
+// endpoint returns a lighter record than the detail endpoint; we fill the
+// detail-only fields with defaults so the shape stays a DeploymentRecord (the
+// list UI only reads id/status/name/symbol/chainId/createdAt).
+export async function listVaultsUpstream(userId: string): Promise<DeploymentRecord[]> {
+  const body = (await upstream('/vaults', userId)) as { deployments?: unknown } | null;
+  const raw = Array.isArray(body?.deployments) ? body.deployments : [];
+  return raw.map((item) => {
+    const r = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+    return {
+      id: String(r.id ?? ''),
+      chainId: Number(r.chainId ?? 0),
+      status: (r.status as DeploymentRecord['status']) ?? 'queued',
+      vaultName: String(r.vaultName ?? ''),
+      vaultSymbol: String(r.vaultSymbol ?? ''),
+      baseAsset: '',
+      guardianAddress: '',
+      payoutAddress: '',
+      platformFeeBps: 0,
+      performanceFeeBps: 0,
+      addresses: null,
+      transactionHashes: [],
+      failureReason: null,
+      createdAt: String(r.createdAt ?? ''),
+      updatedAt: String(r.updatedAt ?? ''),
+    };
+  });
+}
+
 export async function getUserDeploymentIds(userId: string): Promise<string[]> {
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
