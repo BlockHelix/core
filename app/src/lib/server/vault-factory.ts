@@ -95,7 +95,7 @@ export async function getDeploymentUpstream(id: string, userId: string): Promise
     vaultName: String(r.vaultName ?? ''),
     vaultSymbol: String(r.vaultSymbol ?? ''),
     baseAsset: String(r.baseAsset ?? ''),
-    adminAddress: String(r.adminAddress ?? ''),
+    guardianAddress: String(r.guardianAddress ?? ''),
     payoutAddress: String(r.payoutAddress ?? ''),
     platformFeeBps: Number(r.platformFeeBps ?? 0),
     performanceFeeBps: Number(r.performanceFeeBps ?? 0),

@@ -32,7 +32,7 @@ export default function NewVaultForm() {
   const router = useRouter();
   const [vaultName, setVaultName] = useState('');
   const [vaultSymbol, setVaultSymbol] = useState('');
-  const [adminAddress, setAdminAddress] = useState('');
+  const [guardianAddress, setGuardianAddress] = useState('');
   const [payoutAddress, setPayoutAddress] = useState('');
   const [platformFeeBps, setPlatformFeeBps] = useState(100);
   const [performanceFeeBps, setPerformanceFeeBps] = useState(1000);
@@ -51,7 +51,7 @@ export default function NewVaultForm() {
         if (d && typeof d === 'object') {
           if (typeof d.vaultName === 'string') setVaultName(d.vaultName);
           if (typeof d.vaultSymbol === 'string') setVaultSymbol(d.vaultSymbol);
-          if (typeof d.adminAddress === 'string') setAdminAddress(d.adminAddress);
+          if (typeof d.guardianAddress === 'string') setGuardianAddress(d.guardianAddress);
           if (typeof d.payoutAddress === 'string') setPayoutAddress(d.payoutAddress);
           if (typeof d.platformFeeBps === 'number') setPlatformFeeBps(d.platformFeeBps);
           if (typeof d.performanceFeeBps === 'number') setPerformanceFeeBps(d.performanceFeeBps);
@@ -73,7 +73,7 @@ export default function NewVaultForm() {
           JSON.stringify({
             vaultName,
             vaultSymbol,
-            adminAddress,
+            guardianAddress,
             payoutAddress,
             platformFeeBps,
             performanceFeeBps,
@@ -84,10 +84,10 @@ export default function NewVaultForm() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [vaultName, vaultSymbol, adminAddress, payoutAddress, platformFeeBps, performanceFeeBps]);
+  }, [vaultName, vaultSymbol, guardianAddress, payoutAddress, platformFeeBps, performanceFeeBps]);
 
   useEffect(() => {
-    const addr = adminAddress.trim();
+    const addr = guardianAddress.trim();
     if (!addr) {
       setSafeState({ phase: 'idle' });
       return;
@@ -105,7 +105,7 @@ export default function NewVaultForm() {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [adminAddress]);
+  }, [guardianAddress]);
 
   const nameValid = vaultName.trim().length > 0 && vaultName.trim().length <= 64 && VAULT_NAME_RE.test(vaultName.trim());
   const symbolValid = vaultSymbol.trim().length > 0 && vaultSymbol.trim().length <= 16 && VAULT_SYMBOL_RE.test(vaultSymbol.trim());
@@ -128,7 +128,7 @@ export default function NewVaultForm() {
         body: JSON.stringify({
           vaultName: vaultName.trim(),
           vaultSymbol: vaultSymbol.trim(),
-          adminAddress: adminAddress.trim(),
+          guardianAddress: guardianAddress.trim(),
           payoutAddress: payoutAddress.trim(),
           platformFeeBps,
           performanceFeeBps,
@@ -203,12 +203,12 @@ export default function NewVaultForm() {
       </div>
 
       <div>
-        <label className={labelClass} htmlFor="adminAddress">Admin Address (Gnosis Safe on Base)</label>
+        <label className={labelClass} htmlFor="guardianAddress">Guardian Safe (Gnosis Safe on Base)</label>
         <input
-          id="adminAddress"
+          id="guardianAddress"
           className={inputClass}
-          value={adminAddress}
-          onChange={(e) => setAdminAddress(e.target.value)}
+          value={guardianAddress}
+          onChange={(e) => setGuardianAddress(e.target.value)}
           placeholder="0x…"
           spellCheck={false}
         />
@@ -230,7 +230,7 @@ export default function NewVaultForm() {
           )}
           {safeState.phase === 'idle' && (
             <p className="text-zinc-400">
-              The Safe becomes the vault admin (RolesAuthority owner). It is re-verified on-chain by the deployment service.
+              Your Safe can pause the vault as an emergency circuit-breaker — it cannot move or withdraw funds. The vault has no owner: once deployed it is immutable and non-custodial. Re-verified on-chain by the deployment service.
             </p>
           )}
         </div>

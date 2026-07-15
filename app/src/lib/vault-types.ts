@@ -30,7 +30,7 @@ export const PROGRESS_STEPS: DeploymentStatus[] = [
 export interface CreateVaultRequest {
   chainId: number;
   baseAssetAddress: string;
-  adminAddress: string;
+  guardianAddress: string;
   payoutAddress: string;
   platformFeeBps: number;
   performanceFeeBps: number;
@@ -45,7 +45,7 @@ export interface DeploymentRecord {
   vaultName: string;
   vaultSymbol: string;
   baseAsset: string;
-  adminAddress: string;
+  guardianAddress: string;
   payoutAddress: string;
   platformFeeBps: number;
   performanceFeeBps: number;
