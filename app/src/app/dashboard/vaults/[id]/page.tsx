@@ -6,7 +6,7 @@ export default async function VaultStatusPage({ params }: { params: Promise<{ id
   const { id } = await params;
   return (
     <div className="max-w-3xl">
-      <h2 className="text-xs uppercase tracking-wider-2 font-medium text-emerald-400">Deployment</h2>
+      <h2 className="text-xs uppercase tracking-wider-2 font-medium text-emerald-600">Deployment</h2>
       <div className="mt-6">
         <DeploymentStatusView id={id} />
       </div>

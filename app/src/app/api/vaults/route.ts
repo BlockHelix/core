@@ -16,6 +16,7 @@ import {
   MAX_PLATFORM_FEE_BPS,
   VAULT_NAME_RE,
   VAULT_SYMBOL_RE,
+  type DeploymentRecord,
 } from '@/lib/vault-types';
 
 export const runtime = 'nodejs';
@@ -100,20 +101,25 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Check-then-act on Clerk metadata: two simultaneous requests could both
-    // pass the check. Acceptable for v1 (worst case: one extra free vault).
-    const existing = await getUserDeploymentIds(userId);
-    if (existing.length >= FREE_VAULT_LIMIT) {
-      return NextResponse.json(
-        { error: `Free tier is limited to ${FREE_VAULT_LIMIT} vault per account` },
-        { status: 403 },
-      );
-    }
-
+    // The backend is the single source of truth for quota: it answers 402
+    // (vault_quota_exceeded) when the plan limit is reached, counting only
+    // NON-FAILED deployments. We never pre-gate on the raw Clerk id count —
+    // a failed deployment must not consume a slot or lock the user out.
     const { deploymentId, status } = await createVaultUpstream(result.payload, userId);
+    // Track the id so we can list this user's deployments; length is never
+    // used for quota (see the GET handler, which excludes failed records).
     await appendUserDeploymentId(userId, deploymentId);
     return NextResponse.json({ deploymentId, status }, { status: 202 });
   } catch (err) {
+    if (err instanceof UpstreamError && err.status === 402) {
+      return NextResponse.json(
+        {
+          error:
+            "You've reached the free plan's vault limit. Re-running a failed vault doesn't count — upgrade for more capacity.",
+        },
+        { status: 402 },
+      );
+    }
     return errorJson(err);
   }
 }
@@ -129,7 +135,7 @@ export async function GET() {
 
   try {
     const ids = await getUserDeploymentIds(userId);
-    const deployments = await Promise.all(
+    const records = await Promise.all(
       ids.map(async (id) => {
         try {
           return await getDeploymentUpstream(id, userId);
@@ -138,9 +144,13 @@ export async function GET() {
         }
       }),
     );
+    const deployments = records.filter((d): d is DeploymentRecord => d !== null);
+    // Quota mirrors the backend: only NON-FAILED deployments consume a slot, so
+    // a user whose only vault failed sees 0 used and can retry. Never ids.length.
+    const used = deployments.filter((d) => d.status !== 'failed').length;
     return NextResponse.json({
-      deployments: deployments.filter((d) => d !== null),
-      quota: { used: ids.length, limit: FREE_VAULT_LIMIT },
+      deployments,
+      quota: { used, limit: FREE_VAULT_LIMIT },
     });
   } catch (err) {
     return errorJson(err);

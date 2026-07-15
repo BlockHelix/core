@@ -59,11 +59,11 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
   return (
     <div
       className={clsx(
-        'flex items-start gap-3 border px-4 py-3 text-sm backdrop-blur-md bg-[#0a0a0a]/90 transition-all duration-300',
+        'flex items-start gap-3 rounded-xl border bg-white px-4 py-3 text-sm shadow-soft transition-all duration-300',
         shown ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
-        toast.kind === 'success' && 'border-emerald-400/40 text-emerald-300',
-        toast.kind === 'error' && 'border-red-400/40 text-red-300',
-        toast.kind === 'info' && 'border-white/15 text-white/80',
+        toast.kind === 'success' && 'border-emerald-600/25 text-emerald-700',
+        toast.kind === 'error' && 'border-red-600/25 text-red-700',
+        toast.kind === 'info' && 'border-black/[0.08] text-zinc-700',
       )}
     >
       <span aria-hidden className="mt-0.5 font-data text-xs">
@@ -74,7 +74,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss notification"
-        className="text-white/30 hover:text-white/70 transition-colors"
+        className="text-zinc-400 hover:text-zinc-700 transition-colors"
       >
         ✕
       </button>

@@ -44,11 +44,14 @@ async function upstream(path: string, userId: string, init?: RequestInit): Promi
 
   const body = await res.json().catch(() => null);
   if (!res.ok) {
+    const bodyObj = body && typeof body === 'object' ? (body as Record<string, unknown>) : null;
     const message =
-      body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string'
-        ? (body as { message: string }).message
-        : `Vault deployment service returned ${res.status}`;
-    // Pass through client errors (validation, not-found, conflict); mask the rest.
+      bodyObj && typeof bodyObj.message === 'string'
+        ? bodyObj.message
+        : bodyObj && typeof bodyObj.error === 'string'
+          ? bodyObj.error
+          : `Vault deployment service returned ${res.status}`;
+    // Pass through client errors (validation, quota, not-found, conflict); mask the rest.
     const status = res.status >= 400 && res.status < 500 ? res.status : 502;
     throw new UpstreamError(status, message);
   }
@@ -64,6 +67,21 @@ export async function createVaultUpstream(payload: unknown, userId: string): Pro
     throw new UpstreamError(502, 'Vault deployment service returned an unexpected response');
   }
   return { deploymentId: body.deploymentId, status: body.status ?? 'queued' };
+}
+
+// Retry an existing deployment (same vault, no new quota slot). The backend may
+// require `force=true` to requeue a non-failed record and answers 400/409 then;
+// UpstreamError carries that status straight through to the caller.
+export async function requeueVaultUpstream(
+  id: string,
+  userId: string,
+  force: boolean,
+): Promise<{ status: string }> {
+  const query = force ? '?force=true' : '';
+  const body = (await upstream(`/vaults/${encodeURIComponent(id)}/requeue${query}`, userId, {
+    method: 'POST',
+  })) as { status?: string } | null;
+  return { status: body?.status ?? 'queued' };
 }
 
 // Whitelist the fields we expose; the raw record includes internal config

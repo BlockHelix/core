@@ -50,7 +50,7 @@ export default function DashboardNav() {
   return (
     <nav
       aria-label="Dashboard sections"
-      className="flex gap-1 overflow-x-auto border-b border-white/10 pb-px lg:flex-col lg:gap-1 lg:border-b-0 lg:pb-0"
+      className="flex gap-1 overflow-x-auto border-b border-black/[0.06] pb-px lg:flex-col lg:gap-1 lg:border-b-0 lg:pb-0"
     >
       {NAV.map((item) => {
         const active = isActive(item);
@@ -60,15 +60,15 @@ export default function DashboardNav() {
             href={item.href}
             aria-current={active ? 'page' : undefined}
             className={clsx(
-              'group flex items-center gap-2.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium uppercase tracking-wider-2 transition-colors',
+              'group flex items-center gap-2.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium uppercase tracking-wider-2 transition-colors lg:rounded-md',
               // mobile: underline tab. desktop: left-border rail.
               'border-b-2 lg:border-b-0 lg:border-l-2',
               active
-                ? 'border-emerald-400 text-emerald-400 lg:bg-emerald-400/[0.06]'
-                : 'border-transparent text-white/50 hover:text-white lg:hover:bg-white/[0.03]',
+                ? 'border-emerald-600 text-emerald-700 lg:bg-emerald-600/[0.06]'
+                : 'border-transparent text-zinc-500 hover:text-zinc-900 lg:hover:bg-black/[0.03]',
             )}
           >
-            <span className={clsx('transition-colors', active ? 'text-emerald-400' : 'text-white/40 group-hover:text-white/70')}>
+            <span className={clsx('transition-colors', active ? 'text-emerald-600' : 'text-zinc-400 group-hover:text-zinc-600')}>
               {item.icon}
             </span>
             {item.label}

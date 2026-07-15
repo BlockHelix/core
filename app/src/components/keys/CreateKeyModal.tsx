@@ -92,7 +92,7 @@ export default function CreateKeyModal({
           <div>
             <label
               htmlFor="key-name"
-              className="mb-2 block text-[11px] uppercase tracking-wider-2 font-medium text-white/50"
+              className="mb-2 block text-[11px] uppercase tracking-wider-2 font-medium text-zinc-500"
             >
               Key name
             </label>
@@ -103,17 +103,17 @@ export default function CreateKeyModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Production"
               maxLength={MAX_API_KEY_NAME_LEN}
-              className="w-full border border-white/15 bg-[#0a0a0a] px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-emerald-400/60 focus:outline-none"
+              className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
             />
             {name && !nameValid && (
-              <p className="mt-2 text-xs text-red-400">
+              <p className="mt-2 text-xs text-red-600">
                 1-{MAX_API_KEY_NAME_LEN} chars: letters, numbers, spaces, ._-
               </p>
             )}
           </div>
 
           {error && (
-            <div className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-400">
+            <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -122,14 +122,14 @@ export default function CreateKeyModal({
             <button
               type="button"
               onClick={handleClose}
-              className="text-xs font-medium uppercase tracking-wider-2 text-white/50 transition-colors hover:text-white"
+              className="text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!nameValid || submitting}
-              className="bg-emerald-400 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-black transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+              className="bh-btn-primary rounded-lg px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2"
             >
               {submitting ? 'Creating…' : 'Create key'}
             </button>
@@ -137,16 +137,16 @@ export default function CreateKeyModal({
         </form>
       ) : (
         <div className="space-y-5">
-          <div className="flex items-start gap-3 border border-amber-400/40 bg-amber-400/10 px-4 py-3">
-            <span aria-hidden className="mt-0.5 text-amber-400">⚠</span>
-            <p className="text-sm text-amber-200/90 leading-relaxed">
+          <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-50 px-4 py-3">
+            <span aria-hidden className="mt-0.5 text-amber-600">⚠</span>
+            <p className="text-sm text-amber-800 leading-relaxed">
               Copy this key now. For your security,{' '}
-              <span className="font-medium text-amber-100">you won&apos;t be able to see it again.</span>
+              <span className="font-medium text-amber-900">you won&apos;t be able to see it again.</span>
             </p>
           </div>
 
           <div>
-            <p className="mb-2 text-[11px] uppercase tracking-wider-2 font-medium text-white/50">
+            <p className="mb-2 text-[11px] uppercase tracking-wider-2 font-medium text-zinc-500">
               {phase.key.name}
             </p>
             <CopyField
@@ -159,7 +159,7 @@ export default function CreateKeyModal({
             <button
               type="button"
               onClick={handleClose}
-              className="bg-emerald-400 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-black transition-colors hover:bg-emerald-300"
+              className="bh-btn-primary rounded-lg px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2"
             >
               Done — I saved it
             </button>

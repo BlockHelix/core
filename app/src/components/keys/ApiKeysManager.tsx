@@ -59,34 +59,34 @@ export default function ApiKeysManager() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-medium text-white">API keys</h2>
-          <p className="mt-1.5 max-w-xl text-sm text-white/50 leading-relaxed">
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-950">API keys</h2>
+          <p className="mt-1.5 max-w-xl text-sm text-zinc-600 leading-relaxed">
             Authenticate requests to the BlockHelix risk-layer API. Pass a key as{' '}
-            <code className="font-data text-white/70">Authorization: Bearer bh_live_…</code>. Free plan is
+            <code className="font-data text-zinc-900">Authorization: Bearer bh_live_…</code>. Free plan is
             capped at 5 requests/day.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex shrink-0 items-center gap-2 bg-emerald-400 px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-black transition-colors hover:bg-emerald-300"
+          className="bh-btn-primary inline-flex shrink-0 items-center gap-2 rounded-lg px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2"
         >
           <span aria-hidden className="text-sm leading-none">+</span> Create key
         </button>
       </div>
 
-      <div className="border border-white/10">
+      <div className="overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-soft">
         {state.phase === 'loading' && <SkeletonTable />}
 
         {state.phase === 'error' && (
           <div className="p-6">
-            <div className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-400">
+            <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
               {state.message}
             </div>
             <button
               type="button"
               onClick={() => load()}
-              className="mt-4 text-xs font-medium uppercase tracking-wider-2 text-white/50 transition-colors hover:text-white"
+              className="mt-4 text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
             >
               ↻ Retry
             </button>
@@ -99,12 +99,12 @@ export default function ApiKeysManager() {
 
         {state.phase === 'ready' && keys.length > 0 && (
           <>
-            <div className={clsx('hidden gap-4 border-b border-white/10 px-5 py-3 md:grid', GRID)}>
+            <div className={clsx('hidden gap-4 border-b border-black/[0.06] bg-[#f7f7f8] px-5 py-3 md:grid', GRID)}>
               {['Name', 'Key', 'Created', 'Last used', 'Status', ''].map((h, i) => (
                 <span
                   key={i}
                   className={clsx(
-                    'text-[11px] uppercase tracking-wider-2 text-white/40',
+                    'text-[11px] uppercase tracking-wider-2 text-zinc-400',
                     i === 5 && 'text-right',
                   )}
                 >
@@ -122,7 +122,7 @@ export default function ApiKeysManager() {
       </div>
 
       {state.phase === 'ready' && keys.length > 0 && (
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-zinc-500">
           {activeCount} active key{activeCount === 1 ? '' : 's'} · {keys.length} total
         </p>
       )}
@@ -142,30 +142,30 @@ export default function ApiKeysManager() {
 }
 
 function KeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: () => void }) {
-  const label = 'text-[10px] uppercase tracking-wider-2 text-white/30 md:hidden';
+  const label = 'text-[10px] uppercase tracking-wider-2 text-zinc-400 md:hidden';
   return (
     <li
       className={clsx(
-        'grid grid-cols-1 gap-2 border-b border-white/5 px-5 py-4 transition-colors last:border-b-0 md:items-center md:gap-4',
+        'grid grid-cols-1 gap-2 border-b border-black/[0.05] px-5 py-4 transition-colors last:border-b-0 md:items-center md:gap-4',
         GRID,
-        apiKey.revoked ? 'opacity-55' : 'hover:bg-white/[0.02]',
+        apiKey.revoked ? 'opacity-55' : 'hover:bg-black/[0.015]',
       )}
     >
       <div className="min-w-0">
         <span className={label}>Name</span>
-        <p className="truncate text-sm font-medium text-white">{apiKey.name || 'Untitled key'}</p>
+        <p className="truncate text-sm font-medium text-zinc-900">{apiKey.name || 'Untitled key'}</p>
       </div>
       <div className="min-w-0">
         <span className={label}>Key</span>
-        <p className="truncate font-data text-xs text-white/60">{maskKey(apiKey.keyPrefix)}</p>
+        <p className="truncate font-data text-xs text-zinc-600">{maskKey(apiKey.keyPrefix)}</p>
       </div>
       <div>
         <span className={label}>Created</span>
-        <p className="text-xs text-white/50">{apiKey.createdAt ? timeAgo(apiKey.createdAt) : '—'}</p>
+        <p className="text-xs text-zinc-500">{apiKey.createdAt ? timeAgo(apiKey.createdAt) : '—'}</p>
       </div>
       <div>
         <span className={label}>Last used</span>
-        <p className="text-xs text-white/50">{apiKey.lastUsedAt ? timeAgo(apiKey.lastUsedAt) : 'Never'}</p>
+        <p className="text-xs text-zinc-500">{apiKey.lastUsedAt ? timeAgo(apiKey.lastUsedAt) : 'Never'}</p>
       </div>
       <div>
         <span className={label}>Status</span>
@@ -173,12 +173,12 @@ function KeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: () => void }) 
       </div>
       <div className="mt-1 md:mt-0 md:text-right">
         {apiKey.revoked ? (
-          <span className="text-[11px] uppercase tracking-wider-2 text-white/25">Revoked</span>
+          <span className="text-[11px] uppercase tracking-wider-2 text-zinc-300">Revoked</span>
         ) : (
           <button
             type="button"
             onClick={onRevoke}
-            className="text-[11px] font-medium uppercase tracking-wider-2 text-white/50 transition-colors hover:text-red-400"
+            className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-red-600"
           >
             Revoke
           </button>
@@ -192,14 +192,14 @@ function StatusPill({ revoked }: { revoked: boolean }) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 border px-2 py-0.5 text-[10px] uppercase tracking-wider-2 font-medium',
+        'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider-2 font-medium',
         revoked
-          ? 'border-white/15 text-white/40'
-          : 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300',
+          ? 'border-black/[0.08] text-zinc-400'
+          : 'border-emerald-600/25 bg-emerald-50 text-emerald-700',
       )}
     >
       <span
-        className={clsx('h-1.5 w-1.5 rounded-full', revoked ? 'bg-white/30' : 'bg-emerald-400')}
+        className={clsx('h-1.5 w-1.5 rounded-full', revoked ? 'bg-zinc-300' : 'bg-emerald-600')}
       />
       {revoked ? 'Revoked' : 'Active'}
     </span>
@@ -210,7 +210,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="p-6 sm:p-10">
       <div className="mx-auto max-w-xl text-center">
-        <div className="mx-auto flex h-11 w-11 items-center justify-center border border-emerald-400/30 bg-emerald-400/5 text-emerald-400">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-600/20 bg-emerald-50 text-emerald-700">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
               d="M15 7a4 4 0 11-3.9 5H8v2H6v2H3v-3l5.1-5.1A4 4 0 0115 7z"
@@ -222,15 +222,15 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
             <circle cx="15.5" cy="6.5" r="0.9" fill="currentColor" />
           </svg>
         </div>
-        <h3 className="mt-4 text-base font-medium text-white">Create your first API key</h3>
-        <p className="mt-2 text-sm text-white/50 leading-relaxed">
+        <h3 className="mt-4 text-base font-semibold text-zinc-950">Create your first API key</h3>
+        <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
           API keys let your services call the BlockHelix risk layer. Create one, then drop it into the
           request below to spin up your first vault.
         </p>
         <button
           type="button"
           onClick={onCreate}
-          className="mt-5 inline-flex items-center gap-2 bg-emerald-400 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-black transition-colors hover:bg-emerald-300"
+          className="bh-btn-primary mt-5 inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2"
         >
           <span aria-hidden>+</span> Create API key
         </button>
@@ -244,7 +244,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 function SkeletonTable() {
   return (
-    <div className="divide-y divide-white/5">
+    <div className="divide-y divide-black/[0.05]">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex items-center gap-4 px-5 py-4">
           <div className="h-4 flex-1 skeleton" />
