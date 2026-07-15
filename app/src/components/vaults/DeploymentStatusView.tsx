@@ -220,13 +220,6 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         </a>
       </p>
 
-      <Link
-        href="/dashboard/vaults"
-        className="inline-block text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
-      >
-        ← Back to vaults
-      </Link>
-
       <Modal
         open={forceOpen}
         onClose={() => setForceOpen(false)}
