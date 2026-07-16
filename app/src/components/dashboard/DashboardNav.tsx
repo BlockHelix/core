@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { clsx } from 'clsx';
 
 interface NavItem {
@@ -33,6 +34,17 @@ const VaultIcon = (
   </svg>
 );
 
+const AdminIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path
+      d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'API Keys', icon: KeyIcon },
   { href: '/dashboard/vaults', label: 'Vaults', icon: VaultIcon, match: ['/dashboard/new-vault'] },
@@ -40,6 +52,14 @@ const NAV: NavItem[] = [
 
 export default function DashboardNav() {
   const pathname = usePathname();
+  const { user } = useUser();
+  const isAdmin = (user?.publicMetadata as { role?: unknown } | undefined)?.role === 'admin';
+
+  // Admin link is appended only for admins; the route itself is also gated
+  // server-side, so hiding it here is purely to avoid a dead link for others.
+  const items: NavItem[] = isAdmin
+    ? [...NAV, { href: '/admin', label: 'Admin', icon: AdminIcon }]
+    : NAV;
 
   const isActive = (item: NavItem) => {
     if (item.href === '/dashboard') return pathname === '/dashboard';
@@ -52,7 +72,7 @@ export default function DashboardNav() {
       aria-label="Dashboard sections"
       className="flex gap-1 overflow-x-auto border-b border-black/[0.06] pb-px lg:flex-col lg:gap-1 lg:border-b-0 lg:pb-0"
     >
-      {NAV.map((item) => {
+      {items.map((item) => {
         const active = isActive(item);
         return (
           <Link

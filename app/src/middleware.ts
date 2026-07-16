@@ -1,12 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-const isProtectedPage = createRouteMatcher(['/dashboard(.*)']);
+const isProtectedPage = createRouteMatcher(['/dashboard(.*)', '/admin(.*)']);
 const isProtectedApi = createRouteMatcher([
   '/api/vaults(.*)',
   '/api/keys(.*)',
   '/api/account(.*)',
   '/api/stream-token(.*)',
+  '/api/admin(.*)',
 ]);
 
 const clerkConfigured =
@@ -32,10 +33,12 @@ export default clerkConfigured
       const { pathname } = new URL(req.url);
       if (
         pathname.startsWith('/dashboard') ||
+        pathname.startsWith('/admin') ||
         pathname.startsWith('/api/vaults') ||
         pathname.startsWith('/api/keys') ||
         pathname.startsWith('/api/account') ||
-        pathname.startsWith('/api/stream-token')
+        pathname.startsWith('/api/stream-token') ||
+        pathname.startsWith('/api/admin')
       ) {
         return NextResponse.json({ error: 'Auth is not configured' }, { status: 503 });
       }
