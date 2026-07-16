@@ -4,13 +4,13 @@
 export interface NormalizedTx {
   hash: string;
   method: string;
-  timeStamp: number; // unix seconds
+  timeStamp: number; // unix seconds; 0 when unknown (e.g. deploy rows)
   from: string;
   to: string;
-  value: string; // display-ready amount
-  valueSymbol: string; // 'ETH' or token symbol
+  value: string; // display-ready amount, or '—'
+  valueSymbol: string; // asset symbol, or '' when not applicable
   isError: boolean;
-  kind: 'native' | 'token';
+  kind: 'transfer' | 'deploy';
 }
 
 export interface TxListResponse {

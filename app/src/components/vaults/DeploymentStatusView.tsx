@@ -241,7 +241,9 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         </div>
       )}
 
-      {record.addresses?.boringVault && <TransactionActivity id={id} />}
+      {(record.transactionHashes.length > 0 || record.addresses?.boringVault) && (
+        <TransactionActivity id={id} />
+      )}
 
       {error && record && <p className="text-xs text-amber-600">{error}</p>}
 

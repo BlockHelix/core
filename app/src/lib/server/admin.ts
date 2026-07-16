@@ -133,11 +133,22 @@ export async function listAdminVaults(): Promise<AdminVault[]> {
 }
 
 // Component addresses for a single vault id (admin scope). null if the id is
-// unknown. Used by the server-side state/txs routes.
+// unknown. Used by the server-side state route.
 export async function getAdminVaultAddresses(id: string): Promise<Record<string, string | null> | null> {
   const rows = await fetchAdminVaultRows();
   const row = rows.find((r) => r.id === id);
   return row ? (row.addresses ?? {}) : null;
+}
+
+// The two activity sources for a vault: its boringVault address (for the live
+// transfer feed) and the deploy transaction hashes on record. null if unknown.
+export async function getAdminVaultTxSources(
+  id: string,
+): Promise<{ boringVault: string | null; transactionHashes: string[] } | null> {
+  const rows = await fetchAdminVaultRows();
+  const row = rows.find((r) => r.id === id);
+  if (!row) return null;
+  return { boringVault: row.addresses?.boringVault ?? null, transactionHashes: row.transactionHashes };
 }
 
 export async function listAdminUsers(): Promise<AdminUser[]> {

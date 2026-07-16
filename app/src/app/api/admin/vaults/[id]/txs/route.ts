@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getAdminUserId, getAdminVaultAddresses } from '@/lib/server/admin';
-import { fetchVaultTxs } from '@/lib/server/etherscan';
+import { getAdminUserId, getAdminVaultTxSources } from '@/lib/server/admin';
+import { deployTxs, fetchVaultTransfers } from '@/lib/server/onchain-txs';
 import { UpstreamError } from '@/lib/server/vault-factory';
 
 export const runtime = 'nodejs';
 
-// Admin-gated Etherscan activity for one vault. ETHERSCAN_API_KEY stays server-side.
+// Admin-gated vault activity: deploy txs (from the DB record) + live transfers
+// (Alchemy getAssetTransfers). All RPC access is server-side.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const adminId = await getAdminUserId();
   if (!adminId) {
@@ -13,16 +14,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
   const { id } = await params;
   try {
-    const addresses = await getAdminVaultAddresses(id);
-    if (!addresses) {
+    const src = await getAdminVaultTxSources(id);
+    if (!src) {
       return NextResponse.json({ error: 'Vault not found' }, { status: 404 });
     }
-    const boringVault = addresses.boringVault;
-    if (!boringVault) {
-      return NextResponse.json({ txs: [] });
-    }
-    const txs = await fetchVaultTxs(boringVault);
-    return NextResponse.json({ txs });
+    const deploy = deployTxs(src.transactionHashes);
+    const activity = src.boringVault ? await fetchVaultTransfers(src.boringVault) : [];
+    return NextResponse.json({ txs: [...deploy, ...activity] });
   } catch (err) {
     if (err instanceof UpstreamError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

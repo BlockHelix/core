@@ -89,15 +89,19 @@ function Row({ t }: { t: NormalizedTx }) {
         {t.timeStamp ? timeAgo(new Date(t.timeStamp * 1000)) : '—'}
       </td>
       <td className="px-4 py-3">
-        <div className="flex items-center gap-1.5 font-data text-xs text-zinc-500">
-          <Addr address={t.from} />
-          <span aria-hidden className="text-zinc-300">→</span>
-          <Addr address={t.to} />
-        </div>
+        {!t.from && !t.to ? (
+          <span className="text-zinc-300">—</span>
+        ) : (
+          <div className="flex items-center gap-1.5 font-data text-xs text-zinc-500">
+            <Addr address={t.from} />
+            <span aria-hidden className="text-zinc-300">→</span>
+            <Addr address={t.to} />
+          </div>
+        )}
       </td>
       <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-700">
-        {t.value === '0' ? (
-          <span className="text-zinc-400">0</span>
+        {!t.value || t.value === '0' || t.value === '—' ? (
+          <span className="text-zinc-400">{t.value || '—'}</span>
         ) : (
           <>
             <span className="font-data">{t.value}</span>{' '}

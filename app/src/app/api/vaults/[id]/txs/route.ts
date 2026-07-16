@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getDeploymentUpstream, UpstreamError } from '@/lib/server/vault-factory';
-import { fetchVaultTxs } from '@/lib/server/etherscan';
+import { deployTxs, fetchVaultTransfers } from '@/lib/server/onchain-txs';
 import { rateLimit } from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
 
-// Owner-scoped vault activity. Ownership is proven by the per-user backend proxy
-// (getDeploymentUpstream answers 404 unless the caller owns the id); only then do
-// we read that vault's txs from Etherscan server-side. ETHERSCAN_API_KEY never
-// reaches the browser.
+// Owner-scoped vault activity: deploy txs (from the record) + live transfers
+// (Alchemy getAssetTransfers). Ownership is proven by the per-user backend proxy
+// (getDeploymentUpstream answers 404 unless the caller owns the id).
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth();
   if (!userId) {
@@ -22,12 +21,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   try {
     const record = await getDeploymentUpstream(id, userId);
+    const deploy = deployTxs(record.transactionHashes);
     const boringVault = record.addresses?.boringVault;
-    if (!boringVault) {
-      return NextResponse.json({ txs: [] });
-    }
-    const txs = await fetchVaultTxs(boringVault);
-    return NextResponse.json({ txs });
+    const activity = boringVault ? await fetchVaultTransfers(boringVault) : [];
+    return NextResponse.json({ txs: [...deploy, ...activity] });
   } catch (err) {
     if (err instanceof UpstreamError) {
       // Not owned / not found -> treat as forbidden so we never leak another
