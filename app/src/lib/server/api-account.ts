@@ -79,11 +79,13 @@ export async function deleteKey(userId: string, id: string): Promise<void> {
 
 export async function getUsage(userId: string): Promise<AccountUsage> {
   const r = (await parse(await upstream(userId, '/account/usage'))) as Record<string, unknown> | null;
+  const unlimited = Boolean(r?.unlimited);
   return {
     tier: String(r?.tier ?? 'free'),
-    limitPerDay: Number(r?.limitPerDay ?? 0),
+    limitPerDay: unlimited || r?.limitPerDay == null ? null : Number(r.limitPerDay),
     usedToday: Number(r?.usedToday ?? 0),
-    remainingToday: Number(r?.remainingToday ?? 0),
+    remainingToday: unlimited || r?.remainingToday == null ? null : Number(r.remainingToday),
     resetsAt: String(r?.resetsAt ?? ''),
+    unlimited,
   };
 }

@@ -120,16 +120,18 @@ function UsageMeter({ state }: { state: State }) {
   const loading = state.phase === 'loading';
   const usage = state.phase === 'ready' ? state.usage : null;
   const used = usage?.usedToday ?? 0;
+  // null limit = unlimited (an admin-set entitlement override).
+  const unlimited = Boolean(usage?.unlimited) || (usage != null && usage.limitPerDay == null);
   const limit = usage?.limitPerDay ?? 5;
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const nearLimit = limit > 0 && used / limit >= 0.8;
+  const pct = unlimited ? 100 : limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const nearLimit = !unlimited && limit > 0 && used / limit >= 0.8;
 
   return (
     <div className="min-w-[200px] flex-1 sm:max-w-xs">
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-[11px] uppercase tracking-wider-2 text-zinc-400">Requests today</p>
         <p className="font-data text-xs text-zinc-500">
-          {loading ? '—' : `${used.toLocaleString()} / ${limit.toLocaleString()}`}
+          {loading ? '—' : unlimited ? `${used.toLocaleString()} · Unlimited` : `${used.toLocaleString()} / ${limit.toLocaleString()}`}
         </p>
       </div>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.07]">
@@ -144,9 +146,11 @@ function UsageMeter({ state }: { state: State }) {
       <p className="mt-2 text-[11px] text-zinc-400">
         {loading
           ? 'Loading usage…'
-          : usage?.resetsAt
-            ? `Resets ${timeUntil(usage.resetsAt)}`
-            : 'Rate limit resets daily'}
+          : unlimited
+            ? 'No daily limit'
+            : usage?.resetsAt
+              ? `Resets ${timeUntil(usage.resetsAt)}`
+              : 'Rate limit resets daily'}
       </p>
     </div>
   );

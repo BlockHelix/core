@@ -23,10 +23,11 @@ export interface ApiKeysListResponse {
 
 export interface AccountUsage {
   tier: string;
-  limitPerDay: number;
+  limitPerDay: number | null; // null = unlimited
   usedToday: number;
-  remainingToday: number;
+  remainingToday: number | null; // null = unlimited
   resetsAt: string;
+  unlimited: boolean;
 }
 
 export const API_KEY_NAME_RE = /^[a-zA-Z0-9 ._-]+$/;
