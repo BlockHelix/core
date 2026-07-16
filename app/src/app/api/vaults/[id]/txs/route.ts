@@ -21,9 +21,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   try {
     const record = await getDeploymentUpstream(id, userId);
-    const deploy = deployTxs(record.transactionHashes);
     const boringVault = record.addresses?.boringVault;
-    const activity = boringVault ? await fetchVaultTransfers(boringVault) : [];
+    const [deploy, activity] = await Promise.all([
+      deployTxs(record.transactionHashes),
+      boringVault ? fetchVaultTransfers(boringVault) : Promise.resolve([]),
+    ]);
     return NextResponse.json({ txs: [...deploy, ...activity] });
   } catch (err) {
     if (err instanceof UpstreamError) {

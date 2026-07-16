@@ -18,8 +18,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     if (!src) {
       return NextResponse.json({ error: 'Vault not found' }, { status: 404 });
     }
-    const deploy = deployTxs(src.transactionHashes);
-    const activity = src.boringVault ? await fetchVaultTransfers(src.boringVault) : [];
+    const [deploy, activity] = await Promise.all([
+      deployTxs(src.transactionHashes),
+      src.boringVault ? fetchVaultTransfers(src.boringVault) : Promise.resolve([]),
+    ]);
     return NextResponse.json({ txs: [...deploy, ...activity] });
   } catch (err) {
     if (err instanceof UpstreamError) {

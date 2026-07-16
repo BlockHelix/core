@@ -3,9 +3,37 @@
 // Etherscan/paid plan. Deploy transactions (0-value contract calls that transfer
 // APIs don't surface) come from the deployment record's transactionHashes.
 
+import { keccak256, toBytes, slice } from 'viem';
 import type { NormalizedTx } from '@/lib/onchain-types';
 
 const RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
+
+// Decode a tx's real method from its calldata selector. Known deploy/admin calls get a
+// readable name; anything else shows its raw 4-byte selector (Etherscan-style) — never a
+// made-up label.
+const KNOWN_SELECTORS: Record<string, string> = Object.fromEntries(
+  [
+    'deployContract(string,bytes,bytes,uint256)',
+    'setUserRole(address,uint8,bool)',
+    'setRoleCapability(uint8,address,bytes4,bool)',
+    'setPublicCapability(address,bytes4,bool)',
+    'setManageRoot(address,bytes32)',
+    'setAuthority(address)',
+    'transferOwnership(address)',
+    'setBeforeTransferHook(address)',
+    'setShareLockPeriod(uint64)',
+    'setPullFundsFromVault(bool)',
+    'updateExchangeRate(uint96)',
+    'pause()',
+    'unpause()',
+  ].map((sig) => [slice(keccak256(toBytes(sig)), 0, 4), sig.slice(0, sig.indexOf('('))]),
+);
+
+function decodeMethod(input?: string): string {
+  if (!input || input.length < 10) return '—';
+  const selector = input.slice(0, 10).toLowerCase();
+  return KNOWN_SELECTORS[selector] ?? selector;
+}
 
 const CATEGORIES = ['external', 'erc20', 'erc721', 'erc1155'];
 
@@ -97,19 +125,79 @@ export async function fetchVaultTransfers(vault: string, limit = 40): Promise<No
   return merged.slice(0, limit).map(normalize);
 }
 
-// Deployment transactions from the record. Not RPC-enriched (a vault can have
-// ~100 of these) — hash + "deploy" label is enough; the shared <TxTable> links
-// each to Basescan.
-export function deployTxs(hashes: string[]): NormalizedTx[] {
-  return hashes.filter(Boolean).map((hash) => ({
-    hash,
-    method: 'deploy',
-    timeStamp: 0,
-    from: '',
-    to: '',
-    value: '—',
-    valueSymbol: '',
-    isError: false,
-    kind: 'deploy',
-  }));
+// A minimal JSON-RPC tx shape (from eth_getTransactionByHash).
+interface RawTx {
+  from?: string;
+  to?: string | null;
+  value?: string;
+  blockNumber?: string;
+  input?: string;
+}
+
+// Batched JSON-RPC (Alchemy accepts request arrays). Chunked to stay under batch
+// limits; never throws — missing entries stay null and the row degrades gracefully.
+async function rpcBatch(calls: { method: string; params: unknown[] }[]): Promise<unknown[]> {
+  const out: unknown[] = new Array(calls.length).fill(null);
+  const CHUNK = 50;
+  for (let start = 0; start < calls.length; start += CHUNK) {
+    const chunk = calls.slice(start, start + CHUNK);
+    try {
+      const res = await fetch(RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify(chunk.map((c, i) => ({ id: i, jsonrpc: '2.0', ...c }))),
+      });
+      const body = await res.json().catch(() => null);
+      if (Array.isArray(body)) {
+        const byId = new Map(body.map((r: { id?: number; result?: unknown }) => [r.id, r.result]));
+        chunk.forEach((_, i) => {
+          out[start + i] = byId.get(i) ?? null;
+        });
+      }
+    } catch {
+      /* leave nulls for this chunk */
+    }
+  }
+  return out;
+}
+
+// Deployment transactions from the record, enriched via batched RPC so the shared
+// <TxTable> shows real Age / From→To / Value (not just the hash). Deploy calls are
+// 0-value contract calls, so Value is typically 0.
+export async function deployTxs(hashes: string[]): Promise<NormalizedTx[]> {
+  const list = hashes.filter(Boolean);
+  if (list.length === 0) return [];
+
+  const txs = (await rpcBatch(
+    list.map((h) => ({ method: 'eth_getTransactionByHash', params: [h] })),
+  )) as (RawTx | null)[];
+
+  const blockNums = Array.from(
+    new Set(txs.map((t) => t?.blockNumber).filter((b): b is string => !!b)),
+  );
+  const blocks = (await rpcBatch(
+    blockNums.map((bn) => ({ method: 'eth_getBlockByNumber', params: [bn, false] })),
+  )) as ({ timestamp?: string } | null)[];
+  const blockTs = new Map<string, number>();
+  blockNums.forEach((bn, i) => {
+    const ts = blocks[i]?.timestamp;
+    if (ts) blockTs.set(bn, parseInt(ts, 16));
+  });
+
+  return list.map((hash, i) => {
+    const tx = txs[i];
+    const wei = tx?.value ? BigInt(tx.value) : 0n;
+    return {
+      hash,
+      method: decodeMethod(tx?.input),
+      timeStamp: tx?.blockNumber ? (blockTs.get(tx.blockNumber) ?? 0) : 0,
+      from: tx?.from ?? '',
+      to: tx?.to ?? '',
+      value: wei === 0n ? '0' : (Number(wei) / 1e18).toLocaleString('en-US', { maximumFractionDigits: 6 }),
+      valueSymbol: wei === 0n ? '' : 'ETH',
+      isError: false,
+      kind: 'deploy' as const,
+    };
+  });
 }
