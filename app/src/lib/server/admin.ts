@@ -166,6 +166,12 @@ export async function listAdminUsers(): Promise<AdminUser[]> {
   return rows.map((r) => ({ ...r, email: emails[r.userId] ?? null }));
 }
 
+// Delete a deployment record (DB-only). The on-chain vault is immutable and
+// unaffected. Idempotent upstream (204 even if already gone).
+export async function deleteDeployment(id: string): Promise<void> {
+  await adminUpstream(`/admin/vaults/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
 export async function setEntitlements(userId: string, input: AdminEntitlementInput): Promise<void> {
   await adminUpstream(`/admin/users/${encodeURIComponent(userId)}/entitlements`, {
     method: 'POST',

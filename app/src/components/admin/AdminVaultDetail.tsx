@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useAccount } from 'wagmi';
 import type { Address, Hex } from 'viem';
@@ -149,6 +150,98 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
           </div>
         </div>
       )}
+
+      {/* Danger zone — DB-only cleanup for test/failed vaults */}
+      <DeleteDeploymentSection id={vault.id} />
+    </div>
+  );
+}
+
+// Delete only the DB record. The on-chain vault is immutable and unaffected.
+function DeleteDeploymentSection({ id }: { id: string }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [confirm, setConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove() {
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/vaults/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.status === 204 || res.ok) {
+        toast('Deployment record deleted', 'success');
+        router.push('/admin');
+        return;
+      }
+      const body = await res.json().catch(() => null);
+      setError(body?.error ?? `Request failed (${res.status})`);
+      setSubmitting(false);
+    } catch {
+      setError('Network error, try again');
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Danger zone</h2>
+          <p className="mt-2 text-sm text-zinc-500">
+            Remove this deployment record from the dashboard. The on-chain vault is immutable and unaffected.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setConfirm(true)}
+          className="rounded-lg border border-red-600/30 bg-red-50 px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-red-700 transition-colors hover:bg-red-100"
+        >
+          Delete deployment
+        </button>
+      </div>
+
+      <Modal
+        open={confirm}
+        onClose={() => {
+          if (submitting) return;
+          setError(null);
+          setConfirm(false);
+        }}
+        title="Delete deployment record?"
+        description="Delete this deployment record? The on-chain vault is immutable and unaffected — this only removes it from the dashboard."
+      >
+        <div className="space-y-5">
+          {error && (
+            <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setConfirm(false);
+              }}
+              disabled={submitting}
+              className="text-xs font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900 disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={submitting}
+              className="rounded-lg border border-red-600/30 bg-red-600 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {submitting ? 'Deleting…' : 'Delete deployment'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
