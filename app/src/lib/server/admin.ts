@@ -2,10 +2,10 @@
 // admin-role gate and userId -> email enrichment. The service key (X-API-Key)
 // stays server-side and is NEVER exposed to the browser.
 //
-// Unlike the per-user proxies (vault-factory.ts / api-account.ts) these are
-// GLOBAL admin calls, so we do NOT forward X-User-Id — the service key alone
-// authorises /admin/*. (Assumption: the backend treats VAULT_API_KEY as the
-// admin credential for /admin/* — built in parallel; see the report.)
+// These are GLOBAL admin calls. The backend's ServiceUserGuard requires BOTH the
+// service key (X-API-Key) AND a non-empty X-User-Id, so we forward the acting
+// admin's Clerk id. The admin *scope* is enforced upstream by getAdminUserId() /
+// the middleware; X-User-Id here just satisfies the service-caller requirement.
 
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { UpstreamError, vaultApiConfig } from '@/lib/server/vault-factory';
@@ -16,6 +16,8 @@ async function adminUpstream(path: string, init?: RequestInit): Promise<unknown>
   if (!config) {
     throw new UpstreamError(503, 'The BlockHelix API is not configured');
   }
+  // ServiceUserGuard requires a non-empty X-User-Id; use the acting admin's Clerk id.
+  const { userId } = await auth();
   let res: Response;
   try {
     res = await fetch(`${config.url}${path}`, {
@@ -23,6 +25,7 @@ async function adminUpstream(path: string, init?: RequestInit): Promise<unknown>
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': config.apiKey,
+        'X-User-Id': userId ?? '',
         ...(init?.headers ?? {}),
       },
       cache: 'no-store',
@@ -97,7 +100,14 @@ function toEntitlement(raw: unknown): AdminEntitlement | null {
 
 export async function listAdminVaults(): Promise<AdminVault[]> {
   const body = await adminUpstream('/admin/vaults');
-  const raw = Array.isArray(body) ? body : Array.isArray((body as { vaults?: unknown })?.vaults) ? (body as { vaults: unknown[] }).vaults : [];
+  // Backend returns { items, nextCursor }. (Bare array / { vaults } kept as fallbacks.)
+  const raw = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { items?: unknown })?.items)
+      ? (body as { items: unknown[] }).items
+      : Array.isArray((body as { vaults?: unknown })?.vaults)
+        ? (body as { vaults: unknown[] }).vaults
+        : [];
   const rows = raw
     .filter((v): v is Record<string, unknown> => !!v && typeof v === 'object')
     .map((r) => ({
