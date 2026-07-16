@@ -1,5 +1,5 @@
 // Server-only reader for a vault's live on-chain state on Base (8453) via viem.
-// The RPC comes from NEXT_PUBLIC_BASE_RPC_URL; all reads run here, never in the
+// Uses the server-only Alchemy RPC (BASE_RPC_URL); all reads run here, never in the
 // browser. Component addresses come from the vault record's `addresses` map.
 
 import { createPublicClient, erc20Abi, formatUnits, http, isAddress } from 'viem';
@@ -7,7 +7,8 @@ import type { Address } from 'viem';
 import { base } from 'viem/chains';
 import type { TokenBalance, VaultState } from '@/lib/onchain-types';
 
-const RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
+const RPC_URL =
+  process.env.BASE_RPC_URL || process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
 
 // Base-mainnet tokens we surface a balance for. Decimals hardcoded (well-known)
 // to avoid extra reads.

@@ -6,7 +6,10 @@
 import { keccak256, toBytes, slice } from 'viem';
 import type { NormalizedTx } from '@/lib/onchain-types';
 
-const RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
+// Server-only Alchemy endpoint preferred (getAssetTransfers + large JSON-RPC batches need it,
+// and the key stays off the client). Falls back to the public client RPC / base.org.
+const RPC_URL =
+  process.env.BASE_RPC_URL || process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
 
 // Decode a tx's real method from its calldata selector. Known deploy/admin calls get a
 // readable name; anything else shows its raw 4-byte selector (Etherscan-style) — never a
