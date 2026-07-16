@@ -32,7 +32,7 @@ export default function NewVaultForm() {
   const router = useRouter();
   const [vaultName, setVaultName] = useState('');
   const [vaultSymbol, setVaultSymbol] = useState('');
-  const [guardianAddress, setGuardianAddress] = useState('');
+  const [pauserAddress, setPauserAddress] = useState('');
   const [payoutAddress, setPayoutAddress] = useState('');
   const [platformFeeBps, setPlatformFeeBps] = useState(100);
   const [performanceFeeBps, setPerformanceFeeBps] = useState(1000);
@@ -51,7 +51,7 @@ export default function NewVaultForm() {
         if (d && typeof d === 'object') {
           if (typeof d.vaultName === 'string') setVaultName(d.vaultName);
           if (typeof d.vaultSymbol === 'string') setVaultSymbol(d.vaultSymbol);
-          if (typeof d.guardianAddress === 'string') setGuardianAddress(d.guardianAddress);
+          if (typeof d.pauserAddress === 'string') setPauserAddress(d.pauserAddress);
           if (typeof d.payoutAddress === 'string') setPayoutAddress(d.payoutAddress);
           if (typeof d.platformFeeBps === 'number') setPlatformFeeBps(d.platformFeeBps);
           if (typeof d.performanceFeeBps === 'number') setPerformanceFeeBps(d.performanceFeeBps);
@@ -73,7 +73,7 @@ export default function NewVaultForm() {
           JSON.stringify({
             vaultName,
             vaultSymbol,
-            guardianAddress,
+            pauserAddress,
             payoutAddress,
             platformFeeBps,
             performanceFeeBps,
@@ -84,10 +84,10 @@ export default function NewVaultForm() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [vaultName, vaultSymbol, guardianAddress, payoutAddress, platformFeeBps, performanceFeeBps]);
+  }, [vaultName, vaultSymbol, pauserAddress, payoutAddress, platformFeeBps, performanceFeeBps]);
 
   useEffect(() => {
-    const addr = guardianAddress.trim();
+    const addr = pauserAddress.trim();
     if (!addr) {
       setSafeState({ phase: 'idle' });
       return;
@@ -105,7 +105,7 @@ export default function NewVaultForm() {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [guardianAddress]);
+  }, [pauserAddress]);
 
   const nameValid = vaultName.trim().length > 0 && vaultName.trim().length <= 64 && VAULT_NAME_RE.test(vaultName.trim());
   const symbolValid = vaultSymbol.trim().length > 0 && vaultSymbol.trim().length <= 16 && VAULT_SYMBOL_RE.test(vaultSymbol.trim());
@@ -128,7 +128,7 @@ export default function NewVaultForm() {
         body: JSON.stringify({
           vaultName: vaultName.trim(),
           vaultSymbol: vaultSymbol.trim(),
-          guardianAddress: guardianAddress.trim(),
+          pauserAddress: pauserAddress.trim(),
           payoutAddress: payoutAddress.trim(),
           platformFeeBps,
           performanceFeeBps,
@@ -203,12 +203,12 @@ export default function NewVaultForm() {
       </div>
 
       <div>
-        <label className={labelClass} htmlFor="guardianAddress">Guardian Safe (Gnosis Safe on Base)</label>
+        <label className={labelClass} htmlFor="pauserAddress">Pauser Safe (Gnosis Safe on Base)</label>
         <input
-          id="guardianAddress"
+          id="pauserAddress"
           className={inputClass}
-          value={guardianAddress}
-          onChange={(e) => setGuardianAddress(e.target.value)}
+          value={pauserAddress}
+          onChange={(e) => setPauserAddress(e.target.value)}
           placeholder="0x…"
           spellCheck={false}
         />

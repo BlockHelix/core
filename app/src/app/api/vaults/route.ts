@@ -32,7 +32,7 @@ function errorJson(err: unknown): NextResponse {
 type Body = {
   vaultName?: unknown;
   vaultSymbol?: unknown;
-  guardianAddress?: unknown;
+  pauserAddress?: unknown;
   payoutAddress?: unknown;
   platformFeeBps?: unknown;
   performanceFeeBps?: unknown;
@@ -41,7 +41,7 @@ type Body = {
 function validate(body: Body): { error: string } | { payload: Record<string, unknown> } {
   const vaultName = typeof body.vaultName === 'string' ? body.vaultName.trim() : '';
   const vaultSymbol = typeof body.vaultSymbol === 'string' ? body.vaultSymbol.trim() : '';
-  const guardianAddress = typeof body.guardianAddress === 'string' ? body.guardianAddress.trim() : '';
+  const pauserAddress = typeof body.pauserAddress === 'string' ? body.pauserAddress.trim() : '';
   const payoutAddress = typeof body.payoutAddress === 'string' ? body.payoutAddress.trim() : '';
   const platformFeeBps = Number(body.platformFeeBps);
   const performanceFeeBps = Number(body.performanceFeeBps);
@@ -52,8 +52,8 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
   if (!vaultSymbol || vaultSymbol.length > 16 || !VAULT_SYMBOL_RE.test(vaultSymbol)) {
     return { error: 'Vault symbol must be 1-16 chars: letters, numbers, ._-' };
   }
-  if (!ADDRESS_RE.test(guardianAddress)) {
-    return { error: 'Guardian Safe must be a valid deployed Gnosis Safe on Base' };
+  if (!ADDRESS_RE.test(pauserAddress)) {
+    return { error: 'Pauser Safe must be a valid deployed Gnosis Safe on Base' };
   }
   if (!ADDRESS_RE.test(payoutAddress)) {
     return { error: 'Payout address must be a valid 0x address' };
@@ -70,7 +70,7 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
     payload: {
       chainId: BASE_CHAIN_ID,
       baseAssetAddress: BASE_USDC_ADDRESS,
-      guardianAddress,
+      pauserAddress,
       payoutAddress,
       platformFeeBps,
       performanceFeeBps,

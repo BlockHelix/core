@@ -53,7 +53,7 @@ export async function checkSafeOnBase(address: string): Promise<SafeCheck> {
   if (!code || code === '0x') {
     return {
       ok: false,
-      reason: 'No contract at this address on Base — looks like an EOA. The guardian must be a deployed Gnosis Safe.',
+      reason: 'No contract at this address on Base — looks like an EOA. The pauser must be a deployed Gnosis Safe.',
     };
   }
 
