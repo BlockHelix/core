@@ -98,7 +98,10 @@ function toEntitlement(raw: unknown): AdminEntitlement | null {
   };
 }
 
-export async function listAdminVaults(): Promise<AdminVault[]> {
+// Fetch + normalise the raw admin vault rows (no Clerk email enrichment). Kept
+// separate so hot per-vault routes (state/txs) can look up addresses without
+// paying for a Clerk getUserList call.
+async function fetchAdminVaultRows(): Promise<Omit<AdminVault, 'email'>[]> {
   const body = await adminUpstream('/admin/vaults');
   // Backend returns { items, nextCursor }. (Bare array / { vaults } kept as fallbacks.)
   const raw = Array.isArray(body)
@@ -108,7 +111,7 @@ export async function listAdminVaults(): Promise<AdminVault[]> {
       : Array.isArray((body as { vaults?: unknown })?.vaults)
         ? (body as { vaults: unknown[] }).vaults
         : [];
-  const rows = raw
+  return raw
     .filter((v): v is Record<string, unknown> => !!v && typeof v === 'object')
     .map((r) => ({
       id: String(r.id ?? ''),
@@ -121,8 +124,20 @@ export async function listAdminVaults(): Promise<AdminVault[]> {
       transactionHashes: Array.isArray(r.transactionHashes) ? (r.transactionHashes as string[]) : [],
       createdAt: String(r.createdAt ?? ''),
     }));
+}
+
+export async function listAdminVaults(): Promise<AdminVault[]> {
+  const rows = await fetchAdminVaultRows();
   const emails = await emailMap(rows.map((r) => r.userId));
   return rows.map((r) => ({ ...r, email: emails[r.userId] ?? null }));
+}
+
+// Component addresses for a single vault id (admin scope). null if the id is
+// unknown. Used by the server-side state/txs routes.
+export async function getAdminVaultAddresses(id: string): Promise<Record<string, string | null> | null> {
+  const rows = await fetchAdminVaultRows();
+  const row = rows.find((r) => r.id === id);
+  return row ? (row.addresses ?? {}) : null;
 }
 
 export async function listAdminUsers(): Promise<AdminUser[]> {

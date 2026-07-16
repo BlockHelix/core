@@ -8,11 +8,13 @@ import type { Address, Hex } from 'viem';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import StatusBadge from '@/components/vaults/StatusBadge';
+import TxTable from '@/components/vaults/TxTable';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { usePauseVault, useUnpauseVault, useUpdateExchangeRate } from '@/lib/wallet/hooks';
 import { fetcher } from '@/lib/swr-fetcher';
 import { BASESCAN_URL, BASE_CHAIN_ID, COMPONENT_LABELS, type DeploymentStatus } from '@/lib/vault-types';
 import type { AdminVault, AdminVaultsResponse } from '@/lib/admin-types';
+import type { TxListResponse, VaultState } from '@/lib/onchain-types';
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const UINT96_MAX = (1n << 96n) - 1n;
@@ -97,6 +99,12 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
         </div>
       </div>
 
+      {/* Live on-chain state */}
+      <VaultStatePanel id={vault.id} />
+
+      {/* Etherscan activity */}
+      <VaultActivityPanel id={vault.id} />
+
       {/* Components */}
       {componentEntries.length > 0 && (
         <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
@@ -141,6 +149,156 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+      <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function PausedBadge({ paused }: { paused: boolean | null }) {
+  if (paused == null) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.08] bg-zinc-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">
+        Unknown
+      </span>
+    );
+  }
+  return paused ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-600/25 bg-red-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider-2 text-red-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Paused
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider-2 text-emerald-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Active
+    </span>
+  );
+}
+
+// Live on-chain state (share price, per-component pause status, TVL, balances).
+function VaultStatePanel({ id }: { id: string }) {
+  const { data, error, isValidating, mutate } = useSWR<VaultState>(
+    `/api/admin/vaults/${id}/state`,
+    fetcher,
+    { revalidateOnFocus: true, dedupingInterval: 10_000 },
+  );
+
+  if (error && !data) {
+    return (
+      <Panel title="On-chain state">
+        <p className="text-sm text-red-600">{error.message}</p>
+      </Panel>
+    );
+  }
+  if (!data) {
+    return (
+      <Panel title="On-chain state">
+        <div className="h-24 skeleton rounded-lg" />
+      </Panel>
+    );
+  }
+
+  const price = data.sharePrice;
+  const symbol = data.baseSymbol ?? '';
+  const balances = data.balances ?? [];
+  const nonZero = balances.filter((b) => b.raw !== '0');
+  const zero = balances.filter((b) => b.raw === '0');
+
+  return (
+    <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">On-chain state</h2>
+        <button
+          type="button"
+          onClick={() => void mutate()}
+          className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
+        >
+          {isValidating ? 'Refreshing…' : '↻ Refresh'}
+        </button>
+      </div>
+
+      {data.error && <p className="mt-4 text-sm text-zinc-500">{data.error}</p>}
+
+      <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <dt className="text-[11px] uppercase tracking-wider-2 text-zinc-400">Share price</dt>
+          <dd className="mt-1 font-data text-sm text-zinc-900">
+            {price ? `${price.formatted}${symbol ? ` ${symbol}` : ''}` : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[11px] uppercase tracking-wider-2 text-zinc-400">TVL</dt>
+          <dd className="mt-1 font-data text-sm text-zinc-900">
+            {data.tvl ? `${data.tvl.formatted}${symbol ? ` ${symbol}` : ''}` : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[11px] uppercase tracking-wider-2 text-zinc-400">Shares outstanding</dt>
+          <dd className="mt-1 font-data text-sm text-zinc-900">{data.shares ? data.shares.formatted : '—'}</dd>
+        </div>
+      </dl>
+
+      <div className="mt-6">
+        <p className="text-[11px] uppercase tracking-wider-2 text-zinc-400">Pause status</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
+          {(['teller', 'manager', 'accountant'] as const).map((k) => (
+            <div key={k} className="flex items-center gap-2">
+              <span className="text-xs text-zinc-600">{COMPONENT_LABELS[k] ?? k}</span>
+              <PausedBadge paused={data.paused[k]} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-[11px] uppercase tracking-wider-2 text-zinc-400">Token balances</p>
+        <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1.5">
+          {nonZero.length === 0 && zero.length === 0 && <span className="text-sm text-zinc-400">—</span>}
+          {nonZero.map((b) => (
+            <span key={b.symbol} className="font-data text-sm text-zinc-800">
+              {b.formatted} <span className="text-zinc-400">{b.symbol}</span>
+            </span>
+          ))}
+          {zero.map((b) => (
+            <span key={b.symbol} className="font-data text-sm text-zinc-300">
+              0 {b.symbol}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Etherscan-style activity, rendered with the shared <TxTable>.
+function VaultActivityPanel({ id }: { id: string }) {
+  const { data, error, isLoading, isValidating, mutate } = useSWR<TxListResponse>(
+    `/api/admin/vaults/${id}/txs`,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 15_000 },
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Activity</h2>
+        <button
+          type="button"
+          onClick={() => void mutate()}
+          className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
+        >
+          {isValidating ? 'Refreshing…' : '↻ Refresh'}
+        </button>
+      </div>
+      <div className="mt-4">
+        <TxTable txs={data?.txs} loading={isLoading} error={error ? error.message : null} />
+      </div>
     </div>
   );
 }

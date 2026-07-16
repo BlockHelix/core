@@ -4,6 +4,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 import WalletProvider from '@/components/wallet/WalletProvider';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import AdminNav from '@/components/admin/AdminNav';
+import AdminGlobalSearch from '@/components/admin/AdminGlobalSearch';
 
 export const metadata = { title: 'Admin | BlockHelix' };
 
@@ -26,7 +27,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <h1 className="text-[11px] font-medium uppercase tracking-wider-2 text-emerald-600">Admin</h1>
                 <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">Operations console</p>
               </div>
-              <ConnectButton />
+              <div className="flex flex-wrap items-center gap-3">
+                <AdminGlobalSearch />
+                <ConnectButton />
+              </div>
             </header>
 
             <div className="mt-8 flex flex-col gap-8 lg:mt-10 lg:grid lg:grid-cols-[200px_1fr] lg:gap-12">

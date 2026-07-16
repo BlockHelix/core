@@ -2,13 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { clsx } from 'clsx';
 import StatusBadge from './StatusBadge';
+import TxTable from './TxTable';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { LastUpdated, RefreshButton } from '@/components/dashboard/Freshness';
 import { useEventStream, type StreamEvent } from '@/lib/use-event-stream';
+import { fetcher } from '@/lib/swr-fetcher';
 import { requeueVault } from '@/lib/vault-requeue';
+import type { TxListResponse } from '@/lib/onchain-types';
 import {
   BASESCAN_URL,
   COMPONENT_LABELS,
@@ -237,24 +241,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         </div>
       )}
 
-      {record.transactionHashes.length > 0 && (
-        <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
-          <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Transactions</h2>
-          <div className="mt-4 space-y-2">
-            {record.transactionHashes.map((hash) => (
-              <a
-                key={hash}
-                href={`${BASESCAN_URL}/tx/${hash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block break-all font-data text-xs text-zinc-500 hover:text-emerald-700"
-              >
-                {hash} ↗
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      {record.addresses?.boringVault && <TransactionActivity id={id} />}
 
       {error && record && <p className="text-xs text-amber-600">{error}</p>}
 
@@ -294,6 +281,34 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           </button>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+// Owner-scoped Etherscan activity for this vault, rendered with the shared
+// <TxTable>. The route confirms ownership before returning any txs.
+function TransactionActivity({ id }: { id: string }) {
+  const { data, error, isLoading, isValidating, mutate } = useSWR<TxListResponse>(
+    `/api/vaults/${encodeURIComponent(id)}/txs`,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 15_000 },
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Transactions</h2>
+        <button
+          type="button"
+          onClick={() => void mutate()}
+          className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
+        >
+          {isValidating ? 'Refreshing…' : '↻ Refresh'}
+        </button>
+      </div>
+      <div className="mt-4">
+        <TxTable txs={data?.txs} loading={isLoading} error={error ? error.message : null} />
+      </div>
     </div>
   );
 }
