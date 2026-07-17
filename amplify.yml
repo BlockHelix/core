@@ -11,7 +11,7 @@ applications:
           commands:
             # Amplify injects console env vars at build time only; bridge the server-side
             # ones into .env.production so the Next.js SSR runtime can read them.
-            - env | grep -E '^(CLERK_SECRET_KEY|CLERK_WEBHOOK_SIGNING_SECRET|VAULT_API_KEY|VAULT_API_URL|RESEND_API_KEY|RESEND_AUDIENCE_ID|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY|NEXT_PUBLIC_BASE_RPC_URL)=' >> .env.production
+            - env | grep -E '^(CLERK_SECRET_KEY|CLERK_WEBHOOK_SIGNING_SECRET|VAULT_API_KEY|VAULT_API_URL|RESEND_API_KEY|RESEND_AUDIENCE_ID|BASE_RPC_URL|RPC_PROXY_URL|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY|NEXT_PUBLIC_BASE_RPC_URL)=' >> .env.production
             - npm run build
       artifacts:
         baseDirectory: .next
