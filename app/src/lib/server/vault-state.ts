@@ -7,8 +7,7 @@ import type { Address } from 'viem';
 import { base } from 'viem/chains';
 import type { TokenBalance, VaultState } from '@/lib/onchain-types';
 
-const RPC_URL =
-  process.env.BASE_RPC_URL || process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
+const RPC_URL = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
 
 // Base-mainnet tokens we surface a balance for. Decimals hardcoded (well-known)
 // to avoid extra reads.

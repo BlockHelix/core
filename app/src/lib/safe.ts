@@ -33,8 +33,9 @@ export type SafeCheck =
   | { ok: false; reason: string };
 
 function client() {
-  const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
-  return createPublicClient({ chain: base, transport: http(rpcUrl) });
+  // Same-origin proxy — the Alchemy key stays server-side. These are eth_call reads,
+  // which the proxy allows.
+  return createPublicClient({ chain: base, transport: http('/api/rpc') });
 }
 
 export async function checkSafeOnBase(address: string): Promise<SafeCheck> {
