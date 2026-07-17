@@ -39,7 +39,10 @@ if (NETWORK === 'mainnet' && !networkConfig.programIds.vault) {
   throw new Error('Mainnet program IDs not configured. Deploy programs first or use devnet.');
 }
 
-export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || networkConfig.rpcUrl;
+// Legacy Solana default. The old NEXT_PUBLIC_RPC_URL (a keyed provider) was dead —
+// nothing opens a Connection with it — so it's dropped to keep the key out of the
+// client bundle. EVM/Base reads go through /api/rpc (server-only key).
+export const RPC_URL = networkConfig.rpcUrl;
 export const USDC_MINT = new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || networkConfig.usdcMint);
 export const PROTOCOL_TREASURY = new PublicKey(
   process.env.NEXT_PUBLIC_PROTOCOL_TREASURY || networkConfig.protocolTreasury
