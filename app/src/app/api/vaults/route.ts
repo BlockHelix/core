@@ -36,6 +36,7 @@ type Body = {
   payoutAddress?: unknown;
   platformFeeBps?: unknown;
   performanceFeeBps?: unknown;
+  riskProfileId?: unknown;
 };
 
 function validate(body: Body): { error: string } | { payload: Record<string, unknown> } {
@@ -65,6 +66,10 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
     return { error: `Performance fee must be an integer between 0 and ${MAX_PERFORMANCE_FEE_BPS} bps` };
   }
 
+  // Curated profile id (optional). The backend validates it against its own list and
+  // derives the trade policy from it — we just forward the choice.
+  const riskProfileId = typeof body.riskProfileId === 'string' ? body.riskProfileId : undefined;
+
   // chainId and base asset are pinned server-side for v1: USDC on Base.
   return {
     payload: {
@@ -76,6 +81,7 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
       performanceFeeBps,
       vaultName,
       vaultSymbol,
+      ...(riskProfileId ? { riskProfileId } : {}),
     },
   };
 }

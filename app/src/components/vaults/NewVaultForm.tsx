@@ -24,6 +24,13 @@ type SafeState =
   | { phase: 'checking' }
   | { phase: 'done'; result: SafeCheck };
 
+interface RiskProfileSummary {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
 function bpsToPercent(bps: number): string {
   return (bps / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
@@ -39,8 +46,26 @@ export default function NewVaultForm() {
   const [safeState, setSafeState] = useState<SafeState>({ phase: 'idle' });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<RiskProfileSummary[]>([]);
+  const [riskProfileId, setRiskProfileId] = useState('');
   const checkSeq = useRef(0);
   const hydrated = useRef(false);
+
+  // Load curated risk profiles (backend is source of truth) and default to the first.
+  useEffect(() => {
+    let active = true;
+    fetch('/api/risk-profiles')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { profiles?: RiskProfileSummary[] } | null) => {
+        if (!active || !body?.profiles?.length) return;
+        setProfiles(body.profiles);
+        setRiskProfileId((cur) => cur || body.profiles![0].id);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Restore a saved draft on mount so navigating back after a failure keeps input.
   useEffect(() => {
@@ -132,6 +157,7 @@ export default function NewVaultForm() {
           payoutAddress: payoutAddress.trim(),
           platformFeeBps,
           performanceFeeBps,
+          riskProfileId,
         }),
       });
       const body = await res.json().catch(() => null);
@@ -152,6 +178,8 @@ export default function NewVaultForm() {
       setSubmitting(false);
     }
   }
+
+  const selectedProfile = profiles.find((p) => p.id === riskProfileId);
 
   const inputClass =
     'w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 font-data';
@@ -200,6 +228,42 @@ export default function NewVaultForm() {
           <span className="break-all font-data text-xs text-zinc-400">{BASE_USDC_ADDRESS}</span>
         </div>
         <p className="mt-2 text-xs text-zinc-400">Fixed to USDC on Base for v1.</p>
+      </div>
+
+      <div>
+        <label className={labelClass} htmlFor="riskProfile">Risk Profile · Trade Policy</label>
+        <select
+          id="riskProfile"
+          className={inputClass}
+          value={riskProfileId}
+          onChange={(e) => setRiskProfileId(e.target.value)}
+        >
+          {profiles.length === 0 && <option value="">Loading profiles…</option>}
+          {profiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        {selectedProfile && (
+          <div className="mt-3 rounded-lg border border-black/[0.06] bg-[#f7f7f8] px-4 py-3">
+            <p className="text-xs text-zinc-500">{selectedProfile.description}</p>
+            <p className="mt-3 text-[11px] uppercase tracking-wider-2 font-medium text-zinc-400">
+              On-chain permissions · merkle-enforced
+            </p>
+            <ul className="mt-2 space-y-1">
+              {selectedProfile.permissions.map((perm, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-zinc-600">
+                  <span className="mt-0.5 text-emerald-600" aria-hidden>✓</span>
+                  <span className="font-data">{perm}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[11px] text-zinc-400">
+              The strategist can perform only these actions on-chain — anything else reverts.
+            </p>
+          </div>
+        )}
       </div>
 
       <div>

@@ -1,6 +1,6 @@
 // Light auth surface (enterprise look) with the site's emerald accent.
 // Clerk's default theme is light, so we only tune the accent + brand details;
-// the card floats on the site's dark background.
+// the card floats on the site's white background.
 export const clerkAppearance = {
   variables: {
     colorPrimary: '#059669',

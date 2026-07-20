@@ -3,9 +3,10 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import PolicyCheckCard from '@/components/PolicyCheckCard'
 
-// Below the lg breakpoint the SVG blur filters + 200-point pathLength animation
-// tank mobile GPUs. Render a lighter helix there (no blur, fewer points/lines).
+// Below the lg breakpoint the 200-point pathLength animation is heavy on
+// mobile GPUs. Render a lighter helix there (fewer points/lines).
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -20,7 +21,7 @@ function useIsMobile() {
 
 export default function HelixHero() {
   const [typedText, setTypedText] = useState('')
-  const fullText = "The execution risk layer for onchain funds."
+  const fullText = "The execution risk layer for automated finance."
 
   useEffect(() => {
     let i = 0
@@ -37,41 +38,57 @@ export default function HelixHero() {
   }, [])
 
   return (
-    <section className="relative bg-[#0a0a0a] min-h-screen flex items-start lg:items-center pt-8 lg:pt-0">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center justify-between pt-8 lg:pt-0">
-        <div className="lg:w-1/2 z-10 flex flex-col items-center lg:items-start">
+    <section className="relative bg-white min-h-screen flex items-start lg:items-center pt-8 lg:pt-0 overflow-hidden">
+      {/* Faint engineering grid, dissolved toward the left so copy stays clean */}
+      <div className="absolute inset-0 bg-grid" aria-hidden />
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-white via-white/85 to-transparent"
+        aria-hidden
+      />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white to-transparent" aria-hidden />
+
+      {/* Helix sits behind the policy card on the right; desktop only */}
+      <div className="hidden lg:block absolute top-0 right-0 bottom-0 w-1/2 z-0" aria-hidden>
+        <HelixAnimation />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center justify-between gap-12 pt-8 lg:pt-0 z-10">
+        <div className="lg:w-1/2 flex flex-col items-center lg:items-start">
           <div className="text-center lg:text-left">
             <HeroCube />
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-4">
-              <span style={{ color: '#22d3ee' }}>Block</span>
-              <span style={{ color: '#22d3ee' }}> Helix</span>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-gray-900 mb-4">
+              Block{' '}
+              <span className="bg-gradient-to-r from-cyan-600 to-emerald-500 bg-clip-text text-transparent">
+                Helix
+              </span>
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-white/40 font-mono mb-3">
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-500 font-mono mb-3 min-h-[1.5em]">
               {typedText}<span className="animate-pulse">|</span>
             </p>
-            <p className="text-sm sm:text-base text-white/50 max-w-xl mb-10 leading-relaxed">
-              Every trade a fund makes — swap, yield, perp — passes through a policy
-              that enforces slippage, size, and drawdown limits before it reaches the
-              chain. Bring your own vault or spin one up. Non-custodial, on Base.
-            </p>
+            <p className="text-sm sm:text-base text-gray-600 max-w-xl mb-10 leading-relaxed">
+              Every trade your bots and agents run is checked against the full risk policy and enforced by the vault on-chain.
+Colosseum hackathon 3rd out of 454 projects            </p>
 
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center justify-center lg:justify-start gap-4 mb-8">
               <Link
                 href="/sign-up"
-                className="group relative inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-400 text-black hover:bg-emerald-300 transition-all duration-300 corner-cut-sm overflow-hidden whitespace-nowrap"
+                className="group inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-emerald-600 text-white hover:bg-emerald-700 transition-all duration-300 corner-cut-sm whitespace-nowrap"
               >
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
                 GET STARTED
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
+              </Link>
+              <Link
+                href="/docs"
+                className="group inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest text-gray-900 border border-gray-300 hover:border-gray-900 transition-all duration-300 corner-cut-sm whitespace-nowrap"
+              >
+                READ THE DOCS
               </Link>
             </div>
           </div>
         </div>
-        <div className="lg:w-1/2 h-full absolute top-0 right-0 bottom-0 z-0">
-          <div className="relative w-full h-full">
-            <HelixAnimation />
-            <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#0a0a0a] to-transparent"></div>
-          </div>
+
+        <div className="lg:w-1/2 w-full flex justify-center lg:justify-end pb-16 lg:pb-0">
+          <PolicyCheckCard />
         </div>
       </div>
     </section>
@@ -89,8 +106,6 @@ function HelixAnimation() {
   const height = 1000;
   const rotations = 6;
   const paintSpinLines = lite ? 2 : 8;
-  const glow = lite ? undefined : 'url(#glow)';
-  const glowStrong = lite ? undefined : 'url(#glowStrong)';
 
   const generateHelix = (strandIndex: number) => {
     return Array.from({ length: pointsPerStrand }, (_, i) => {
@@ -119,12 +134,12 @@ function HelixAnimation() {
 
   const getStrandColorCyan = (_index: number, t: number) => {
     const fadeOpacity = Math.min(1, Math.sin(t * Math.PI) * 1.4);
-    return `rgba(34, 211, 238, ${fadeOpacity})`;
+    return `rgba(8, 145, 178, ${fadeOpacity})`;
   };
 
   const getStrandColorViolet = (_index: number, t: number) => {
     const fadeOpacity = Math.min(1, Math.sin(t * Math.PI) * 1.4);
-    return `rgba(167, 139, 250, ${fadeOpacity})`;
+    return `rgba(124, 58, 237, ${fadeOpacity})`;
   };
 
   return (
@@ -133,24 +148,6 @@ function HelixAnimation() {
       className="w-full h-full"
       preserveAspectRatio="xMidYMid slice"
     >
-      <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <filter id="glowStrong">
-          <feGaussianBlur stdDeviation="5" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
       {paintSpins.map((line, lineIndex) => (
         <motion.path
           key={`paint-spin-${lineIndex}`}
@@ -158,7 +155,6 @@ function HelixAnimation() {
           fill="none"
           stroke={`url(#paintGradient${lineIndex})`}
           strokeWidth="2"
-          style={{ filter: glow }}
           initial={reducedMotion ? false : { pathLength: 0, opacity: 0 }}
           animate={
             reducedMotion
@@ -184,7 +180,6 @@ function HelixAnimation() {
           key={`strand-${strandIndex}`}
           d={helix.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}
           fill="none"
-          style={{ filter: glowStrong }}
           stroke={`url(#helixGradient${strandIndex})`}
           strokeWidth={strandIndex === 0 ? '4' : '2'}
           strokeDasharray={strandIndex % 2 === 0 ? '8,4' : 'none'}
@@ -232,8 +227,8 @@ function HeroCube() {
     <svg width="300" height="300" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-4">
       <defs>
         <linearGradient id="cubeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4EC9B0" />
-          <stop offset="100%" stopColor="#C586C0" />
+          <stop offset="0%" stopColor="#059669" />
+          <stop offset="100%" stopColor="#7c3aed" />
         </linearGradient>
       </defs>
       <path d="M16 2L30 9V23L16 30L2 23V9L16 2Z" fill="url(#cubeGradient)" fillOpacity="0"/>

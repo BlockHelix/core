@@ -7,7 +7,7 @@ const CLERK_ENABLED = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 export default function SignUpPage() {
   if (!CLERK_ENABLED) {
     return (
-      <div className="flex justify-center py-24 text-sm text-white/60">
+      <div className="flex justify-center py-24 text-sm text-gray-500">
         Authentication is not configured. Set the Clerk environment variables.
       </div>
     );

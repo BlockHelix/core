@@ -19,9 +19,57 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'BlockHelix | Tokenized Agent Platform',
+  metadataBase: new URL('https://blockhelix.tech'),
+  title: 'BlockHelix: Execution policy for onchain vaults',
   description:
-    'Launch tokenized autonomous agents. Participants deposit USDC, receive shares, and earn revenue from agent work on Solana.',
+    'Execution policy as infrastructure for onchain vaults on Base. Every trade is checked before it runs and re-verified by the vault on-chain, with an audit trail your depositors can read.',
+  applicationName: 'BlockHelix',
+  keywords: [
+    'onchain vaults',
+    'DeFi execution policy',
+    'trade policy enforcement',
+    'slippage protection',
+    'ERC-4626',
+    'BoringVault',
+    'Base',
+    'vault infrastructure',
+  ],
+  authors: [{ name: 'DeFi Data Ltd' }],
+  openGraph: {
+    type: 'website',
+    url: 'https://blockhelix.tech',
+    siteName: 'BlockHelix',
+    title: 'BlockHelix: Execution policy for onchain vaults',
+    description:
+      'Every trade is checked before it runs and re-verified by the vault on-chain, with an audit trail your depositors can read.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@BlockHelix',
+    creator: '@BlockHelix',
+    title: 'BlockHelix: Execution policy for onchain vaults',
+    description: 'Execution policy as infrastructure for onchain vaults on Base.',
+  },
+  robots: { index: true, follow: true },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'BlockHelix',
+  legalName: 'DeFi Data Ltd',
+  url: 'https://blockhelix.tech',
+  logo: 'https://blockhelix.tech/favicon.ico',
+  description: 'Execution policy as infrastructure for onchain vaults on Base.',
+  sameAs: ['https://github.com/BlockHelix', 'https://x.com/BlockHelix'],
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '66 Paul Street',
+    addressLocality: 'London',
+    addressRegion: 'England',
+    postalCode: 'EC2A 4NA',
+    addressCountry: 'GB',
+  },
 };
 
 const CLERK_ENABLED = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -43,8 +91,9 @@ export default function RootLayout({
             gtag('config', 'G-V3XFQ98GWK');
           `}
         </Script>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>
-      <body className="font-sans antialiased bg-[#0a0a0a] text-white">
+      <body className="font-sans antialiased bg-white text-gray-900">
         <ClientShell>
           {children}
         </ClientShell>

@@ -79,6 +79,22 @@ export async function mintStreamTokenUpstream(
   return { token: body.token, expiresIn, streamUrl: `${config.url}/events` };
 }
 
+export interface RiskProfileSummary {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
+// Curated trade-policy profiles from the backend (source of truth for the merkle
+// templates). Shown in the deploy dropdown so the list can't drift from what's enforced.
+export async function listRiskProfilesUpstream(userId: string): Promise<RiskProfileSummary[]> {
+  const body = (await upstream('/vaults/risk-profiles', userId, { method: 'GET' })) as {
+    profiles?: RiskProfileSummary[];
+  };
+  return Array.isArray(body.profiles) ? body.profiles : [];
+}
+
 export async function createVaultUpstream(payload: unknown, userId: string): Promise<{ deploymentId: string; status: string }> {
   const body = (await upstream('/vaults', userId, {
     method: 'POST',
