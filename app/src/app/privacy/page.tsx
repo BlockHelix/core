@@ -114,9 +114,10 @@ export default function PrivacyPage() {
             We share data with processors who help us run the service, including: Clerk
             (authentication), Google (Google Analytics), PostHog (product analytics and session
             replay), Amazon Web Services (hosting and infrastructure), Alchemy (blockchain RPC
-            access), and Resend (transactional and waitlist email). We do not sell your personal
-            data. Some of these providers process data outside the UK or EEA, including in the United
-            States.
+            access), Resend (transactional and waitlist email), and GeoJS (approximate location
+            derived from your IP address, used only to decide whether to show the cookie banner in
+            your region). We do not sell your personal data. Some of these providers process data
+            outside the UK or EEA, including in the United States.
           </p>
         </Section>
 

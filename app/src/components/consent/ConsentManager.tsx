@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   OPEN_SETTINGS_EVENT,
-  isConsentRequiredRegion,
+  resolveConsentRequired,
   getStoredConsent,
   setStoredConsent,
   type ConsentValue,
@@ -43,11 +43,18 @@ export default function ConsentManager() {
       applyConsent(stored);
       return;
     }
-    if (isConsentRequiredRegion()) {
-      setVisible(true); // defaults stay denied until the visitor chooses
-    } else {
-      applyConsent('granted'); // outside EEA/UK: analytics on, no banner
-    }
+    let cancelled = false;
+    resolveConsentRequired().then((required) => {
+      if (cancelled) return;
+      if (required) {
+        setVisible(true); // EEA/UK: defaults stay denied until the visitor chooses
+      } else {
+        applyConsent('granted'); // elsewhere: analytics on, no banner
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

@@ -16,16 +16,31 @@ const EUROPEAN_TZ_EXTRA = new Set([
 
 export type ConsentValue = 'granted' | 'denied';
 
-// Client-side heuristic for whether to SHOW the banner. Note: the hard cookie
-// gate is Google Consent Mode's region param (IP-based, server-side by Google),
-// so a timezone miss never lets a real EEA/UK cookie fire without consent.
-export function isConsentRequiredRegion(): boolean {
+// Timezone fallback, only used if the IP lookup below fails.
+export function isConsentRequiredByTimezone(): boolean {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     return tz.startsWith('Europe/') || EUROPEAN_TZ_EXTRA.has(tz);
   } catch {
     return true;
   }
+}
+
+// Whether to SHOW the banner, decided by the visitor's IP country so it matches
+// Google Consent Mode's IP-based cookie gating. Falls back to timezone if the
+// geolocation lookup is unavailable.
+export async function resolveConsentRequired(): Promise<boolean> {
+  try {
+    const res = await fetch('https://get.geojs.io/v1/ip/country.json', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      const cc = String((data && data.country) || '').toUpperCase();
+      if (cc) return CONSENT_REQUIRED_REGIONS.includes(cc);
+    }
+  } catch {
+    /* geolocation unavailable */
+  }
+  return isConsentRequiredByTimezone();
 }
 
 export function getStoredConsent(): ConsentValue | null {

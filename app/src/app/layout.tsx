@@ -116,6 +116,8 @@ export default function RootLayout({
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       waitlistUrl="/waitlist"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
     >
       {page}
     </ClerkProvider>
