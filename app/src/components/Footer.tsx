@@ -11,6 +11,9 @@ export default function Footer() {
               BlockHelix
             </Link>
             <nav className="flex items-center gap-6">
+              <Link href="/blog" className="text-sm text-white/50 hover:text-white transition-colors">
+                Blog
+              </Link>
               <Link href="/docs" className="text-sm text-white/50 hover:text-white transition-colors">
                 Docs
               </Link>
