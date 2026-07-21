@@ -1,7 +1,8 @@
 export const metadata = {
   title: 'Privacy Policy | BlockHelix',
   description:
-    'How DeFi Data Ltd (BlockHelix) collects, uses, and protects your personal data.',
+    'How DeFi Data Ltd (BlockHelix) collects, uses, and protects your personal data, including analytics and cookies.',
+  alternates: { canonical: '/privacy' },
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -19,7 +20,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-6 lg:px-8 py-16 lg:py-24">
         <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">Legal</p>
         <h1 className="text-4xl font-bold tracking-tight text-gray-900">Privacy Policy</h1>
-        <p className="text-sm text-gray-400 mt-4 font-mono">Last updated: 18 July 2026</p>
+        <p className="text-sm text-gray-400 mt-4 font-mono">Last updated: 21 July 2026</p>
 
         <Section title="Who we are">
           <p>
@@ -45,9 +46,12 @@ export default function PrivacyPage() {
             phrase.
           </p>
           <p>
-            <strong className="text-gray-900">Usage and device data.</strong> We collect analytics
-            about how you use the site (pages viewed, approximate location, device and browser type)
-            and technical logs from our servers (IP address, request metadata, timestamps).
+            <strong className="text-gray-900">Usage, analytics, and device data.</strong> We collect
+            analytics about how you use the site (pages viewed, referring links, approximate
+            location derived from IP, device and browser type, and interactions such as clicks and
+            scrolling). Our product analytics provider may also record session replays and heatmaps
+            of your visit to help us improve usability. We also keep technical server logs (IP
+            address, request metadata, timestamps).
           </p>
           <p>
             <strong className="text-gray-900">API data.</strong> If you generate API keys, we store
@@ -64,26 +68,64 @@ export default function PrivacyPage() {
           </p>
           <p>
             Our legal bases under UK GDPR are performance of a contract, our legitimate interests in
-            running and securing the service, your consent (for analytics cookies), and compliance
-            with legal obligations.
+            running and securing the service, your consent (for optional analytics cookies and
+            similar technologies), and compliance with legal obligations.
           </p>
         </Section>
 
-        <Section title="Cookies and analytics">
+        <Section title="Cookies, analytics, and your choices">
           <p>
-            We use essential cookies from our authentication provider to keep you signed in, and
-            Google Analytics to understand how the site is used. You can control non-essential
-            cookies through your browser settings.
+            <strong className="text-gray-900">Essential cookies.</strong> Our authentication
+            provider sets cookies that are strictly necessary to keep you signed in and to secure
+            the service. These do not require consent and cannot be switched off through the site.
+          </p>
+          <p>
+            <strong className="text-gray-900">Optional analytics cookies.</strong> We use{' '}
+            <strong className="text-gray-900">Google Analytics 4</strong> (provided by Google) and{' '}
+            <strong className="text-gray-900">PostHog</strong> (product analytics, including session
+            replay and heatmaps) to understand how the site is used. These are optional and are used
+            for analytics only. We do not use this data for advertising, and we do not sell it.
+          </p>
+          <p>
+            <strong className="text-gray-900">Consent and region.</strong> We use Google Consent
+            Mode. If you are in the UK, the European Economic Area, or Switzerland, these optional
+            analytics cookies load only after you accept them through our cookie banner, and you can
+            reject them at any time. Outside those regions, analytics run by default; you can still
+            opt out at any time.
+          </p>
+          <p>
+            <strong className="text-gray-900">Changing your choice.</strong> You can reopen your
+            cookie choices at any time using the &quot;Cookie settings&quot; link in the footer. You
+            can also install the{' '}
+            <a
+              href="https://tools.google.com/dlpage/gaoptout"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-900 underline"
+            >
+              Google Analytics opt-out browser add-on
+            </a>{' '}
+            and control cookies through your browser settings.
           </p>
         </Section>
 
         <Section title="Service providers">
           <p>
-            We share data with processors who help us run the service: Clerk (authentication),
-            Google Analytics (usage analytics), Amazon Web Services (hosting and infrastructure), and
-            Alchemy (blockchain RPC access). We do not sell your personal data. Some providers may
-            process data outside the UK or EEA, in which case we rely on appropriate safeguards such
-            as standard contractual clauses.
+            We share data with processors who help us run the service, including: Clerk
+            (authentication), Google (Google Analytics), PostHog (product analytics and session
+            replay), Amazon Web Services (hosting and infrastructure), Alchemy (blockchain RPC
+            access), and Resend (transactional and waitlist email). We do not sell your personal
+            data. Some of these providers process data outside the UK or EEA, including in the United
+            States.
+          </p>
+        </Section>
+
+        <Section title="International transfers">
+          <p>
+            Where we or our providers transfer personal data outside the UK or EEA, we rely on
+            appropriate safeguards such as the UK International Data Transfer Agreement, the EU
+            Standard Contractual Clauses, or an adequacy decision, so that your data receives an
+            equivalent level of protection.
           </p>
         </Section>
 
@@ -99,7 +141,8 @@ export default function PrivacyPage() {
           <p>
             We keep personal data for as long as your account is active or as needed to provide the
             service, and afterwards only as required to meet legal, accounting, or security
-            obligations. Server and request logs are retained for a limited period.
+            obligations. Server and request logs, and analytics data, are retained for a limited
+            period.
           </p>
         </Section>
 

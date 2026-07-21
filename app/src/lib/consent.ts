@@ -1,0 +1,46 @@
+export const CONSENT_STORAGE_KEY = 'bh_cookie_consent';
+export const OPEN_SETTINGS_EVENT = 'bh:open-cookie-settings';
+
+// EEA + UK + Switzerland: consent required before non-essential cookies.
+// Used as the region list for Google Consent Mode v2 default-denied.
+export const CONSENT_REQUIRED_REGIONS = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU',
+  'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+  'IS', 'LI', 'NO', 'GB', 'CH',
+];
+
+const EUROPEAN_TZ_EXTRA = new Set([
+  'Atlantic/Reykjavik', 'Atlantic/Canary', 'Atlantic/Madeira', 'Atlantic/Azores',
+  'Asia/Nicosia', 'Asia/Famagusta',
+]);
+
+export type ConsentValue = 'granted' | 'denied';
+
+// Client-side heuristic for whether to SHOW the banner. Note: the hard cookie
+// gate is Google Consent Mode's region param (IP-based, server-side by Google),
+// so a timezone miss never lets a real EEA/UK cookie fire without consent.
+export function isConsentRequiredRegion(): boolean {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    return tz.startsWith('Europe/') || EUROPEAN_TZ_EXTRA.has(tz);
+  } catch {
+    return true;
+  }
+}
+
+export function getStoredConsent(): ConsentValue | null {
+  try {
+    const v = localStorage.getItem(CONSENT_STORAGE_KEY);
+    return v === 'granted' || v === 'denied' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredConsent(value: ConsentValue): void {
+  try {
+    localStorage.setItem(CONSENT_STORAGE_KEY, value);
+  } catch {
+    /* storage unavailable */
+  }
+}

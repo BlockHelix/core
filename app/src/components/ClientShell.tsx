@@ -1,13 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { initPosthog } from '@/lib/posthog';
+import ConsentManager from '@/components/consent/ConsentManager';
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
-  useEffect(() => { initPosthog(); }, []);
-
   return (
     <>
       <Header />
@@ -15,6 +12,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
         {children}
       </div>
       <Footer />
+      <ConsentManager />
     </>
   );
 }

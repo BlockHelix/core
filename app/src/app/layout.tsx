@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
 import ClientShell from '@/components/ClientShell';
 import { clerkAppearance } from '@/lib/clerk-appearance';
+import { CONSENT_REQUIRED_REGIONS } from '@/lib/consent';
 import './globals.css';
 
 const geistSans = Geist({
@@ -82,15 +83,18 @@ export default function RootLayout({
   const page = (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-V3XFQ98GWK" strategy="afterInteractive" />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="consent-mode" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
+            gtag('consent','default',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted',analytics_storage:'granted'});
+            gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',region:${JSON.stringify(CONSENT_REQUIRED_REGIONS)},wait_for_update:500});
             gtag('js', new Date());
-            gtag('config', 'G-V3XFQ98GWK');
+            gtag('config','G-V3XFQ98GWK');
           `}
         </Script>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-V3XFQ98GWK" strategy="afterInteractive" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>
       <body className="font-sans antialiased bg-white text-gray-900">

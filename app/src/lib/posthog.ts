@@ -28,4 +28,13 @@ export function initPosthog() {
   });
 }
 
+export function optOutPosthog() {
+  if (typeof window === 'undefined') return;
+  try {
+    if (posthog.__loaded) posthog.opt_out_capturing();
+  } catch {
+    /* not loaded */
+  }
+}
+
 export { posthog };

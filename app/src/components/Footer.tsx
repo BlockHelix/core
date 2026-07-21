@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CookieSettingsButton from '@/components/consent/CookieSettingsButton';
 
 // Mirrors the defidata.dev footer: brand, plain nav, social, copyright row.
 export default function Footer() {
@@ -23,6 +24,10 @@ export default function Footer() {
               <Link href="/privacy" className="text-sm text-white/50 hover:text-white transition-colors">
                 Privacy
               </Link>
+              <Link href="/terms" className="text-sm text-white/50 hover:text-white transition-colors">
+                Terms
+              </Link>
+              <CookieSettingsButton />
             </nav>
           </div>
 
