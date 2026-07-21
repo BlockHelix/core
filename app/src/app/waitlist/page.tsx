@@ -3,7 +3,7 @@ import { Waitlist } from '@clerk/nextjs';
 export const metadata = {
   title: 'Join the Waitlist | BlockHelix',
   description:
-    'Request early access to BlockHelix, execution policy as infrastructure for onchain vaults on Base.',
+    'Request early access to BlockHelix, execution policy as infrastructure for onchain vaults.',
 };
 
 const CLERK_ENABLED = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;

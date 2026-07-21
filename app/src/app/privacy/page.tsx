@@ -132,8 +132,8 @@ export default function PrivacyPage() {
 
         <Section title="On-chain data">
           <p>
-            Vault deployments, transactions, and policy changes are recorded on public blockchains,
-            including Base. This on-chain data is public, permanent, and outside our control. We
+            Vault deployments, transactions, and policy changes are recorded on public blockchains.
+            This on-chain data is public, permanent, and outside our control. We
             cannot modify or delete information that has been written to a blockchain.
           </p>
         </Section>

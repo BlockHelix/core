@@ -27,7 +27,7 @@ export default function WaitlistSection() {
     <section id="waitlist" className="py-20 lg:py-48 bg-gray-50 border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
         <Reveal>
-          <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-400 mb-8">{'// Pre-launch · Base mainnet beta'}</p>
+          <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-400 mb-8">{'// Pre-launch · mainnet beta'}</p>
           <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 mb-8">
             Register for updates.
           </h2>

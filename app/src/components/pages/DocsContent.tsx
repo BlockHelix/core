@@ -44,7 +44,7 @@ export default function DocsContent() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 font-mono mb-3">BlockHelix API v1 draft</h1>
           <p className="text-gray-600 text-sm max-w-3xl">
-            This is a preview of the trading API we are building on Base. Nothing below is live yet.
+            This is a preview of the trading API we are building. Nothing below is live yet.
             Endpoints, schemas, and auth are subject to change until the testnet release.
             Sign up on the homepage to get started.
           </p>

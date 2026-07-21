@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://blockhelix.tech'),
   title: 'BlockHelix: Execution policy for onchain vaults',
   description:
-    'Execution policy as infrastructure for onchain vaults on Base. Every trade is checked before it runs and re-verified by the vault on-chain, with an audit trail your depositors can read.',
+    'Execution policy as infrastructure for onchain vaults. Every trade is checked before it runs and re-verified by the vault on-chain, with an audit trail your depositors can read.',
   applicationName: 'BlockHelix',
   keywords: [
     'onchain vaults',
@@ -32,7 +32,6 @@ export const metadata: Metadata = {
     'slippage protection',
     'ERC-4626',
     'BoringVault',
-    'Base',
     'vault infrastructure',
   ],
   authors: [{ name: 'DeFi Data Ltd' }],
@@ -49,7 +48,7 @@ export const metadata: Metadata = {
     site: '@BlockHelix',
     creator: '@BlockHelix',
     title: 'BlockHelix: Execution policy for onchain vaults',
-    description: 'Execution policy as infrastructure for onchain vaults on Base.',
+    description: 'Execution policy as infrastructure for onchain vaults.',
   },
   robots: { index: true, follow: true },
 };
@@ -61,7 +60,7 @@ const jsonLd = {
   legalName: 'DeFi Data Ltd',
   url: 'https://blockhelix.tech',
   logo: 'https://blockhelix.tech/favicon.ico',
-  description: 'Execution policy as infrastructure for onchain vaults on Base.',
+  description: 'Execution policy as infrastructure for onchain vaults.',
   sameAs: ['https://github.com/BlockHelix', 'https://x.com/BlockHelix'],
   address: {
     '@type': 'PostalAddress',

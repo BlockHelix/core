@@ -9,12 +9,17 @@ export default function ArchitectureSection() {
           <Reveal>
             <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-500 mb-8">{'// Architecture'}</p>
             <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6">
-              Enforcement is on-chain,<br />not in our servers.
+              The hard limits<br />are enforced on-chain.
             </h2>
+            <p className="text-xl text-white/50 mb-6 max-w-2xl">
+              The bounds that cap your risk are committed to the vault contract and re-verified
+              on-chain at execution. Even if a key is compromised, a quote is bad, an agent breaks,
+              or our own systems go down, funds cannot move outside them.
+            </p>
             <p className="text-xl text-white/50 mb-16 lg:mb-24 max-w-2xl">
-              The policy is committed to the vault contract. Bounds are re-verified on Base at
-              execution, so a compromised key, a bad quote, or a broken agent still cannot move
-              funds outside them.
+              That is the floor. The layer on top runs the checks a contract can&apos;t: price
+              impact, exit liquidity, protocol risk, and volatility, scored on live data before an
+              action is allowed through.
             </p>
           </Reveal>
 

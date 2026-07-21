@@ -85,7 +85,7 @@ export default function TemplatesSection() {
 
           <Reveal>
             <div className="mt-16 lg:mt-24 flex items-center justify-between flex-wrap gap-8">
-              <p className="text-lg text-gray-500 max-w-xl">Now building on Base.</p>
+              <p className="text-lg text-gray-500 max-w-xl">Now building.</p>
               <Link
                 href="/docs"
                 className="group inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-gray-900 text-white hover:bg-black transition-all duration-300"
