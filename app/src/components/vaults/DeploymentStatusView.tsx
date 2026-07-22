@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { clsx } from 'clsx';
 import StatusBadge from './StatusBadge';
 import TxTable from './TxTable';
+import VaultSnapshot from './VaultSnapshot';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { LastUpdated, RefreshButton } from '@/components/dashboard/Freshness';
@@ -219,6 +220,8 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {record.status === 'complete' && record.addresses?.boringVault && <VaultSnapshot id={id} />}
 
       {record.status === 'complete' && record.addresses && (
         <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">

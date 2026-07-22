@@ -95,6 +95,35 @@ export async function listRiskProfilesUpstream(userId: string): Promise<RiskProf
   return Array.isArray(body.profiles) ? body.profiles : [];
 }
 
+export interface VaultNavBalance {
+  symbol: string;
+  token: string;
+  decimals: number;
+  idle: string; // held directly by the vault (base units)
+  supplied: string; // supplied to Aave — aToken balance (base units); '0' if not an Aave asset
+}
+
+export interface VaultNavResponse {
+  vaultAddress: string;
+  accountant: string;
+  chainId: number;
+  baseAsset: { symbol: string; address: string; decimals: number } | null;
+  sharePrice: string;
+  rate: string;
+  totalShares: string;
+  shareDecimals: number;
+  nav: string;
+  balances: VaultNavBalance[];
+  source: string;
+  asOf: string;
+}
+
+// Live on-chain snapshot for a vault (share price, NAV/TVL, per-token balances). Reads the
+// same public API external consumers use — no on-chain reads in the browser.
+export async function getVaultNavUpstream(vault: string, userId: string): Promise<VaultNavResponse> {
+  return (await upstream(`/vaults/${encodeURIComponent(vault)}/nav`, userId)) as VaultNavResponse;
+}
+
 export async function createVaultUpstream(payload: unknown, userId: string): Promise<{ deploymentId: string; status: string }> {
   const body = (await upstream('/vaults', userId, {
     method: 'POST',
