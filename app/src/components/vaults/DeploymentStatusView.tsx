@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { clsx } from 'clsx';
 import StatusBadge from './StatusBadge';
 import TxTable from './TxTable';
 import VaultSnapshot from './VaultSnapshot';
+import VaultDeposit from './VaultDeposit';
+import WalletProvider from '@/components/wallet/WalletProvider';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { LastUpdated, RefreshButton } from '@/components/dashboard/Freshness';
@@ -220,6 +222,19 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {record.status === 'complete' && record.addresses?.boringVault && record.addresses?.teller && (
+        <WalletProvider>
+          <VaultDeposit
+            vault={record.addresses.boringVault}
+            teller={record.addresses.teller}
+            asset={record.baseAsset}
+            symbol="USDC"
+            decimals={6}
+            onDeposited={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
+          />
+        </WalletProvider>
+      )}
 
       {record.status === 'complete' && record.addresses?.boringVault && <VaultSnapshot id={id} />}
 

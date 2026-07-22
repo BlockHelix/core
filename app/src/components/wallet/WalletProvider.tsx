@@ -10,7 +10,8 @@ import { networks, REOWN_PROJECT_ID, wagmiAdapter, wagmiConfig } from '@/lib/wal
 const queryClient = new QueryClient();
 
 // createAppKit registers the modal singleton. It must run once, at module scope,
-// before any component renders the connect button. Mounted ONLY under /admin.
+// before any component renders the connect button. Mounted under /admin (pause / rate) and on
+// the customer vault page (deposits) — the singleton is shared across both.
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
@@ -18,8 +19,8 @@ createAppKit({
   defaultNetwork: base,
   themeMode: 'light',
   metadata: {
-    name: 'BlockHelix Admin',
-    description: 'BlockHelix internal vault administration',
+    name: 'BlockHelix',
+    description: 'BlockHelix vault deposits and administration',
     url: 'https://blockhelix.tech',
     icons: ['https://blockhelix.tech/favicon.ico'],
   },
