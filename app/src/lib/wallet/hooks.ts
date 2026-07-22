@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from 'wagmi';
 import type { Address, Hex } from 'viem';
 import { BASE_CHAIN_ID } from '@/lib/vault-types';
-import { ACCOUNTANT_ABI, ERC20_ABI, PAUSABLE_ABI, TELLER_ABI } from './abi';
+import { ACCOUNTANT_ABI, DELAYED_WITHDRAW_ABI, ERC20_ABI, PAUSABLE_ABI, TELLER_ABI } from './abi';
 
 function errMessage(err: unknown): string {
   if (err && typeof err === 'object') {
@@ -197,4 +197,144 @@ export function useDeposit() {
   const reset = useCallback(() => setState({ phase: 'idle', error: null, hashes: [] }), []);
 
   return { deposit, reset, ...state };
+}
+
+// Request a DelayedWithdraw: escrow `shares` (approve the delayedWithdrawer to spend vault shares
+// if needed) then requestWithdraw(asset, shares, 0, true). maxLoss 0 uses the vault's global cap;
+// allowThirdPartyToComplete=true so a keeper OR the user can complete after maturity.
+export function useRequestWithdraw() {
+  const ensureBase = useEnsureBase();
+  const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const [state, setState] = useState<DepositState>({ phase: 'idle', error: null, hashes: [] });
+
+  const requestWithdraw = useCallback(
+    async (params: {
+      shareToken: Address;
+      delayedWithdrawer: Address;
+      asset: Address;
+      shares: bigint;
+    }): Promise<Hex> => {
+      const { shareToken, delayedWithdrawer, asset, shares } = params;
+      setState({ phase: 'approving', error: null, hashes: [] });
+      try {
+        if (!address) throw new Error('Connect a wallet first');
+        if (!publicClient) throw new Error('No RPC client available');
+        await ensureBase();
+
+        const hashes: Hex[] = [];
+        const allowance = (await publicClient.readContract({
+          address: shareToken,
+          abi: ERC20_ABI,
+          functionName: 'allowance',
+          args: [address, delayedWithdrawer],
+        })) as bigint;
+
+        if (allowance < shares) {
+          const approveHash = await writeContractAsync({
+            address: shareToken,
+            abi: ERC20_ABI,
+            functionName: 'approve',
+            args: [delayedWithdrawer, shares],
+            chainId: BASE_CHAIN_ID,
+          });
+          hashes.push(approveHash);
+          setState({ phase: 'approving', error: null, hashes: [...hashes] });
+          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        }
+
+        setState((s) => ({ ...s, phase: 'depositing' }));
+        const reqHash = await writeContractAsync({
+          address: delayedWithdrawer,
+          abi: DELAYED_WITHDRAW_ABI,
+          functionName: 'requestWithdraw',
+          args: [asset, shares, 0, true],
+          chainId: BASE_CHAIN_ID,
+        });
+        hashes.push(reqHash);
+        setState({ phase: 'depositing', error: null, hashes: [...hashes] });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: reqHash });
+        if (receipt.status !== 'success') throw new Error('Withdraw request reverted');
+
+        setState({ phase: 'done', error: null, hashes });
+        return reqHash;
+      } catch (err) {
+        setState((s) => ({ ...s, phase: 'idle', error: errMessage(err) }));
+        throw err;
+      }
+    },
+    [address, ensureBase, publicClient, writeContractAsync],
+  );
+
+  const reset = useCallback(() => setState({ phase: 'idle', error: null, hashes: [] }), []);
+  return { requestWithdraw, reset, ...state };
+}
+
+// completeWithdraw(asset, account) — callable once past maturity, within the completion window.
+export function useCompleteWithdraw() {
+  const ensureBase = useEnsureBase();
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
+
+  const completeWithdraw = useCallback(
+    async (params: { delayedWithdrawer: Address; asset: Address; account: Address }): Promise<Hex> => {
+      setState({ isPending: true, error: null, hash: null });
+      try {
+        await ensureBase();
+        const hash = await writeContractAsync({
+          address: params.delayedWithdrawer,
+          abi: DELAYED_WITHDRAW_ABI,
+          functionName: 'completeWithdraw',
+          args: [params.asset, params.account],
+          chainId: BASE_CHAIN_ID,
+        });
+        setState({ isPending: true, error: null, hash });
+        if (publicClient) await publicClient.waitForTransactionReceipt({ hash });
+        setState({ isPending: false, error: null, hash });
+        return hash;
+      } catch (err) {
+        setState({ isPending: false, error: errMessage(err), hash: null });
+        throw err;
+      }
+    },
+    [ensureBase, publicClient, writeContractAsync],
+  );
+  const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
+  return { completeWithdraw, reset, ...state };
+}
+
+// cancelWithdraw(asset) — reclaim the escrowed shares.
+export function useCancelWithdraw() {
+  const ensureBase = useEnsureBase();
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
+
+  const cancelWithdraw = useCallback(
+    async (params: { delayedWithdrawer: Address; asset: Address }): Promise<Hex> => {
+      setState({ isPending: true, error: null, hash: null });
+      try {
+        await ensureBase();
+        const hash = await writeContractAsync({
+          address: params.delayedWithdrawer,
+          abi: DELAYED_WITHDRAW_ABI,
+          functionName: 'cancelWithdraw',
+          args: [params.asset],
+          chainId: BASE_CHAIN_ID,
+        });
+        setState({ isPending: true, error: null, hash });
+        if (publicClient) await publicClient.waitForTransactionReceipt({ hash });
+        setState({ isPending: false, error: null, hash });
+        return hash;
+      } catch (err) {
+        setState({ isPending: false, error: errMessage(err), hash: null });
+        throw err;
+      }
+    },
+    [ensureBase, publicClient, writeContractAsync],
+  );
+  const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
+  return { cancelWithdraw, reset, ...state };
 }

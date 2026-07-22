@@ -8,6 +8,7 @@ import StatusBadge from './StatusBadge';
 import TxTable from './TxTable';
 import VaultSnapshot from './VaultSnapshot';
 import VaultDeposit from './VaultDeposit';
+import VaultWithdraw from './VaultWithdraw';
 import WalletProvider from '@/components/wallet/WalletProvider';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -225,14 +226,26 @@ export default function DeploymentStatusView({ id }: { id: string }) {
 
       {record.status === 'complete' && record.addresses?.boringVault && record.addresses?.teller && (
         <WalletProvider>
-          <VaultDeposit
-            vault={record.addresses.boringVault}
-            teller={record.addresses.teller}
-            asset={record.baseAsset}
-            symbol="USDC"
-            decimals={6}
-            onDeposited={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
-          />
+          <div className="space-y-8">
+            <VaultDeposit
+              vault={record.addresses.boringVault}
+              teller={record.addresses.teller}
+              asset={record.baseAsset}
+              symbol="USDC"
+              decimals={6}
+              onDeposited={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
+            />
+            {record.addresses.delayedWithdrawer && (
+              <VaultWithdraw
+                vault={record.addresses.boringVault}
+                delayedWithdrawer={record.addresses.delayedWithdrawer}
+                asset={record.baseAsset}
+                symbol="USDC"
+                shareDecimals={6}
+                onChanged={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
+              />
+            )}
+          </div>
         </WalletProvider>
       )}
 

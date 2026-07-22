@@ -34,6 +34,57 @@ export const TELLER_ABI = [
   },
 ] as const;
 
+// Veda DelayedWithdraw: async withdrawals. requestWithdraw escrows the user's shares (so the user
+// approves the delayedWithdrawer to spend boringVault shares) and starts a delay; after maturity,
+// completeWithdraw burns the shares and sends the asset. cancelWithdraw returns the shares.
+export const DELAYED_WITHDRAW_ABI = [
+  {
+    type: 'function',
+    name: 'requestWithdraw',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'shares', type: 'uint96' },
+      { name: 'maxLoss', type: 'uint16' },
+      { name: 'allowThirdPartyToComplete', type: 'bool' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'cancelWithdraw',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'completeWithdraw',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: 'assetsOut', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'withdrawRequests',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'asset', type: 'address' },
+    ],
+    outputs: [
+      { name: 'allowThirdPartyToComplete', type: 'bool' },
+      { name: 'maxLoss', type: 'uint16' },
+      { name: 'maturity', type: 'uint40' },
+      { name: 'shares', type: 'uint96' },
+      { name: 'exchangeRateAtTimeOfRequest', type: 'uint96' },
+    ],
+  },
+] as const;
+
 // Minimal ERC20 for the deposit approve / allowance / balance flow.
 export const ERC20_ABI = [
   {
