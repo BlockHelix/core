@@ -15,10 +15,11 @@ interface NavBalance {
 
 interface NavResponse {
   baseAsset: { symbol: string; decimals: number } | null;
-  sharePrice: string;
+  sharePrice: string; // official on-chain getRate (~6h)
+  liveSharePrice?: string; // true per-share value now (holdings / shares)
   totalShares: string;
   shareDecimals: number;
-  nav: string;
+  nav: string; // live NAV/TVL
   balances: NavBalance[];
   asOf: string;
 }
@@ -44,7 +45,7 @@ function pct(fraction: number | null | undefined): string {
   return (fraction * 100).toFixed(2);
 }
 
-function Tile({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function Tile({ label, value, unit, sub }: { label: string; value: string; unit?: string; sub?: string }) {
   return (
     <div className="bg-white px-5 py-6">
       <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">
@@ -52,6 +53,7 @@ function Tile({ label, value, unit }: { label: string; value: string; unit?: str
         {unit && <span className="ml-1 text-sm font-normal text-zinc-400">{unit}</span>}
       </p>
       <p className="mt-2 text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">{label}</p>
+      {sub && <p className="mt-0.5 text-[10px] text-zinc-400">{sub}</p>}
     </div>
   );
 }
@@ -99,11 +101,20 @@ export default function VaultSnapshot({ id }: { id: string }) {
       ) : (
         <>
           <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.06] sm:grid-cols-2 lg:grid-cols-4">
-            <Tile label="NAV / TVL" value={fmt(data.nav, baseDec, 2)} unit={baseSym} />
-            <Tile label="Share price" value={fmt(data.sharePrice, baseDec, 6)} unit={baseSym} />
+            <Tile label="NAV / TVL" value={fmt(data.nav, baseDec, 2)} unit={baseSym} sub="live · on-chain" />
+            <Tile label="Share price" value={fmt(data.sharePrice, baseDec, 6)} unit={baseSym} sub="official · ~6h" />
             <Tile label="Shares outstanding" value={fmt(data.totalShares, data.shareDecimals, 2)} />
             <Tile label="Current yield · Aave" value={pct(yieldApy)} unit={yieldApy > 0 ? '% APY' : undefined} />
           </div>
+          {data.liveSharePrice && data.liveSharePrice !== data.sharePrice && (
+            <p className="mt-3 text-xs text-zinc-500">
+              Live share price{' '}
+              <span className="font-data text-zinc-800">
+                {fmt(data.liveSharePrice, baseDec, 6)} {baseSym}
+              </span>{' '}
+              — accrued yield isn’t in the official rate until the next update (~6h).
+            </p>
+          )}
 
           <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
             <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Holdings</p>
