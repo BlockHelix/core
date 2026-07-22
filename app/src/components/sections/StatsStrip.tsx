@@ -3,7 +3,7 @@ import Reveal from '@/components/ui/Reveal';
 
 const STATS: { v: string; k: string; href?: string }[] = [
   { v: '3rd/454', k: 'Colosseum hackathon, 3rd out of 454 projects', href: 'https://x.com/colosseum/status/2034666123577442394' },
-  { v: 'Policy engine', k: 'invariant checks, every trade' },
+  { v: 'Policy engine', k: 'curated policy per vault' },
   { v: 'Veda core', k: 'audited Arctic base · MIT' },
   { v: 'On-chain', k: 'merkle-bounded execution' },
 ];

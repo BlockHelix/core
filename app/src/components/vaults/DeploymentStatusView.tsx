@@ -224,6 +224,19 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         )}
       </div>
 
+      {record.status === 'complete' && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-50 px-5 py-4">
+          <p className="text-[11px] font-medium uppercase tracking-wider-2 text-amber-700">
+            Risk checks not yet live
+          </p>
+          <p className="mt-1.5 text-sm text-amber-800/90">
+            Trades are enforced by the on-chain policy (only whitelisted actions can execute). Independent risk
+            checks (price impact, slippage validation, liquidity and position health) are not active yet, and
+            slippage bounds are caller-supplied. Do not use with funds you can&apos;t afford to lose.
+          </p>
+        </div>
+      )}
+
       {record.status === 'complete' && record.addresses?.boringVault && record.addresses?.teller && (
         <WalletProvider>
           <div className="space-y-8">
