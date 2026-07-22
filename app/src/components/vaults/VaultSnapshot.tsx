@@ -112,7 +112,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
               <span className="font-data text-zinc-800">
                 {fmt(data.liveSharePrice, baseDec, 6)} {baseSym}
               </span>{' '}
-              — accrued yield isn’t in the official rate until the next update (~6h).
+              — marks current holdings; the official rate catches up on its next update (~6h).
             </p>
           )}
 
