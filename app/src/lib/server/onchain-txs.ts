@@ -3,37 +3,87 @@
 // Etherscan/paid plan. Deploy transactions (0-value contract calls that transfer
 // APIs don't surface) come from the deployment record's transactionHashes.
 
-import { keccak256, toBytes, slice } from 'viem';
+import { keccak256, toBytes, slice, decodeFunctionData } from 'viem';
 import type { NormalizedTx } from '@/lib/onchain-types';
 
 // Server-only Alchemy endpoint preferred (getAssetTransfers + large JSON-RPC batches need it,
 // and the key stays off the client). Falls back to the public client RPC / base.org.
 const RPC_URL = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
 
-// Decode a tx's real method from its calldata selector. Known deploy/admin calls get a
-// readable name; anything else shows its raw 4-byte selector (Etherscan-style) — never a
-// made-up label.
+// Decode a tx's real method from its calldata selector. Deploy/admin/trade calls get their real
+// function name; a strategist merkle-manage call is unwrapped to the inner action (supply / swap /
+// withdraw), which is the meaningful function. Anything unknown shows its raw 4-byte selector
+// (Etherscan-style) — never a made-up label.
+const SIGNATURES = [
+  // deploy + admin
+  'deployContract(string,bytes,bytes,uint256)',
+  'setUserRole(address,uint8,bool)',
+  'setRoleCapability(uint8,address,bytes4,bool)',
+  'setPublicCapability(address,bytes4,bool)',
+  'setManageRoot(address,bytes32)',
+  'setAuthority(address)',
+  'transferOwnership(address)',
+  'setBeforeTransferHook(address)',
+  'setShareLockPeriod(uint64)',
+  'setPullFundsFromVault(bool)',
+  'updateExchangeRate(uint96)',
+  'pause()',
+  'unpause()',
+  // trades + vault actions
+  'manageVaultWithMerkleVerification(bytes32[][],address[],address[],bytes[],uint256[])',
+  'approve(address,uint256)',
+  'transfer(address,uint256)',
+  'supply(address,uint256,address,uint16)',
+  'withdraw(address,uint256,address)',
+  'exactInput((bytes,address,uint256,uint256))',
+  'exactInputSingle((address,address,uint24,address,uint256,uint256,uint160))',
+  'deposit(address,uint256,uint256)',
+  'bulkDeposit(address,uint256,uint256,address)',
+  'bulkWithdraw(address,uint256,uint256,address)',
+];
+
+const selectorOf = (sig: string): string => slice(keccak256(toBytes(sig)), 0, 4);
+const nameOf = (sig: string): string => sig.slice(0, sig.indexOf('('));
+
 const KNOWN_SELECTORS: Record<string, string> = Object.fromEntries(
-  [
-    'deployContract(string,bytes,bytes,uint256)',
-    'setUserRole(address,uint8,bool)',
-    'setRoleCapability(uint8,address,bytes4,bool)',
-    'setPublicCapability(address,bytes4,bool)',
-    'setManageRoot(address,bytes32)',
-    'setAuthority(address)',
-    'transferOwnership(address)',
-    'setBeforeTransferHook(address)',
-    'setShareLockPeriod(uint64)',
-    'setPullFundsFromVault(bool)',
-    'updateExchangeRate(uint96)',
-    'pause()',
-    'unpause()',
-  ].map((sig) => [slice(keccak256(toBytes(sig)), 0, 4), sig.slice(0, sig.indexOf('('))]),
+  SIGNATURES.map((sig) => [selectorOf(sig), nameOf(sig)]),
 );
+const MANAGE_SELECTOR = selectorOf(
+  'manageVaultWithMerkleVerification(bytes32[][],address[],address[],bytes[],uint256[])',
+);
+const MANAGE_ABI = [
+  {
+    type: 'function',
+    name: 'manageVaultWithMerkleVerification',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'manageProofs', type: 'bytes32[][]' },
+      { name: 'decodersAndSanitizers', type: 'address[]' },
+      { name: 'targets', type: 'address[]' },
+      { name: 'targetData', type: 'bytes[]' },
+      { name: 'values', type: 'uint256[]' },
+    ],
+    outputs: [],
+  },
+] as const;
 
 function decodeMethod(input?: string): string {
   if (!input || input.length < 10) return '—';
   const selector = input.slice(0, 10).toLowerCase();
+  // A strategist trade is a manage call wrapping approve + the real action — surface the action.
+  if (selector === MANAGE_SELECTOR) {
+    try {
+      const { args } = decodeFunctionData({ abi: MANAGE_ABI, data: input as `0x${string}` });
+      const legs = (args[3] as string[] | undefined) ?? [];
+      const actions = legs
+        .map((d) => KNOWN_SELECTORS[d.slice(0, 10).toLowerCase()] ?? d.slice(0, 10))
+        .filter((n) => n !== 'approve');
+      if (actions.length) return actions[actions.length - 1];
+    } catch {
+      /* fall through to the wrapper name */
+    }
+    return 'manageVaultWithMerkleVerification';
+  }
   return KNOWN_SELECTORS[selector] ?? selector;
 }
 
