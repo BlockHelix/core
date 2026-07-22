@@ -10,6 +10,7 @@ interface NavBalance {
   decimals: number;
   idle: string;
   supplied: string;
+  supplyApy?: number | null;
 }
 
 interface NavResponse {
@@ -37,6 +38,12 @@ function fmt(value: string | undefined, decimals: number, maxFrac = 2): string {
   return (neg ? '-' : '') + grouped + (frac ? '.' + frac : '');
 }
 
+// APY comes as a fraction (0.0432). Render as a percentage, or an em-dash when there's no rate.
+function pct(fraction: number | null | undefined): string {
+  if (fraction == null || !Number.isFinite(fraction) || fraction <= 0) return '—';
+  return (fraction * 100).toFixed(2);
+}
+
 function Tile({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="bg-white px-5 py-6">
@@ -58,6 +65,9 @@ export default function VaultSnapshot({ id }: { id: string }) {
 
   const baseDec = data?.baseAsset?.decimals ?? 6;
   const baseSym = data?.baseAsset?.symbol ?? '';
+  // Current yield = the highest Aave supply APY across the vault's Aave assets (for Conservative,
+  // that's USDC). Forward-looking market rate; realized share-price APY needs NAV history (soon).
+  const yieldApy = data ? Math.max(0, ...data.balances.map((b) => b.supplyApy ?? 0)) : 0;
 
   return (
     <div>
@@ -88,10 +98,11 @@ export default function VaultSnapshot({ id }: { id: string }) {
         </div>
       ) : (
         <>
-          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.06] sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.06] sm:grid-cols-2 lg:grid-cols-4">
             <Tile label="NAV / TVL" value={fmt(data.nav, baseDec, 2)} unit={baseSym} />
             <Tile label="Share price" value={fmt(data.sharePrice, baseDec, 6)} unit={baseSym} />
             <Tile label="Shares outstanding" value={fmt(data.totalShares, data.shareDecimals, 2)} />
+            <Tile label="Current yield · Aave" value={pct(yieldApy)} unit={yieldApy > 0 ? '% APY' : undefined} />
           </div>
 
           <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
@@ -114,6 +125,9 @@ export default function VaultSnapshot({ id }: { id: string }) {
                           <span className={clsx('ml-1', supplied ? 'text-emerald-700' : 'text-zinc-300')}>
                             {supplied ? fmt(b.supplied, b.decimals, 2) : '—'}
                           </span>
+                          {b.supplyApy != null && b.supplyApy > 0 && (
+                            <span className="ml-1.5 text-zinc-400">@ {pct(b.supplyApy)}%</span>
+                          )}
                         </span>
                       </div>
                     </div>
