@@ -1,7 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
+
+// Stamps the moment each SWR revalidation lands, for <LastUpdated since={…} />.
+// Keyed on the isValidating true->false edge rather than on `data`: SWR preserves the
+// previous object reference when a refetch returns deep-equal data, so watching `data`
+// would leave the counter climbing even though we just refreshed successfully.
+export function useFreshness(isValidating: boolean, hasData: boolean): number {
+  const [updatedAt, setUpdatedAt] = useState(() => Date.now());
+  const wasValidating = useRef(isValidating);
+  useEffect(() => {
+    if (wasValidating.current && !isValidating && hasData) setUpdatedAt(Date.now());
+    wasValidating.current = isValidating;
+  }, [isValidating, hasData]);
+  return updatedAt;
+}
 
 function ago(seconds: number): string {
   if (seconds < 5) return 'just now';

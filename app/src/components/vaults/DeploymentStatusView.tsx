@@ -12,7 +12,7 @@ import VaultWithdraw from './VaultWithdraw';
 import WalletProvider from '@/components/wallet/WalletProvider';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { LastUpdated, RefreshButton } from '@/components/dashboard/Freshness';
+import { LastUpdated, RefreshButton, useFreshness } from '@/components/dashboard/Freshness';
 import { useEventStream, type StreamEvent } from '@/lib/use-event-stream';
 import { fetcher } from '@/lib/swr-fetcher';
 import { requeueVault } from '@/lib/vault-requeue';
@@ -158,10 +158,15 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           </div>
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={record.status} />
-            <span className="flex items-center gap-1">
-              <LastUpdated since={updatedAt} />
-              <RefreshButton onClick={manualRefresh} spinning={refreshing} />
-            </span>
+            {/* A complete deployment is frozen history and the poll has already stopped, so a
+                ticking "updated Xm ago" just reads as going stale. Live data gets the counter
+                instead (holdings, transactions). Failed keeps it — a re-run resumes polling. */}
+            {record.status !== 'complete' && (
+              <span className="flex items-center gap-1">
+                <LastUpdated since={updatedAt} />
+                <RefreshButton onClick={manualRefresh} spinning={refreshing} />
+              </span>
+            )}
           </div>
         </div>
 
@@ -373,20 +378,18 @@ function TransactionActivity({ id }: { id: string }) {
   const { data, error, isLoading, isValidating, mutate } = useSWR<TxListResponse>(
     `/api/vaults/${encodeURIComponent(id)}/txs`,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 15_000 },
+    { revalidateOnFocus: false, dedupingInterval: 15_000, refreshInterval: 60_000 },
   );
+  const updatedAt = useFreshness(isValidating, !!data);
 
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Transactions</h2>
-        <button
-          type="button"
-          onClick={() => void mutate()}
-          className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
-        >
-          {isValidating ? 'Refreshing…' : '↻ Refresh'}
-        </button>
+        <span className="flex items-center gap-1">
+          <LastUpdated since={updatedAt} />
+          <RefreshButton onClick={() => void mutate()} spinning={isValidating} />
+        </span>
       </div>
       <div className="mt-4">
         <TxTable txs={data?.txs} loading={isLoading} error={error ? error.message : null} />

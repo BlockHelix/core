@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { clsx } from 'clsx';
 import { fetcher } from '@/lib/swr-fetcher';
+import { LastUpdated, RefreshButton, useFreshness } from '@/components/dashboard/Freshness';
 
 interface NavBalance {
   symbol: string;
@@ -65,6 +66,8 @@ export default function VaultSnapshot({ id }: { id: string }) {
     { revalidateOnFocus: false, dedupingInterval: 15_000, refreshInterval: 30_000 },
   );
 
+  const updatedAt = useFreshness(isValidating, !!data);
+
   const baseDec = data?.baseAsset?.decimals ?? 6;
   const baseSym = data?.baseAsset?.symbol ?? '';
   // Current yield = the highest Aave supply APY across the vault's Aave assets (for Conservative,
@@ -78,13 +81,10 @@ export default function VaultSnapshot({ id }: { id: string }) {
           Vault Snapshot
           <span className="ml-2 text-zinc-300">{'// on-chain'}</span>
         </h2>
-        <button
-          type="button"
-          onClick={() => void mutate()}
-          className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-zinc-900"
-        >
-          {isValidating ? 'Refreshing…' : '↻ Refresh'}
-        </button>
+        <span className="flex items-center gap-1">
+          <LastUpdated since={updatedAt} />
+          <RefreshButton onClick={() => void mutate()} spinning={isValidating} />
+        </span>
       </div>
 
       {error ? (
