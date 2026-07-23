@@ -21,6 +21,7 @@ interface NavResponse {
   totalShares: string;
   shareDecimals: number;
   nav: string; // live NAV/TVL
+  yield?: { blendedApy: number; deployedRatio: number };
   balances: NavBalance[];
   asOf: string;
 }
@@ -70,9 +71,11 @@ export default function VaultSnapshot({ id }: { id: string }) {
 
   const baseDec = data?.baseAsset?.decimals ?? 6;
   const baseSym = data?.baseAsset?.symbol ?? '';
-  // Current yield = the highest Aave supply APY across the vault's Aave assets (for Conservative,
-  // that's USDC). Forward-looking market rate; realized share-price APY needs NAV history (soon).
-  const yieldApy = data ? Math.max(0, ...data.balances.map((b) => b.supplyApy ?? 0)) : 0;
+  // What the VAULT earns on its whole NAV. The headline Aave rate is what an asset earns once
+  // supplied; idle assets earn nothing, so quoting it as the vault's yield overstates it by
+  // NAV/deployed. Server computes the value-weighted blend through the same Pyth path as NAV.
+  // Absent (older API) is NOT the same as zero — say nothing rather than claim nothing is deployed.
+  const yieldInfo = data?.yield;
 
   return (
     <div>
@@ -104,7 +107,18 @@ export default function VaultSnapshot({ id }: { id: string }) {
             <Tile label="NAV / TVL" value={fmt(data.nav, baseDec, 2)} unit={baseSym} sub="live · on-chain" />
             <Tile label="Share price" value={fmt(data.sharePrice, baseDec, 6)} unit={baseSym} sub="official · ~6h" />
             <Tile label="Shares outstanding" value={fmt(data.totalShares, data.shareDecimals, 2)} />
-            <Tile label="Current yield · Aave" value={pct(yieldApy)} unit={yieldApy > 0 ? '% APY' : undefined} />
+            <Tile
+              label="Current yield"
+              value={yieldInfo ? pct(yieldInfo.blendedApy) : '—'}
+              unit={yieldInfo && yieldInfo.blendedApy > 0 ? '% APY' : undefined}
+              sub={
+                yieldInfo
+                  ? yieldInfo.deployedRatio > 0
+                    ? `blended · ${(yieldInfo.deployedRatio * 100).toFixed(0)}% deployed`
+                    : 'nothing deployed'
+                  : undefined
+              }
+            />
           </div>
           {data.liveSharePrice && data.liveSharePrice !== data.sharePrice && (
             <p className="mt-3 text-xs text-zinc-500">
