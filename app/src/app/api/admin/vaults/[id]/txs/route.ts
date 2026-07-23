@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminUserId, getAdminVaultTxSources } from '@/lib/server/admin';
-import { deployTxs, fetchVaultTransfers } from '@/lib/server/onchain-txs';
+import { deployTxs, fetchVaultTransfers, mergeNewestFirst } from '@/lib/server/onchain-txs';
 import { UpstreamError } from '@/lib/server/vault-factory';
 
 export const runtime = 'nodejs';
@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       deployTxs(src.transactionHashes),
       src.boringVault ? fetchVaultTransfers(src.boringVault) : Promise.resolve([]),
     ]);
-    return NextResponse.json({ txs: [...deploy, ...activity] });
+    return NextResponse.json({ txs: mergeNewestFirst(deploy, activity) });
   } catch (err) {
     if (err instanceof UpstreamError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

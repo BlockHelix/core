@@ -21,6 +21,7 @@ import {
   BASESCAN_URL,
   COMPONENT_LABELS,
   PROGRESS_STEPS,
+  sourceVerified,
   statusLabel,
   TERMINAL_STATUSES,
   type DeploymentRecord,
@@ -35,6 +36,9 @@ export default function DeploymentStatusView({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [requeuing, setRequeuing] = useState(false);
   const [forceOpen, setForceOpen] = useState(false);
+  // Once a vault is live the deploy checklist is history, not status — collapse it by default
+  // so the page leads with balances and actions.
+  const [showSteps, setShowSteps] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(() => Date.now());
   // Bumping this restarts the safety poll (e.g. after a re-run sends the record
@@ -161,6 +165,17 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           </div>
         </div>
 
+        {record.status === 'complete' && !showSteps && (
+          <button
+            type="button"
+            onClick={() => setShowSteps(true)}
+            className="mt-4 text-[11px] uppercase tracking-wider-2 text-zinc-400 hover:text-zinc-600"
+          >
+            Deployment log ▾
+          </button>
+        )}
+
+        {(record.status !== 'complete' || showSteps) && (
         <ol className="mt-8 space-y-0">
           {PROGRESS_STEPS.map((step, i) => {
             const done = !failed && activeIndex > i;
@@ -200,6 +215,17 @@ export default function DeploymentStatusView({ id }: { id: string }) {
             );
           })}
         </ol>
+        )}
+
+        {record.status === 'complete' && showSteps && (
+          <button
+            type="button"
+            onClick={() => setShowSteps(false)}
+            className="text-[11px] uppercase tracking-wider-2 text-zinc-400 hover:text-zinc-600"
+          >
+            Hide log ▴
+          </button>
+        )}
 
         {failed && (
           <div className="mt-4 rounded-lg border border-red-600/20 bg-red-50 px-4 py-3">
@@ -271,14 +297,24 @@ export default function DeploymentStatusView({ id }: { id: string }) {
             {Object.entries(record.addresses).map(([key, address]) => (
               <div key={key} className="flex flex-wrap items-center justify-between gap-4 py-3">
                 <span className="text-sm text-zinc-700">{COMPONENT_LABELS[key] ?? key}</span>
-                <a
-                  href={`${BASESCAN_URL}/address/${address}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="break-all font-data text-xs text-emerald-700 hover:text-emerald-800"
-                >
-                  {address} ↗
-                </a>
+                <span className="flex items-center gap-2">
+                  {sourceVerified(record.sourceVerification, key) && (
+                    <span
+                      title="Source code published on the explorer"
+                      className="rounded bg-emerald-50 px-1.5 py-0.5 font-data text-[10px] uppercase tracking-wider text-emerald-700"
+                    >
+                      source
+                    </span>
+                  )}
+                  <a
+                    href={`${BASESCAN_URL}/address/${address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="break-all font-data text-xs text-emerald-700 hover:text-emerald-800"
+                  >
+                    {address} ↗
+                  </a>
+                </span>
               </div>
             ))}
           </div>

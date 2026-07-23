@@ -51,9 +51,28 @@ export interface DeploymentRecord {
   performanceFeeBps: number;
   addresses: Record<string, string> | null;
   transactionHashes: string[];
+  sourceVerification: SourceVerification | null;
   failureReason: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SourceVerification {
+  ok: boolean;
+  entries: {
+    component: string;
+    address: string;
+    status: 'verified' | 'already-verified' | 'failed' | 'skipped';
+    detail?: string;
+  }[];
+}
+
+export function sourceVerified(
+  report: SourceVerification | null | undefined,
+  component: string,
+): boolean {
+  const entry = report?.entries.find((e) => e.component === component);
+  return entry?.status === 'verified' || entry?.status === 'already-verified';
 }
 
 export interface VaultListResponse {

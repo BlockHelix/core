@@ -253,3 +253,11 @@ export async function deployTxs(hashes: string[]): Promise<NormalizedTx[]> {
     };
   });
 }
+
+// Newest first. deployTxs returns the record's hashes in deploy order (oldest first) while
+// fetchVaultTransfers is already descending, so concatenating them put the whole deploy batch,
+// chronologically backwards, above live activity. Sort is stable, so reversing the deploy list
+// first keeps a sane order within a block (many deploy txs share one timestamp).
+export function mergeNewestFirst(deploy: NormalizedTx[], activity: NormalizedTx[]): NormalizedTx[] {
+  return [...[...deploy].reverse(), ...activity].sort((a, b) => b.timeStamp - a.timeStamp);
+}

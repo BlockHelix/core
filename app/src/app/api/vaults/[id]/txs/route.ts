@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getDeploymentUpstream, UpstreamError } from '@/lib/server/vault-factory';
-import { deployTxs, fetchVaultTransfers } from '@/lib/server/onchain-txs';
+import { deployTxs, fetchVaultTransfers, mergeNewestFirst } from '@/lib/server/onchain-txs';
 import { rateLimit } from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       deployTxs(record.transactionHashes),
       boringVault ? fetchVaultTransfers(boringVault) : Promise.resolve([]),
     ]);
-    return NextResponse.json({ txs: [...deploy, ...activity] });
+    return NextResponse.json({ txs: mergeNewestFirst(deploy, activity) });
   } catch (err) {
     if (err instanceof UpstreamError) {
       // Not owned / not found -> treat as forbidden so we never leak another
