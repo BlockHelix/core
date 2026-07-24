@@ -94,7 +94,7 @@ export default function PolicyCheckCard() {
           Policy check
         </span>
         <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-gray-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 status-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#10c689] status-pulse" />
           simulated
         </span>
       </div>
@@ -117,15 +117,15 @@ export default function PolicyCheckCard() {
             >
               <span className="flex items-center gap-2.5">
                 {row.ok ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" strokeWidth={3} />
+                  <Check className="w-3.5 h-3.5 text-[#10c689]" strokeWidth={3} />
                 ) : row.flag ? (
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500" strokeWidth={2.5} />
                 ) : (
-                  <X className="w-3.5 h-3.5 text-red-500" strokeWidth={3} />
+                  <X className="w-3.5 h-3.5 text-[#d62e1f]" strokeWidth={3} />
                 )}
                 <span className="text-xs font-mono text-gray-900">{row.label}</span>
               </span>
-              <span className={`text-xs font-mono ${row.ok ? 'text-gray-400' : row.flag ? 'text-amber-600' : 'text-red-600'}`}>
+              <span className={`text-xs font-mono ${row.ok ? 'text-gray-400' : row.flag ? 'text-amber-600' : 'text-[#b82214]'}`}>
                 {row.detail}
               </span>
             </motion.div>
@@ -141,10 +141,10 @@ export default function PolicyCheckCard() {
               transition={{ duration: 0.35, ease: 'easeOut' }}
               className={`px-4 py-3 text-xs font-mono font-semibold tracking-wider border ${
                 scenario.result.verdict === 'pass'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  ? 'bg-[#eafaf3] text-[#10c689] border-[#adffd9]'
                   : scenario.result.verdict === 'held'
                     ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-red-50 text-red-700 border-red-200'
+                    : 'bg-[#fdeeeb] text-[#9a1c10] border-[#f5b8b0]'
               }`}
             >
               {scenario.result.text}

@@ -34,7 +34,7 @@ export default function AdminNav() {
               'group flex items-center gap-2.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium uppercase tracking-wider-2 transition-colors lg:rounded-md',
               'border-b-2 lg:border-b-0 lg:border-l-2',
               active
-                ? 'border-emerald-600 text-emerald-700 lg:bg-emerald-600/[0.06]'
+                ? 'border-[#10c689] text-[#10c689] lg:bg-[#10c689]/[0.06]'
                 : 'border-transparent text-zinc-500 hover:text-zinc-900 lg:hover:bg-black/[0.03]',
             )}
           >

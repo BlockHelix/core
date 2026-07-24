@@ -35,7 +35,7 @@ export default function AdminVaultDetail({ id }: { id: string }) {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
         {error.message}
       </div>
     );
@@ -118,7 +118,7 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
                   href={`${BASESCAN_URL}/address/${address}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="break-all font-data text-xs text-emerald-700 hover:text-emerald-800"
+                  className="break-all font-data text-xs text-[#10c689] hover:text-[#10c689]"
                 >
                   {address} ↗
                 </a>
@@ -142,7 +142,7 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
                 href={`${BASESCAN_URL}/tx/${hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block break-all font-data text-xs text-zinc-500 hover:text-emerald-700"
+                className="block break-all font-data text-xs text-zinc-500 hover:text-[#10c689]"
               >
                 {hash} ↗
               </a>
@@ -197,7 +197,7 @@ function DeleteDeploymentSection({ id }: { id: string }) {
         <button
           type="button"
           onClick={() => setConfirm(true)}
-          className="rounded-lg border border-red-600/30 bg-red-50 px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-red-700 transition-colors hover:bg-red-100"
+          className="rounded-lg border border-[#b82214]/30 bg-[#fdeeeb] px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-[#9a1c10] transition-colors hover:bg-[#fad9d4]"
         >
           Delete deployment
         </button>
@@ -215,7 +215,7 @@ function DeleteDeploymentSection({ id }: { id: string }) {
       >
         <div className="space-y-5">
           {error && (
-            <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
               {error}
             </div>
           )}
@@ -235,7 +235,7 @@ function DeleteDeploymentSection({ id }: { id: string }) {
               type="button"
               onClick={remove}
               disabled={submitting}
-              className="rounded-lg border border-red-600/30 bg-red-600 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg border border-[#b82214]/30 bg-[#b82214] px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-white transition-colors hover:bg-[#9a1c10] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {submitting ? 'Deleting…' : 'Delete deployment'}
             </button>
@@ -264,12 +264,12 @@ function PausedBadge({ paused }: { paused: boolean | null }) {
     );
   }
   return paused ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-600/25 bg-red-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider-2 text-red-700">
-      <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Paused
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#b82214]/25 bg-[#fdeeeb] px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider-2 text-[#9a1c10]">
+      <span className="h-1.5 w-1.5 rounded-full bg-[#d62e1f]" /> Paused
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider-2 text-emerald-700">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Active
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#10c689]/25 bg-[#eafaf3] px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider-2 text-[#10c689]">
+      <span className="h-1.5 w-1.5 rounded-full bg-[#10c689]" /> Active
     </span>
   );
 }
@@ -285,7 +285,7 @@ function VaultStatePanel({ id }: { id: string }) {
   if (error && !data) {
     return (
       <Panel title="On-chain state">
-        <p className="text-sm text-red-600">{error.message}</p>
+        <p className="text-sm text-[#b82214]">{error.message}</p>
       </Panel>
     );
   }
@@ -406,7 +406,7 @@ function TxHashLinks({ hashes }: { hashes: Hex[] }) {
           href={`${BASESCAN_URL}/tx/${h}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="block break-all font-data text-xs text-emerald-700 hover:text-emerald-800"
+          className="block break-all font-data text-xs text-[#10c689] hover:text-[#10c689]"
         >
           {h} ↗
         </a>
@@ -501,7 +501,7 @@ function OnChainActions({
                 type="button"
                 disabled={busy || pausableTargets.length === 0}
                 onClick={() => setConfirm('pause')}
-                className="rounded-lg border border-red-600/30 bg-red-50 px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-red-700 transition-colors hover:bg-red-100 disabled:opacity-40"
+                className="rounded-lg border border-[#b82214]/30 bg-[#fdeeeb] px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-[#9a1c10] transition-colors hover:bg-[#fad9d4] disabled:opacity-40"
               >
                 {pause.isPending ? 'Pausing…' : 'Pause'}
               </button>
@@ -509,13 +509,13 @@ function OnChainActions({
                 type="button"
                 disabled={busy || pausableTargets.length === 0}
                 onClick={() => setConfirm('unpause')}
-                className="rounded-lg border border-emerald-600/30 bg-emerald-50 px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-40"
+                className="rounded-lg border border-[#10c689]/30 bg-[#eafaf3] px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-[#10c689] transition-colors hover:bg-[#d3f5e6] disabled:opacity-40"
               >
                 {unpause.isPending ? 'Unpausing…' : 'Unpause'}
               </button>
             </div>
-            {pause.error && <p className="mt-2 text-xs text-red-600">{pause.error}</p>}
-            {unpause.error && <p className="mt-2 text-xs text-red-600">{unpause.error}</p>}
+            {pause.error && <p className="mt-2 text-xs text-[#b82214]">{pause.error}</p>}
+            {unpause.error && <p className="mt-2 text-xs text-[#b82214]">{unpause.error}</p>}
             <TxHashLinks hashes={pause.hashes.length ? pause.hashes : unpause.hashes} />
           </section>
 
@@ -541,7 +541,7 @@ function OnChainActions({
                   onChange={(e) => setNewRate(e.target.value.replace(/[^0-9]/g, ''))}
                   placeholder="e.g. 1000000000000000000"
                   disabled={!accountant || rate.isPending}
-                  className="w-72 max-w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 font-data text-sm text-zinc-800 outline-none focus:border-emerald-500 disabled:opacity-50"
+                  className="w-72 max-w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 font-data text-sm text-zinc-800 outline-none focus:border-[#10c689] disabled:opacity-50"
                 />
               </div>
               <button
@@ -556,7 +556,7 @@ function OnChainActions({
             {newRate.trim() !== '' && !rateValid && (
               <p className="mt-2 text-xs text-amber-600">Must be an integer between 0 and 2^96 − 1.</p>
             )}
-            {rate.error && <p className="mt-2 text-xs text-red-600">{rate.error}</p>}
+            {rate.error && <p className="mt-2 text-xs text-[#b82214]">{rate.error}</p>}
             {rate.hash && <TxHashLinks hashes={[rate.hash]} />}
           </section>
 

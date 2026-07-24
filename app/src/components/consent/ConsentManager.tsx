@@ -77,7 +77,7 @@ export default function ConsentManager() {
         <p className="text-sm text-white/80 leading-relaxed">
           We use optional analytics cookies to understand how the site is used. You can accept or
           reject them. See our{' '}
-          <Link href="/privacy" className="underline text-white hover:text-emerald-400">
+          <Link href="/privacy" className="underline text-white hover:text-[#2beead]">
             privacy policy
           </Link>
           .
@@ -85,7 +85,7 @@ export default function ConsentManager() {
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             onClick={() => decide('granted')}
-            className="px-5 py-2 text-xs font-medium tracking-widest bg-emerald-500 text-black hover:bg-emerald-400 transition-colors"
+            className="px-5 py-2 text-xs font-medium tracking-widest bg-[#10c689] text-black hover:bg-[#2beead] transition-colors"
           >
             ACCEPT
           </button>

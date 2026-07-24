@@ -15,7 +15,7 @@ const CURL = `curl https://api.blockhelix.tech/v1/vaults \\
 function Highlighted() {
   return (
     <>
-      <span className="text-emerald-700">curl</span> https://api.blockhelix.tech/v1/vaults \{'\n'}
+      <span className="text-[#10c689]">curl</span> https://api.blockhelix.tech/v1/vaults \{'\n'}
       {'  '}-H <span className="text-zinc-400">&quot;Authorization: </span>
       <span className="text-blue-600">Bearer bh_live_...</span>
       <span className="text-zinc-400">&quot;</span> \{'\n'}

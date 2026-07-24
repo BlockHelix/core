@@ -8,8 +8,8 @@ const START = 10000;
 const GRID = '#e5e7eb';
 const REF = '#cbd5e1';
 const MUT = '#94a3b8';
-const GREEN = '#059669';
-const RED = '#dc2626';
+const GREEN = '#10c689';
+const RED = '#b82214';
 const MONO = 'var(--font-geist-mono), ui-monospace, monospace';
 
 const W = 820;

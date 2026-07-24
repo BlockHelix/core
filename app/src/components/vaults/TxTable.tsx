@@ -69,7 +69,7 @@ function Row({ t }: { t: NormalizedTx }) {
             href={`${BASESCAN_URL}/tx/${t.hash}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-data text-xs text-emerald-700 hover:text-emerald-800"
+            className="font-data text-xs text-[#10c689] hover:text-[#10c689]"
             title={t.hash}
           >
             {truncateAddress(t.hash, 8)}
@@ -113,7 +113,7 @@ function Row({ t }: { t: NormalizedTx }) {
         <span
           className={clsx(
             'inline-flex items-center gap-1 text-xs',
-            t.isError ? 'text-red-600' : 'text-emerald-600',
+            t.isError ? 'text-[#b82214]' : 'text-[#10c689]',
           )}
           title={t.isError ? 'Failed' : 'Success'}
         >
@@ -131,7 +131,7 @@ function Addr({ address }: { address: string }) {
       href={`${BASESCAN_URL}/address/${address}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="hover:text-emerald-700"
+      className="hover:text-[#10c689]"
       title={address}
     >
       {truncateAddress(address, 4)}

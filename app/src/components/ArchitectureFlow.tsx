@@ -1,4 +1,4 @@
-const INK = '#047857';
+const INK = '#10c689';
 const SUB = '#8A8577';
 const GRAY_400 = '#9CA3AF';
 const RED = '#DC2626';

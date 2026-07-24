@@ -19,7 +19,7 @@ export default function AdminVaultsTable() {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
         {error.message}
       </div>
     );
@@ -92,7 +92,7 @@ function AdminVaultRow({ v }: { v: AdminVault }) {
                 href={`${BASESCAN_URL}/address/${address}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-data text-[11px] text-emerald-700 hover:text-emerald-800"
+                className="font-data text-[11px] text-[#10c689] hover:text-[#10c689]"
                 title={address}
               >
                 {COMPONENT_LABELS[key] ?? key} ↗
@@ -118,7 +118,7 @@ function AdminVaultRow({ v }: { v: AdminVault }) {
       <div className="mt-1 flex items-center sm:mt-0 sm:justify-end">
         <Link
           href={`/admin/vaults/${v.id}`}
-          className="text-[11px] font-medium uppercase tracking-wider-2 text-emerald-700 transition-colors hover:text-emerald-800"
+          className="text-[11px] font-medium uppercase tracking-wider-2 text-[#10c689] transition-colors hover:text-[#10c689]"
         >
           Manage →
         </Link>

@@ -72,7 +72,7 @@ export default function VaultList() {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
         {error.message}
       </div>
     );
@@ -211,7 +211,7 @@ function VaultRow({
               e.stopPropagation();
               onRerun();
             }}
-            className="text-[11px] font-medium uppercase tracking-wider-2 text-emerald-700 transition-colors hover:text-emerald-800 disabled:opacity-50"
+            className="text-[11px] font-medium uppercase tracking-wider-2 text-[#10c689] transition-colors hover:text-[#10c689] disabled:opacity-50"
             title="Retry the same vault — doesn't use another quota slot"
           >
             {requeuing ? 'Re-running…' : '↻ Re-run'}
@@ -236,7 +236,7 @@ function EmptyState({ quotaReached }: { quotaReached: boolean }) {
       {!quotaReached && (
         <Link
           href="/dashboard/new-vault"
-          className="mt-4 inline-block text-sm font-medium text-emerald-700 hover:text-emerald-800"
+          className="mt-4 inline-block text-sm font-medium text-[#10c689] hover:text-[#10c689]"
         >
           Deploy your first vault →
         </Link>

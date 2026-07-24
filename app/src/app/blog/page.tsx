@@ -43,11 +43,11 @@ export default function BlogIndex() {
             <article key={post.slug} className="border-b border-gray-200 py-8 group">
               <Link href={`/blog/${post.slug}`} className="block">
                 <p className="text-xs font-mono text-gray-400">{formatDate(post.date)}</p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 group-hover:text-emerald-600 transition-colors">
+                <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 group-hover:text-[#10c689] transition-colors">
                   {post.title}
                 </h2>
                 <p className="mt-2 text-gray-600 leading-relaxed">{post.description}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-sm font-mono text-emerald-600">
+                <span className="mt-3 inline-flex items-center gap-1 text-sm font-mono text-[#10c689]">
                   Read
                   <span className="transition-transform group-hover:translate-x-1">→</span>
                 </span>

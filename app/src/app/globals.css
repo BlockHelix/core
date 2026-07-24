@@ -5,10 +5,14 @@
 :root {
   --bg: #ffffff;
   --ink: #0a0a0a;
-  --emerald: #10b981;
-  --emerald-bright: #34d399;
-  --cyan: #22d3ee;
+  --emerald: #10c689;
+  --emerald-bright: #2beead;
+  --cyan: #10c689;
   --amber: #fbbf24;
+  /* Soft pastel accent — green-family match for the tone of #bcacff */
+  --accent-mint: #adffd9;
+  --accent-mint-hover: #8ceec8;
+  --accent-deep: #10c689;
 }
 
 html,
@@ -42,14 +46,6 @@ body {
 
   .corner-cut-sm {
     clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-  }
-
-  /* Faint engineering grid — used behind the hero. */
-  .bg-grid {
-    background-image:
-      linear-gradient(to right, rgba(10, 10, 10, 0.045) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(10, 10, 10, 0.045) 1px, transparent 1px);
-    background-size: 56px 56px;
   }
 
   .status-pulse {
@@ -91,17 +87,17 @@ body {
   }
 
   .bh-btn-primary {
-    background-color: #059669; /* emerald-600 */
+    background-color: #10c689; /* [#10c689] */
     color: #ffffff;
     transition: background-color 0.2s ease;
   }
   .bh-btn-primary:hover {
-    background-color: #047857; /* emerald-700 */
+    background-color: #10c689; /* [#10c689] */
   }
   .bh-btn-primary:disabled {
     opacity: 0.45;
     cursor: not-allowed;
-    background-color: #059669;
+    background-color: #10c689;
   }
 
 }
@@ -117,10 +113,10 @@ body {
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 20px rgba(16, 198, 137, 0.3);
   }
   50% {
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+    box-shadow: 0 0 30px rgba(16, 198, 137, 0.5);
   }
 }
 
@@ -135,10 +131,10 @@ body {
 
 @keyframes cube-pulse {
   0%, 100% {
-    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+    filter: drop-shadow(0 0 8px rgba(16, 198, 137, 0.4));
   }
   50% {
-    filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.7));
+    filter: drop-shadow(0 0 16px rgba(16, 198, 137, 0.7));
   }
 }
 

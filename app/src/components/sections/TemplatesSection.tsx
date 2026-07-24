@@ -4,16 +4,16 @@ import Reveal from '@/components/ui/Reveal';
 const TEMPLATES = [
   {
     tag: 'Bluechip',
-    tagColor: 'text-cyan-600',
-    accent: 'bg-cyan-500',
+    tagColor: 'text-[#10c689]',
+    accent: 'bg-[#10c689]',
     title: 'Bluechip',
     desc: 'USDC ↔ WETH/cbBTC on top-liquidity pools only. Slippage capped at 50 bps per trade.',
     meta: 'Risk: conservative · Hooks: swap',
   },
   {
     tag: 'Yield',
-    tagColor: 'text-emerald-600',
-    accent: 'bg-emerald-500',
+    tagColor: 'text-[#0891b2]',
+    accent: 'bg-[#35c4e2]',
     title: 'All Yield',
     desc: 'Morpho, Aave v3, and Moonwell whitelisted markets. No directional swaps.',
     meta: 'Risk: conservative–moderate · Hooks: yield',
@@ -36,16 +36,16 @@ const TEMPLATES = [
   },
   {
     tag: 'Perps',
-    tagColor: 'text-red-600',
-    accent: 'bg-red-500',
+    tagColor: 'text-[#b82214]',
+    accent: 'bg-[#d62e1f]',
     title: 'Perps Midcap',
     desc: 'Midcap perp markets, max 3× leverage, mandatory exit leaves. Ships in v2.',
     meta: 'Risk: aggressive · Hooks: swap + perps',
   },
   {
     tag: 'Custom',
-    tagColor: 'text-cyan-600',
-    accent: 'bg-cyan-500',
+    tagColor: 'text-gray-500',
+    accent: 'bg-gray-300',
     title: 'Custom',
     desc: 'Define your own bounds. Validated by the config service, activated via timelock.',
     meta: 'Risk: you decide · Hooks: any',
@@ -84,13 +84,12 @@ export default function TemplatesSection() {
           </div>
 
           <Reveal>
-            <div className="mt-16 lg:mt-24 flex items-center justify-between flex-wrap gap-8">
-              <p className="text-lg text-gray-500 max-w-xl">Now building.</p>
+            <div className="mt-16 lg:mt-24 flex items-center justify-end">
               <Link
                 href="/docs"
-                className="group inline-flex items-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-gray-900 text-white hover:bg-black transition-all duration-300"
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium bg-gray-900 text-white hover:bg-black transition-all duration-300"
               >
-                READ THE API DRAFT
+                Read the docs
                 <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
               </Link>
             </div>

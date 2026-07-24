@@ -108,7 +108,7 @@ export function EditLimitsModal({
             type="checkbox"
             checked={unlimited}
             onChange={(e) => setUnlimited(e.target.checked)}
-            className="h-4 w-4 accent-emerald-600"
+            className="h-4 w-4 accent-[#10c689]"
           />
         </label>
 
@@ -137,7 +137,7 @@ export function EditLimitsModal({
             onChange={(e) => setNote(e.target.value)}
             placeholder="Reason for the override"
             maxLength={280}
-            className="w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-emerald-500"
+            className="w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-[#10c689]"
           />
         </div>
 
@@ -146,7 +146,7 @@ export function EditLimitsModal({
             type="button"
             disabled={busy !== null || !user?.entitlement}
             onClick={clear}
-            className="text-xs font-medium uppercase tracking-wider-2 text-red-600 transition-colors hover:text-red-700 disabled:opacity-40"
+            className="text-xs font-medium uppercase tracking-wider-2 text-[#b82214] transition-colors hover:text-[#9a1c10] disabled:opacity-40"
             title={user?.entitlement ? 'Remove the override entirely' : 'No override to clear'}
           >
             {busy === 'clear' ? 'Clearing…' : 'Clear override'}
@@ -198,7 +198,7 @@ function Field({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 font-data text-sm text-zinc-800 outline-none focus:border-emerald-500"
+        className="w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 font-data text-sm text-zinc-800 outline-none focus:border-[#10c689]"
       />
     </div>
   );

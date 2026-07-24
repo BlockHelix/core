@@ -29,7 +29,7 @@ export default function NewVaultPage() {
             href="https://github.com/Veda-Labs/boring-vault/tree/bdc38405a02366cb5b25b358aa8e4a0b5ee3ae77"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-emerald-700 hover:text-emerald-800 font-data text-xs underline underline-offset-2"
+            className="text-[#10c689] hover:text-[#10c689] font-data text-xs underline underline-offset-2"
           >
             Veda-Labs/boring-vault@bdc38405 ↗
           </a>

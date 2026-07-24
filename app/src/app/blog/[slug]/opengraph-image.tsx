@@ -24,7 +24,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           padding: '80px',
         }}
       >
-        <div style={{ display: 'flex', color: '#34d399', fontSize: 28, letterSpacing: 10 }}>
+        <div style={{ display: 'flex', color: '#2beead', fontSize: 28, letterSpacing: 10 }}>
           BLOCKHELIX
         </div>
         <div

@@ -1,4 +1,4 @@
-const INK = '#047857';
+const INK = '#10c689';
 const SUB = '#8A8577';
 const MONO = 'var(--font-geist-mono), ui-monospace, monospace';
 
@@ -29,7 +29,7 @@ export default function EnforcementLoop() {
               <path d={`M 500 ${cy + HH} L 750 ${cy} L 750 ${cy + T} L 500 ${cy + HH + T} Z`} fill={INK} fillOpacity="0.15" stroke={INK} strokeOpacity="0.45" />
               <path
                 d={`M 500 ${cy - HH} L 750 ${cy} L 500 ${cy + HH} L 250 ${cy} Z`}
-                fill={cy === Y[1] ? INK : '#FCFBF8'}
+                fill={cy === Y[1] ? INK : '#0a0a0a'}
                 fillOpacity={cy === Y[1] ? 0.05 : 1}
                 stroke={INK}
                 strokeWidth="1.5"
@@ -80,7 +80,7 @@ export default function EnforcementLoop() {
               <path d="M-85 75 L85 -75 M-85 75 L85 0 M-85 75 L85 75" />
             </g>
             {[[-85, -75], [-85, 0], [-85, 75], [85, -75], [85, 0], [85, 75]].map(([x, y]) => (
-              <circle key={`${x}-${y}`} cx={x} cy={y} r="9" fill="#FAF9F6" stroke={INK} strokeWidth="4" />
+              <circle key={`${x}-${y}`} cx={x} cy={y} r="9" fill="#0a0a0a" stroke={INK} strokeWidth="4" />
             ))}
           </g>
 
@@ -88,13 +88,13 @@ export default function EnforcementLoop() {
           <path
             d={`M 318 ${Y[3] + 26} L 100 ${Y[3] + 26} L 100 ${Y[1] + 30} L 329 ${Y[1] + 30}`}
             fill="none"
-            stroke="#0891B2"
+            stroke="#2beead"
             strokeWidth="1.5"
             strokeDasharray="6 5"
           >
             <animate attributeName="stroke-dashoffset" values="11;0" dur="0.9s" repeatCount="indefinite" />
           </path>
-          <path d={`M 321 ${Y[1] + 26} L 329 ${Y[1] + 30} L 321 ${Y[1] + 34}`} fill="none" stroke="#0891B2" strokeWidth="1.5" />
+          <path d={`M 321 ${Y[1] + 26} L 329 ${Y[1] + 30} L 321 ${Y[1] + 34}`} fill="none" stroke="#2beead" strokeWidth="1.5" />
           <text
             transform={`rotate(-90 82 ${(Y[1] + Y[3]) / 2})`}
             x="82"
@@ -102,7 +102,7 @@ export default function EnforcementLoop() {
             textAnchor="middle"
             fontSize="11"
             letterSpacing="0.25em"
-            fill="#0891B2"
+            fill="#2beead"
             style={{ fontFamily: MONO }}
           >
             BACKPROP · POLICY UPDATES

@@ -50,7 +50,7 @@ export default function ConnectButton() {
         title="Manage connection"
       >
         <span className="inline-flex items-center gap-2">
-          <span className={clsx('h-1.5 w-1.5 rounded-full', wrongChain ? 'bg-amber-500' : 'bg-emerald-500')} />
+          <span className={clsx('h-1.5 w-1.5 rounded-full', wrongChain ? 'bg-amber-500' : 'bg-[#10c689]')} />
           {truncateAddress(address, 4)}
         </span>
       </button>

@@ -59,7 +59,7 @@ export default function RevokeKeyModal({
         )}
 
         {error && (
-          <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
             {error}
           </div>
         )}
@@ -79,7 +79,7 @@ export default function RevokeKeyModal({
             type="button"
             onClick={revoke}
             disabled={submitting}
-            className="rounded-lg border border-red-600/30 bg-red-600 px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-[#b82214]/30 bg-[#b82214] px-6 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-white transition-colors hover:bg-[#9a1c10] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? 'Revoking…' : 'Revoke key'}
           </button>

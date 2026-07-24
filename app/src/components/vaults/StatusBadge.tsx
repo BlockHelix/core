@@ -11,9 +11,9 @@ export default function StatusBadge({ status }: { status: DeploymentStatus }) {
   const inFlight = !complete && !failed && !queued;
 
   const style = complete
-    ? 'border-emerald-600/25 bg-emerald-50 text-emerald-700'
+    ? 'border-[#10c689]/25 bg-[#eafaf3] text-[#10c689]'
     : failed
-      ? 'border-red-600/25 bg-red-50 text-red-700'
+      ? 'border-[#b82214]/25 bg-[#fdeeeb] text-[#9a1c10]'
       : queued
         ? 'border-amber-500/30 bg-amber-50 text-amber-700'
         : 'border-blue-500/25 bg-blue-50 text-blue-700';

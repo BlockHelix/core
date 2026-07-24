@@ -13,10 +13,10 @@ export default function PostBody({ content }: { content: string }) {
         prose-h3:text-lg prose-h3:text-gray-800 prose-h3:mt-8
         prose-p:text-gray-700 prose-p:leading-relaxed
         prose-strong:text-gray-900
-        prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline
-        prose-code:text-emerald-700 prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono
+        prose-a:text-[#10c689] prose-a:no-underline hover:prose-a:underline
+        prose-code:text-[#10c689] prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono
         prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800 prose-pre:rounded-none
-        prose-blockquote:border-emerald-600/30 prose-blockquote:text-gray-500
+        prose-blockquote:border-[#10c689]/30 prose-blockquote:text-gray-500
         prose-hr:border-gray-200
         prose-li:text-gray-700
       "

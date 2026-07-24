@@ -75,7 +75,7 @@ export default function VaultDeposit({
       ) : (
         <>
           <div className="mt-4 flex items-stretch gap-3">
-            <div className="flex flex-1 items-center rounded-lg border border-black/[0.1] px-3 focus-within:border-emerald-500/50">
+            <div className="flex flex-1 items-center rounded-lg border border-black/[0.1] px-3 focus-within:border-[#10c689]/50">
               <input
                 inputMode="decimal"
                 placeholder="0.0"
@@ -112,9 +112,9 @@ export default function VaultDeposit({
           </div>
 
           {overBalance && <p className="mt-3 text-sm text-amber-600">Amount exceeds your wallet balance.</p>}
-          {error && <p className="mt-3 break-words text-sm text-red-700">{error}</p>}
+          {error && <p className="mt-3 break-words text-sm text-[#9a1c10]">{error}</p>}
           {phase === 'done' && (
-            <p className="mt-3 text-sm text-emerald-700">Deposit confirmed. The snapshot updates shortly.</p>
+            <p className="mt-3 text-sm text-[#10c689]">Deposit confirmed. The snapshot updates shortly.</p>
           )}
           {hashes.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-4">
@@ -124,7 +124,7 @@ export default function VaultDeposit({
                   href={`${BASESCAN_URL}/tx/${h}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-data text-[11px] text-emerald-700 hover:text-emerald-800"
+                  className="font-data text-[11px] text-[#10c689] hover:text-[#10c689]"
                 >
                   {i === 0 && hashes.length > 1 ? 'approve' : 'deposit'} {h.slice(0, 10)}… ↗
                 </a>

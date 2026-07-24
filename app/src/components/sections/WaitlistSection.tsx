@@ -38,7 +38,7 @@ export default function WaitlistSection() {
         </Reveal>
 
         {status === 'done' ? (
-          <p className="text-emerald-600 font-mono text-lg">You&apos;re registered. We&apos;ll send launch updates.</p>
+          <p className="text-[#10c689] font-mono text-lg">You&apos;re registered. We&apos;ll send launch updates.</p>
         ) : (
           <form onSubmit={submit} className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
             <input
@@ -47,7 +47,7 @@ export default function WaitlistSection() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@domain.xyz"
-              className="flex-1 px-6 py-4 text-sm bg-white text-gray-900 border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+              className="flex-1 px-6 py-4 text-sm bg-white text-gray-900 border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#10c689] focus:border-[#10c689] font-mono"
             />
             <button
               type="submit"
@@ -60,7 +60,7 @@ export default function WaitlistSection() {
           </form>
         )}
         {status === 'error' && (
-          <p className="text-red-600 font-mono text-sm mt-4">Something went wrong. Try again.</p>
+          <p className="text-[#b82214] font-mono text-sm mt-4">Something went wrong. Try again.</p>
         )}
         <p className="text-xs text-gray-400 font-mono mt-10">
           Legacy Solana devnet runtime is frozen; existing vaults are archived.

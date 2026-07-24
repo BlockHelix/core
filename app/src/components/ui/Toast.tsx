@@ -61,8 +61,8 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       className={clsx(
         'flex items-start gap-3 rounded-xl border bg-white px-4 py-3 text-sm shadow-soft transition-all duration-300',
         shown ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
-        toast.kind === 'success' && 'border-emerald-600/25 text-emerald-700',
-        toast.kind === 'error' && 'border-red-600/25 text-red-700',
+        toast.kind === 'success' && 'border-[#10c689]/25 text-[#10c689]',
+        toast.kind === 'error' && 'border-[#b82214]/25 text-[#9a1c10]',
         toast.kind === 'info' && 'border-black/[0.08] text-zinc-700',
       )}
     >

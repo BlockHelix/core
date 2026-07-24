@@ -103,17 +103,17 @@ export default function CreateKeyModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Production"
               maxLength={MAX_API_KEY_NAME_LEN}
-              className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+              className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-[#10c689] focus:outline-none focus:ring-1 focus:ring-[#10c689]/30"
             />
             {name && !nameValid && (
-              <p className="mt-2 text-xs text-red-600">
+              <p className="mt-2 text-xs text-[#b82214]">
                 1-{MAX_API_KEY_NAME_LEN} chars: letters, numbers, spaces, ._-
               </p>
             )}
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
               {error}
             </div>
           )}

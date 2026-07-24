@@ -87,7 +87,7 @@ export default function AdminGlobalSearch() {
         }}
         placeholder="Search users or vaults…"
         aria-label="Search users or vaults"
-        className="w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-emerald-500"
+        className="w-full rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-[#10c689]"
       />
       {open && query.trim() && (
         <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-lg border border-black/[0.08] bg-white shadow-xl">

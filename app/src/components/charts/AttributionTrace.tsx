@@ -12,7 +12,7 @@ const ROWS: Row[] = [
 const money = (v: number) =>
   (v > 0 ? '+$' : v < 0 ? '−$' : '$') +
   Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const colorFor = (v: number) => (v > 0 ? '#059669' : v < 0 ? '#dc2626' : '#6b7280');
+const colorFor = (v: number) => (v > 0 ? '#10c689' : v < 0 ? '#b82214' : '#6b7280');
 
 export default function AttributionTrace() {
   const net = ROWS.reduce((a, r) => a + r.v, 0);

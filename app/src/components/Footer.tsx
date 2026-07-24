@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-8 flex-wrap">
-            <Link href="/" className="text-sm font-semibold text-white hover:text-emerald-400 transition-colors">
+            <Link href="/" className="text-sm font-semibold text-white hover:text-[#adffd9] transition-colors">
               BlockHelix
             </Link>
             <nav className="flex items-center gap-6">

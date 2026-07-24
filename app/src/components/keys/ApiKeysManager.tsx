@@ -65,7 +65,7 @@ export default function ApiKeysManager() {
 
         {error && !data && (
           <div className="p-6">
-            <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
               {error.message}
             </div>
             <button
@@ -163,7 +163,7 @@ function KeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: () => void }) 
           <button
             type="button"
             onClick={onRevoke}
-            className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-red-600"
+            className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-500 transition-colors hover:text-[#b82214]"
           >
             Revoke
           </button>
@@ -180,11 +180,11 @@ function StatusPill({ revoked }: { revoked: boolean }) {
         'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider-2 font-medium',
         revoked
           ? 'border-black/[0.08] text-zinc-400'
-          : 'border-emerald-600/25 bg-emerald-50 text-emerald-700',
+          : 'border-[#10c689]/25 bg-[#eafaf3] text-[#10c689]',
       )}
     >
       <span
-        className={clsx('h-1.5 w-1.5 rounded-full', revoked ? 'bg-zinc-300' : 'bg-emerald-600')}
+        className={clsx('h-1.5 w-1.5 rounded-full', revoked ? 'bg-zinc-300' : 'bg-[#10c689]')}
       />
       {revoked ? 'Revoked' : 'Active'}
     </span>
@@ -195,7 +195,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="p-6 sm:p-10">
       <div className="mx-auto max-w-xl text-center">
-        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-600/20 bg-emerald-50 text-emerald-700">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-[#10c689]/20 bg-[#eafaf3] text-[#10c689]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
               d="M15 7a4 4 0 11-3.9 5H8v2H6v2H3v-3l5.1-5.1A4 4 0 0115 7z"

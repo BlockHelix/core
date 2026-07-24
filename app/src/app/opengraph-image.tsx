@@ -21,7 +21,7 @@ export default function Image() {
         <div
           style={{
             display: 'flex',
-            color: '#34d399',
+            color: '#2beead',
             fontSize: 30,
             letterSpacing: 10,
           }}

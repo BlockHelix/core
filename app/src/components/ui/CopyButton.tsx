@@ -56,7 +56,7 @@ export function CopyButton({
       aria-label={copied ? 'Copied' : label}
       className={clsx(
         'inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider-2 font-medium transition-colors',
-        copied ? 'text-emerald-600' : 'text-zinc-500 hover:text-zinc-900',
+        copied ? 'text-[#10c689]' : 'text-zinc-500 hover:text-zinc-900',
         className,
       )}
     >

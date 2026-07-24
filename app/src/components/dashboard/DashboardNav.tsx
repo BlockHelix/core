@@ -84,11 +84,11 @@ export default function DashboardNav() {
               // mobile: underline tab. desktop: left-border rail.
               'border-b-2 lg:border-b-0 lg:border-l-2',
               active
-                ? 'border-emerald-600 text-emerald-700 lg:bg-emerald-600/[0.06]'
+                ? 'border-[#10c689] text-[#10c689] lg:bg-[#10c689]/[0.06]'
                 : 'border-transparent text-zinc-500 hover:text-zinc-900 lg:hover:bg-black/[0.03]',
             )}
           >
-            <span className={clsx('transition-colors', active ? 'text-emerald-600' : 'text-zinc-400 group-hover:text-zinc-600')}>
+            <span className={clsx('transition-colors', active ? 'text-[#10c689]' : 'text-zinc-400 group-hover:text-zinc-600')}>
               {item.icon}
             </span>
             {item.label}

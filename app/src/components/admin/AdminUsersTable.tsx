@@ -30,7 +30,7 @@ export default function AdminUsersTable() {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
         {error.message}
       </div>
     );
@@ -47,7 +47,7 @@ export default function AdminUsersTable() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search email or user id…"
-          className="w-full max-w-xs rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-emerald-500"
+          className="w-full max-w-xs rounded-lg border border-black/[0.1] bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-[#10c689]"
         />
         <div className="flex items-center gap-4">
           <p className="text-[11px] uppercase tracking-wider-2 text-zinc-500">
@@ -106,7 +106,7 @@ function UserRow({ u, onEdit }: { u: AdminUser; onEdit: () => void }) {
       <div className="min-w-0">
         <span className={label}>User</span>
         <Link href={`/admin/users/${encodeURIComponent(u.userId)}`} className="group block">
-          <p className="truncate text-sm text-zinc-800 group-hover:text-emerald-700">{u.email ?? '—'}</p>
+          <p className="truncate text-sm text-zinc-800 group-hover:text-[#10c689]">{u.email ?? '—'}</p>
           <p className="mt-0.5 truncate font-data text-xs text-zinc-400">{u.userId}</p>
         </Link>
       </div>
@@ -129,7 +129,7 @@ function UserRow({ u, onEdit }: { u: AdminUser; onEdit: () => void }) {
         <button
           type="button"
           onClick={onEdit}
-          className="text-[11px] font-medium uppercase tracking-wider-2 text-emerald-700 transition-colors hover:text-emerald-800"
+          className="text-[11px] font-medium uppercase tracking-wider-2 text-[#10c689] transition-colors hover:text-[#10c689]"
         >
           Edit limits
         </button>

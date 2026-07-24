@@ -20,7 +20,7 @@ export default async function VaultStatusPage({ params }: { params: Promise<{ id
         </span>
         <span className="font-data text-zinc-400">{shortId}</span>
       </nav>
-      <h2 className="mt-4 text-xs uppercase tracking-wider-2 font-medium text-emerald-600">
+      <h2 className="mt-4 text-xs uppercase tracking-wider-2 font-medium text-[#10c689]">
         Deployment
       </h2>
       <div className="mt-6">

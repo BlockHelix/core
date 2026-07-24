@@ -135,7 +135,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
     return (
       <div className="rounded-xl border border-black/[0.06] bg-white p-8 shadow-soft">
         {error ? (
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-[#9a1c10]">{error}</p>
         ) : (
           <p className="text-sm text-zinc-500">Loading deployment…</p>
         )}
@@ -193,7 +193,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                   <div
                     className={clsx(
                       'flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-mono',
-                      (done || completed) && 'border-emerald-600 bg-emerald-600 text-white',
+                      (done || completed) && 'border-[#10c689] bg-[#10c689] text-white',
                       active && 'border-blue-500 text-blue-600 status-pulse',
                       !done && !active && !completed && 'border-black/[0.12] text-zinc-300',
                     )}
@@ -201,14 +201,14 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                     {done || completed ? '✓' : i + 1}
                   </div>
                   {!isLast && (
-                    <div className={clsx('min-h-5 w-px flex-1', done ? 'bg-emerald-600/40' : 'bg-black/[0.08]')} />
+                    <div className={clsx('min-h-5 w-px flex-1', done ? 'bg-[#10c689]/40' : 'bg-black/[0.08]')} />
                   )}
                 </div>
                 <div className="pb-5">
                   <p
                     className={clsx(
                       'text-xs font-medium uppercase leading-6 tracking-wider-2',
-                      (done || completed) && 'text-emerald-700',
+                      (done || completed) && 'text-[#10c689]',
                       active && 'text-blue-600',
                       !done && !active && !completed && 'text-zinc-400',
                     )}
@@ -233,9 +233,9 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         )}
 
         {failed && (
-          <div className="mt-4 rounded-lg border border-red-600/20 bg-red-50 px-4 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider-2 text-red-700">Deployment Failed</p>
-            <p className="mt-2 whitespace-pre-wrap break-all font-data text-sm text-red-600">
+          <div className="mt-4 rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider-2 text-[#9a1c10]">Deployment Failed</p>
+            <p className="mt-2 whitespace-pre-wrap break-all font-data text-sm text-[#b82214]">
               {record.failureReason ?? 'No failure reason reported.'}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -306,7 +306,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                   {sourceVerified(record.sourceVerification, key) && (
                     <span
                       title="Source code published on the explorer"
-                      className="rounded bg-emerald-50 px-1.5 py-0.5 font-data text-[10px] uppercase tracking-wider text-emerald-700"
+                      className="rounded bg-[#eafaf3] px-1.5 py-0.5 font-data text-[10px] uppercase tracking-wider text-[#10c689]"
                     >
                       source
                     </span>
@@ -315,7 +315,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                     href={`${BASESCAN_URL}/address/${address}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="break-all font-data text-xs text-emerald-700 hover:text-emerald-800"
+                    className="break-all font-data text-xs text-[#10c689] hover:text-[#10c689]"
                   >
                     {address} ↗
                   </a>
@@ -338,7 +338,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           href="https://github.com/Veda-Labs/boring-vault/tree/bdc38405a02366cb5b25b358aa8e4a0b5ee3ae77"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-zinc-500 underline underline-offset-2 hover:text-emerald-700"
+          className="text-zinc-500 underline underline-offset-2 hover:text-[#10c689]"
         >
           codebase ↗
         </a>

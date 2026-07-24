@@ -182,7 +182,7 @@ export default function NewVaultForm() {
   const selectedProfile = profiles.find((p) => p.id === riskProfileId);
 
   const inputClass =
-    'w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 font-data';
+    'w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-[#10c689] focus:outline-none focus:ring-1 focus:ring-[#10c689]/30 font-data';
   const labelClass = 'block text-[11px] uppercase tracking-wider-2 font-medium text-zinc-500 mb-2';
 
   return (
@@ -199,7 +199,7 @@ export default function NewVaultForm() {
             maxLength={64}
           />
           {vaultName && !nameValid && (
-            <p className="mt-2 text-xs text-red-600">1-64 chars: letters, numbers, spaces, ._-</p>
+            <p className="mt-2 text-xs text-[#b82214]">1-64 chars: letters, numbers, spaces, ._-</p>
           )}
         </div>
         <div>
@@ -213,7 +213,7 @@ export default function NewVaultForm() {
             maxLength={16}
           />
           {vaultSymbol && !symbolValid && (
-            <p className="mt-2 text-xs text-red-600">1-16 chars: letters, numbers, ._-</p>
+            <p className="mt-2 text-xs text-[#b82214]">1-16 chars: letters, numbers, ._-</p>
           )}
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function NewVaultForm() {
             <ul className="mt-2 space-y-1">
               {selectedProfile.permissions.map((perm, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-zinc-600">
-                  <span className="mt-0.5 text-emerald-600" aria-hidden>✓</span>
+                  <span className="mt-0.5 text-[#10c689]" aria-hidden>✓</span>
                   <span className="font-data">{perm}</span>
                 </li>
               ))}
@@ -279,7 +279,7 @@ export default function NewVaultForm() {
         <div className="mt-2 text-xs">
           {safeState.phase === 'checking' && <p className="text-zinc-500">Checking Safe on Base…</p>}
           {safeState.phase === 'done' && safeState.result.ok && (
-            <div className="text-emerald-700">
+            <div className="text-[#10c689]">
               <p>
                 ✓ Safe v{safeState.result.version} — {safeState.result.owners.length} owner{safeState.result.owners.length === 1 ? '' : 's'}, threshold {safeState.result.threshold}
               </p>
@@ -290,7 +290,7 @@ export default function NewVaultForm() {
             </div>
           )}
           {safeState.phase === 'done' && !safeState.result.ok && (
-            <p className="text-red-600">✕ {safeState.result.reason}</p>
+            <p className="text-[#b82214]">✕ {safeState.result.reason}</p>
           )}
           {safeState.phase === 'idle' && (
             <p className="text-zinc-400">
@@ -311,7 +311,7 @@ export default function NewVaultForm() {
           spellCheck={false}
         />
         {payoutAddress && !payoutValid && (
-          <p className="mt-2 text-xs text-red-600">Must be a valid 0x address</p>
+          <p className="mt-2 text-xs text-[#b82214]">Must be a valid 0x address</p>
         )}
         <p className="mt-2 text-xs text-zinc-400">Where fees are paid. Can be any Base address.</p>
       </div>
@@ -352,7 +352,7 @@ export default function NewVaultForm() {
       </div>
 
       {submitError && (
-        <div className="rounded-lg border border-red-600/20 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-[#b82214]/20 bg-[#fdeeeb] px-4 py-3 text-sm text-[#9a1c10]">
           {submitError}
         </div>
       )}

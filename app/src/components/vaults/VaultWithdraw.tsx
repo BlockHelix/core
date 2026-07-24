@@ -135,7 +135,7 @@ export default function VaultWithdraw({
       href={`${BASESCAN_URL}/tx/${hash}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="font-data text-[11px] text-emerald-700 hover:text-emerald-800"
+      className="font-data text-[11px] text-[#10c689] hover:text-[#10c689]"
     >
       {label} {hash.slice(0, 10)}… ↗
     </a>
@@ -184,7 +184,7 @@ export default function VaultWithdraw({
             </button>
           </div>
           {(comp.error || canc.error) && (
-            <p className="mt-3 break-words text-sm text-red-700">{comp.error ?? canc.error}</p>
+            <p className="mt-3 break-words text-sm text-[#9a1c10]">{comp.error ?? canc.error}</p>
           )}
           <div className="mt-2 flex flex-wrap gap-4">
             {comp.hash && txLink(comp.hash, 'complete')}
@@ -194,7 +194,7 @@ export default function VaultWithdraw({
       ) : (
         <>
           <div className="mt-4 flex items-stretch gap-3">
-            <div className="flex flex-1 items-center rounded-lg border border-black/[0.1] px-3 focus-within:border-emerald-500/50">
+            <div className="flex flex-1 items-center rounded-lg border border-black/[0.1] px-3 focus-within:border-[#10c689]/50">
               <input
                 inputMode="decimal"
                 placeholder="0.0"
@@ -227,7 +227,7 @@ export default function VaultWithdraw({
             </button>
           </div>
           {overBalance && <p className="mt-3 text-sm text-amber-600">Amount exceeds your share balance.</p>}
-          {req.error && <p className="mt-3 break-words text-sm text-red-700">{req.error}</p>}
+          {req.error && <p className="mt-3 break-words text-sm text-[#9a1c10]">{req.error}</p>}
           <p className="mt-3 text-xs text-zinc-400">
             Withdrawals settle after a 3-day delay (the strategist unwinds Aave first), then you complete the
             withdrawal. Shares are held in escrow meanwhile and can be cancelled.

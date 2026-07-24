@@ -16,13 +16,13 @@ export default function Header() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3 group">
-            <CubeIcon />
-            <span className="text-xs uppercase tracking-wider-2 font-medium text-white group-hover:text-emerald-400 transition-colors duration-300">
-              BlockHelix
+            <img src="/logo.svg" alt="BlockHelix" className="w-6 h-6" />
+            <span className="text-base font-normal text-gray-900 group-hover:text-[#10c689] transition-colors duration-300">
+              Block<span className="font-bold">Helix</span>
             </span>
           </Link>
 
@@ -33,10 +33,10 @@ export default function Header() {
                   key={link.href}
                   href={link.href}
                   className={clsx(
-                    'text-xs uppercase tracking-wider-2 font-medium transition-colors duration-300',
+                    'text-sm font-medium transition-colors duration-300',
                     isActive(link.href)
-                      ? 'text-emerald-400'
-                      : 'text-white/60 hover:text-white'
+                      ? 'text-gray-900'
+                      : 'text-gray-500 hover:text-gray-900'
                   )}
                 >
                   {link.label}
@@ -48,33 +48,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
-}
-
-function CubeIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <linearGradient id="cubeGradientSmall" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10b981" />
-          <stop offset="100%" stopColor="#34d399" />
-        </linearGradient>
-      </defs>
-
-      <path
-        d="M16 2L30 9V23L16 30L2 23V9L16 2Z M16 16L30 9M16 16L2 9M16 16V30"
-        stroke="url(#cubeGradientSmall)"
-        strokeWidth="0.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray="4 1"
-      />
-    </svg>
   );
 }

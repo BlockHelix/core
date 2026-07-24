@@ -54,9 +54,9 @@ export default function BlockAssemblyAnimation() {
               </feMerge>
             </filter>
             <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#22d3ee" stopOpacity="0" />
-              <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+              <stop offset="0%" stopColor="#2beead" stopOpacity="0" />
+              <stop offset="50%" stopColor="#2beead" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#2beead" stopOpacity="0" />
             </linearGradient>
           </defs>
 
@@ -71,7 +71,7 @@ export default function BlockAssemblyAnimation() {
                   cy="100"
                   r="12"
                   fill="none"
-                  stroke="#22d3ee"
+                  stroke="#2beead"
                   strokeWidth="2"
                   filter="url(#nodeGlow)"
                   initial={{ opacity: 0.2 }}
@@ -89,7 +89,7 @@ export default function BlockAssemblyAnimation() {
                   cx={stage.x}
                   cy="100"
                   r="6"
-                  fill="#22d3ee"
+                  fill="#2beead"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: [0, 0.8, 0] }}
                   transition={{
@@ -108,7 +108,7 @@ export default function BlockAssemblyAnimation() {
                       y1="100"
                       x2={nextStage!.x - 16}
                       y2="100"
-                      stroke="#22d3ee"
+                      stroke="#2beead"
                       strokeWidth="1"
                       opacity="0.2"
                     />
@@ -137,7 +137,7 @@ export default function BlockAssemblyAnimation() {
                   x={stage.x}
                   y="140"
                   textAnchor="middle"
-                  className="text-[9px] font-mono fill-cyan-400/50"
+                  className="text-[9px] font-mono fill-[#2beead]/50"
                   initial={{ opacity: 0.3 }}
                   animate={{ opacity: [0.3, 0.8, 0.3] }}
                   transition={{
@@ -166,7 +166,7 @@ export default function BlockAssemblyAnimation() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="text-xs font-mono text-cyan-400 tracking-wider"
+                  className="text-xs font-mono text-[#2beead] tracking-wider"
                 >
                   {displayText}
                   {displayText && <span className="animate-pulse">_</span>}
@@ -177,7 +177,7 @@ export default function BlockAssemblyAnimation() {
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2beead]/30 to-transparent" />
     </section>
   )
 }

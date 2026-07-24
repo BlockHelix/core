@@ -20,7 +20,7 @@ export default function MonitoringSection() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
             <div className="lg:col-span-5">
               <Reveal>
-                <p className="text-xs uppercase tracking-[0.15em] font-mono text-emerald-400/70 mb-8">{'// Between trades'}</p>
+                <p className="text-xs uppercase tracking-[0.15em] font-mono text-[#adffd9]/70 mb-8">{'// Between trades'}</p>
                 <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
                   The engine watches liquidity, prices, and exposure every block.
                 </h2>
@@ -35,7 +35,7 @@ export default function MonitoringSection() {
                 <div className="border-y border-white/10">
                   <div className="flex items-center justify-between py-3 font-mono text-[11px]">
                     <span className="text-white/50">
-                      <span className="text-emerald-400">MONITOR</span> vault 0x8f3a · every block
+                      <span className="text-[#adffd9]">MONITOR</span> vault 0x8f3a · every block
                     </span>
                   </div>
                   <div className="py-5 border-t border-white/10 font-mono text-[12.5px] leading-[2.1] overflow-x-auto">
@@ -47,7 +47,7 @@ export default function MonitoringSection() {
                         >
                           <span className="text-white/25 w-[64px] shrink-0">{r.t}</span>
                           {r.s === 'act' ? (
-                            <span className="text-emerald-300">▸ {r.v}</span>
+                            <span className="text-[#adffd9]">▸ {r.v}</span>
                           ) : (
                             <>
                               <span className="text-sky-300 w-[136px] shrink-0">{r.k}</span>
@@ -55,10 +55,10 @@ export default function MonitoringSection() {
                               <span
                                 className={`shrink-0 ${
                                   r.s === 'ok'
-                                    ? 'text-emerald-400'
+                                    ? 'text-[#adffd9]'
                                     : r.s === 'warn'
                                       ? 'text-amber-400'
-                                      : 'text-red-400'
+                                      : 'text-[#ffb4ad]'
                                 }`}
                               >
                                 {r.s === 'ok' ? 'ok' : r.s === 'warn' ? `warning · ${r.note}` : `breach · ${r.note}`}

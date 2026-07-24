@@ -40,7 +40,7 @@ export default function PlanUsageBar() {
             <button
               type="button"
               onClick={() => setUpgradeOpen(true)}
-              className="whitespace-nowrap rounded-lg border border-emerald-600/30 bg-emerald-600/[0.07] px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-emerald-700 transition-colors hover:bg-emerald-600/[0.12]"
+              className="whitespace-nowrap rounded-lg border border-[#10c689]/30 bg-[#10c689]/[0.07] px-5 py-2.5 text-xs font-medium uppercase tracking-wider-2 text-[#10c689] transition-colors hover:bg-[#10c689]/[0.12]"
             >
               Upgrade
             </button>
@@ -58,9 +58,9 @@ export default function PlanUsageBar() {
           <div className="rounded-lg border border-black/[0.06] bg-[#f7f7f8] p-4">
             <p className="text-[11px] uppercase tracking-wider-2 text-zinc-400">What&apos;s coming</p>
             <ul className="mt-3 space-y-2 text-sm text-zinc-600">
-              <li className="flex gap-2"><span className="text-emerald-600">›</span> Thousands of requests/day</li>
-              <li className="flex gap-2"><span className="text-emerald-600">›</span> Multiple production keys</li>
-              <li className="flex gap-2"><span className="text-emerald-600">›</span> Priority risk-engine throughput &amp; SLAs</li>
+              <li className="flex gap-2"><span className="text-[#10c689]">›</span> Thousands of requests/day</li>
+              <li className="flex gap-2"><span className="text-[#10c689]">›</span> Multiple production keys</li>
+              <li className="flex gap-2"><span className="text-[#10c689]">›</span> Priority risk-engine throughput &amp; SLAs</li>
             </ul>
           </div>
           <p className="text-sm text-zinc-600 leading-relaxed">
@@ -98,8 +98,8 @@ function PlanBadge({ state }: { state: State }) {
     <div>
       <p className="text-[11px] uppercase tracking-wider-2 text-zinc-400">Current plan</p>
       <div className="mt-1.5 flex items-center gap-2.5">
-        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/[0.07] px-2.5 py-1 text-xs font-medium uppercase tracking-wider-2 text-emerald-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#10c689]/30 bg-[#10c689]/[0.07] px-2.5 py-1 text-xs font-medium uppercase tracking-wider-2 text-[#10c689]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#10c689]" />
           {state.phase === 'loading' ? '···' : tierLabel(tier)}
         </span>
       </div>
@@ -138,7 +138,7 @@ function UsageMeter({ state }: { state: State }) {
         <div
           className={clsx(
             'h-full rounded-full transition-all duration-500',
-            loading ? 'skeleton w-1/3' : nearLimit ? 'bg-amber-500' : 'bg-emerald-600',
+            loading ? 'skeleton w-1/3' : nearLimit ? 'bg-amber-500' : 'bg-[#10c689]',
           )}
           style={loading ? undefined : { width: `${pct}%` }}
         />

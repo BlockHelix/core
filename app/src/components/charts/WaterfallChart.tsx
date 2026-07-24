@@ -10,10 +10,10 @@ const DATA: Step[] = [
 ];
 const START = 100;
 
-const UP = '#10b981';
-const DOWN = '#ef4444';
-const UP_TEXT = '#047857';
-const DOWN_TEXT = '#b91c1c';
+const UP = '#10c689';
+const DOWN = '#d62e1f';
+const UP_TEXT = '#10c689';
+const DOWN_TEXT = '#9a1c10';
 const MUTED = '#9ca3af';
 const GRID = '#e5e7eb';
 const INK = '#374151';

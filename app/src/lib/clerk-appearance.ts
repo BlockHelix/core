@@ -3,7 +3,7 @@
 // the card floats on the site's white background.
 export const clerkAppearance = {
   variables: {
-    colorPrimary: '#059669',
+    colorPrimary: '#10c689',
     colorText: '#0a0a0a',
     colorTextSecondary: '#52525b',
     colorBackground: '#ffffff',
@@ -15,8 +15,8 @@ export const clerkAppearance = {
   elements: {
     card: 'border border-black/10 shadow-xl',
     formButtonPrimary:
-      'bg-emerald-600 text-white hover:bg-emerald-500 text-sm font-medium tracking-widest uppercase',
-    footerActionLink: 'text-emerald-600 hover:text-emerald-500',
+      'bg-[#10c689] text-white hover:bg-[#10c689] text-sm font-medium tracking-widest uppercase',
+    footerActionLink: 'text-[#10c689] hover:text-[#10c689]',
     headerTitle: 'uppercase tracking-wider',
   },
 };

@@ -80,7 +80,7 @@ export default function DocsContent() {
         <header className="mb-10">
           <div className="flex items-center gap-3 mb-3">
             <p className="text-xs uppercase tracking-widest text-gray-400 font-mono">Docs</p>
-            <span className="text-[10px] uppercase tracking-widest font-mono px-2 py-0.5 border border-emerald-500/40 text-emerald-700 bg-emerald-50">
+            <span className="text-[10px] uppercase tracking-widest font-mono px-2 py-0.5 border border-[#10c689]/40 text-[#10c689] bg-[#eafaf3]">
               Live
             </span>
           </div>
@@ -93,7 +93,7 @@ export default function DocsContent() {
               href="https://api.blockhelix.tech/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-emerald-600 hover:text-emerald-500 font-mono text-xs underline underline-offset-2"
+              className="text-[#10c689] hover:text-[#10c689] font-mono text-xs underline underline-offset-2"
             >
               api.blockhelix.tech/docs ↗
             </a>
@@ -177,7 +177,7 @@ export default function DocsContent() {
           <div className="space-y-2">
             {ENDPOINTS.map(([ep, desc]) => (
               <div key={ep} className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 text-sm">
-                <code className="text-emerald-700 font-mono text-xs whitespace-pre md:w-72 shrink-0">{ep}</code>
+                <code className="text-[#10c689] font-mono text-xs whitespace-pre md:w-72 shrink-0">{ep}</code>
                 <span className="text-gray-500 text-xs">{desc}</span>
               </div>
             ))}
@@ -193,7 +193,7 @@ export default function DocsContent() {
               href="https://github.com/Veda-Labs/boring-vault/tree/bdc38405a02366cb5b25b358aa8e4a0b5ee3ae77"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-emerald-600 hover:text-emerald-500 font-mono text-xs underline underline-offset-2"
+              className="text-[#10c689] hover:text-[#10c689] font-mono text-xs underline underline-offset-2"
             >
               Veda-Labs/boring-vault@bdc38405 ↗
             </a>

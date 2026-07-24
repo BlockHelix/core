@@ -147,7 +147,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
                         </span>
                         <span className="text-zinc-500">
                           Aave{' '}
-                          <span className={clsx('ml-1', supplied ? 'text-emerald-700' : 'text-zinc-300')}>
+                          <span className={clsx('ml-1', supplied ? 'text-[#10c689]' : 'text-zinc-300')}>
                             {supplied ? fmt(b.supplied, b.decimals, 2) : '—'}
                           </span>
                           {b.supplyApy != null && b.supplyApy > 0 && (
@@ -165,7 +165,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
           <div className="mt-4 rounded-xl border border-dashed border-black/[0.12] bg-zinc-50/60 p-5">
             <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Attribution</p>
             <p className="mt-1.5 text-sm text-zinc-500">
-              P&amp;L attribution and NAV history — <span className="text-emerald-700">coming soon</span>.
+              P&amp;L attribution and NAV history — <span className="text-[#10c689]">coming soon</span>.
             </p>
           </div>
         </>
