@@ -179,6 +179,7 @@ export interface AttributionRow {
   deltaNav: number | null;
   residual: number | null;
   drivers: Record<string, number> | null;
+  metrics: Record<string, number> | null;
 }
 
 export async function getAttribution(): Promise<{ loaded: boolean; items: AttributionRow[] }> {
@@ -200,6 +201,7 @@ export async function getAttribution(): Promise<{ loaded: boolean; items: Attrib
       deltaNav: r.delta_nav == null ? null : Number(r.delta_nav),
       residual: r.residual == null ? null : Number(r.residual),
       drivers: r.drivers && typeof r.drivers === 'object' ? (r.drivers as Record<string, number>) : null,
+      metrics: r.metrics && typeof r.metrics === 'object' ? (r.metrics as Record<string, number>) : null,
     })),
   };
 }
