@@ -168,6 +168,22 @@ export async function listAdminUsers(): Promise<AdminUser[]> {
 
 // DEF-107 attribution read model. The `attribution` schema is written by the worker's
 // attribution-cli; the backend returns { loaded, items } and degrades to empty if unrun.
+export interface AttributionMetrics {
+  leverage?: number;
+  collateral_usd?: number;
+  debt_usd?: number;
+  equity_usd?: number;
+  borrow_apr?: number;
+  reward_apr?: number;
+  rewards_usd?: number;
+  net_economic_usd?: number;
+  cash_apy?: number;
+  net_apy?: number;
+  forward_apy?: number;
+  holding_days?: number;
+  series?: Array<{ t: number; v: number }>;
+}
+
 export interface AttributionRow {
   id: string;
   label: string | null;
@@ -179,7 +195,7 @@ export interface AttributionRow {
   deltaNav: number | null;
   residual: number | null;
   drivers: Record<string, number> | null;
-  metrics: Record<string, number> | null;
+  metrics: AttributionMetrics | null;
 }
 
 export async function getAttribution(): Promise<{ loaded: boolean; items: AttributionRow[] }> {
@@ -201,7 +217,7 @@ export async function getAttribution(): Promise<{ loaded: boolean; items: Attrib
       deltaNav: r.delta_nav == null ? null : Number(r.delta_nav),
       residual: r.residual == null ? null : Number(r.residual),
       drivers: r.drivers && typeof r.drivers === 'object' ? (r.drivers as Record<string, number>) : null,
-      metrics: r.metrics && typeof r.metrics === 'object' ? (r.metrics as Record<string, number>) : null,
+      metrics: r.metrics && typeof r.metrics === 'object' ? (r.metrics as AttributionMetrics) : null,
     })),
   };
 }
