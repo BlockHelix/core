@@ -166,6 +166,44 @@ export async function listAdminUsers(): Promise<AdminUser[]> {
   return rows.map((r) => ({ ...r, email: emails[r.userId] ?? null }));
 }
 
+// DEF-107 attribution read model. The `attribution` schema is written by the worker's
+// attribution-cli; the backend returns { loaded, items } and degrades to empty if unrun.
+export interface AttributionRow {
+  id: string;
+  label: string | null;
+  chainId: number;
+  kind: string;
+  collateralAsset: string | null;
+  loanAsset: string | null;
+  navEnd: number | null;
+  deltaNav: number | null;
+  residual: number | null;
+  drivers: Record<string, number> | null;
+}
+
+export async function getAttribution(): Promise<{ loaded: boolean; items: AttributionRow[] }> {
+  const body = (await adminUpstream('/admin/attribution')) as {
+    loaded?: boolean;
+    items?: Array<Record<string, unknown>>;
+  } | null;
+  const items = Array.isArray(body?.items) ? body!.items : [];
+  return {
+    loaded: Boolean(body?.loaded),
+    items: items.map((r) => ({
+      id: String(r.id ?? ''),
+      label: typeof r.label === 'string' ? r.label : null,
+      chainId: Number(r.chain_id ?? 0),
+      kind: String(r.kind ?? ''),
+      collateralAsset: typeof r.collateral_asset === 'string' ? r.collateral_asset : null,
+      loanAsset: typeof r.loan_asset === 'string' ? r.loan_asset : null,
+      navEnd: r.nav_end == null ? null : Number(r.nav_end),
+      deltaNav: r.delta_nav == null ? null : Number(r.delta_nav),
+      residual: r.residual == null ? null : Number(r.residual),
+      drivers: r.drivers && typeof r.drivers === 'object' ? (r.drivers as Record<string, number>) : null,
+    })),
+  };
+}
+
 // Delete a deployment record (DB-only). The on-chain vault is immutable and
 // unaffected. Idempotent upstream (204 even if already gone).
 export async function deleteDeployment(id: string): Promise<void> {

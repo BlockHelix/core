@@ -1,14 +1,14 @@
 import { scaleLinear } from 'd3-scale';
 
-type Step = { k: string; v: number };
+export type Step = { k: string; v: number };
 
-const DATA: Step[] = [
+// Homepage sample; the admin attribution page passes real drivers via props.
+const DEFAULT_DATA: Step[] = [
   { k: 'carry', v: 6 },
   { k: 'slippage', v: -4 },
   { k: 'borrow cost', v: -3 },
   { k: 'price move', v: -1 },
 ];
-const START = 100;
 
 const UP = '#10c689';
 const DOWN = '#d62e1f';
@@ -25,25 +25,33 @@ const M = { top: 36, right: 12, bottom: 30, left: 12 };
 
 // Additive P&L decomposition. Each column floats at its running total, connected
 // to the next, so the deltas trace the path from entry NAV to exit NAV.
-export default function WaterfallChart() {
+export default function WaterfallChart({
+  data = DEFAULT_DATA,
+  start = 100,
+  ariaLabel,
+}: {
+  data?: Step[];
+  start?: number;
+  ariaLabel?: string;
+}) {
   const iw = W - M.left - M.right;
   const ih = H - M.top - M.bottom;
 
-  let run = START;
-  const steps = DATA.map((d) => {
+  let run = start;
+  const steps = data.map((d) => {
     const y0 = run;
     run += d.v;
     return { ...d, y0, y1: run };
   });
 
-  const vals = [START, ...steps.map((s) => s.y1)];
+  const vals = [start, ...steps.map((s) => s.y1)];
   const dmin = Math.min(...vals);
   const dmax = Math.max(...vals);
-  const pad = (dmax - dmin) * 0.5;
+  const pad = (dmax - dmin) * 0.5 || 1;
 
   const y = scaleLinear().domain([dmin - pad, dmax + pad]).range([ih, 0]);
 
-  const n = steps.length;
+  const n = steps.length || 1;
   const step = iw / n;
   const bw = Math.min(step * 0.4, 34);
   const colLeft = (i: number) => i * step + (step - bw) / 2;
@@ -53,10 +61,10 @@ export default function WaterfallChart() {
       viewBox={`0 0 ${W} ${H}`}
       className="w-full h-auto"
       role="img"
-      aria-label="Profit and loss attribution waterfall. Carry adds $6.00, slippage subtracts $4.00, borrow cost subtracts $3.00, price move subtracts $1.00, moving NAV from $100.00 to $98.00."
+      aria-label={ariaLabel ?? 'Profit and loss attribution waterfall from entry NAV to exit NAV.'}
     >
       <g transform={`translate(${M.left},${M.top})`}>
-        <line x1={0} x2={iw} y1={y(START)} y2={y(START)} stroke={GRID} strokeWidth={1} />
+        <line x1={0} x2={iw} y1={y(start)} y2={y(start)} stroke={GRID} strokeWidth={1} />
         {steps.map((s, i) => {
           const cx = colLeft(i);
           const top = y(Math.max(s.y0, s.y1));
