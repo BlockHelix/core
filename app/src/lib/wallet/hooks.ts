@@ -15,6 +15,19 @@ function errMessage(err: unknown): string {
   return 'Transaction failed';
 }
 
+// Wait for the mined receipt and throw if it reverted. A reverted tx still gets a
+// hash and is still mined, so without this check a failed write resolves as success
+// and the UI shows it as complete.
+async function assertMined(
+  publicClient: ReturnType<typeof usePublicClient>,
+  hash: Hex,
+  revertMsg: string,
+): Promise<void> {
+  if (!publicClient) return;
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== 'success') throw new Error(revertMsg);
+}
+
 // Make sure the connected wallet is on Base before sending a write. wagmi will
 // prompt the wallet to switch networks; if it refuses the action surfaces the error.
 function useEnsureBase() {
@@ -37,16 +50,26 @@ interface MultiTxState {
 // target component (manager, teller, accountant) sequentially, collecting hashes.
 function usePausableAction(functionName: 'pause' | 'unpause') {
   const ensureBase = useEnsureBase();
+  const { address: account } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
   const [state, setState] = useState<MultiTxState>({ isPending: false, error: null, hashes: [] });
 
   const run = useCallback(
     async (targets: Address[]): Promise<Hex[]> => {
       setState({ isPending: true, error: null, hashes: [] });
       try {
+        if (!publicClient) throw new Error('No RPC client available');
         await ensureBase();
         const hashes: Hex[] = [];
         for (const address of targets) {
+          await publicClient.simulateContract({
+            account,
+            address,
+            abi: PAUSABLE_ABI,
+            functionName,
+            args: [],
+          });
           const hash = await writeContractAsync({
             address,
             abi: PAUSABLE_ABI,
@@ -56,6 +79,7 @@ function usePausableAction(functionName: 'pause' | 'unpause') {
           });
           hashes.push(hash);
           setState((s) => ({ ...s, hashes: [...s.hashes, hash] }));
+          await assertMined(publicClient, hash, `${functionName} reverted`);
         }
         setState((s) => ({ ...s, isPending: false }));
         return hashes;
@@ -64,7 +88,7 @@ function usePausableAction(functionName: 'pause' | 'unpause') {
         throw err;
       }
     },
-    [ensureBase, functionName, writeContractAsync],
+    [account, ensureBase, functionName, publicClient, writeContractAsync],
   );
 
   const reset = useCallback(() => setState({ isPending: false, error: null, hashes: [] }), []);
@@ -93,14 +117,24 @@ interface SingleTxState {
 // accountant.updateExchangeRate(uint96 newExchangeRate).
 export function useUpdateExchangeRate() {
   const ensureBase = useEnsureBase();
+  const { address: account } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
 
   const updateExchangeRate = useCallback(
     async (accountant: Address, newExchangeRate: bigint): Promise<Hex> => {
       setState({ isPending: true, error: null, hash: null });
       try {
+        if (!publicClient) throw new Error('No RPC client available');
         await ensureBase();
+        await publicClient.simulateContract({
+          account,
+          address: accountant,
+          abi: ACCOUNTANT_ABI,
+          functionName: 'updateExchangeRate',
+          args: [newExchangeRate],
+        });
         const hash = await writeContractAsync({
           address: accountant,
           abi: ACCOUNTANT_ABI,
@@ -108,6 +142,8 @@ export function useUpdateExchangeRate() {
           args: [newExchangeRate],
           chainId: BASE_CHAIN_ID,
         });
+        setState({ isPending: true, error: null, hash });
+        await assertMined(publicClient, hash, 'updateExchangeRate reverted');
         setState({ isPending: false, error: null, hash });
         return hash;
       } catch (err) {
@@ -115,7 +151,7 @@ export function useUpdateExchangeRate() {
         throw err;
       }
     },
-    [ensureBase, writeContractAsync],
+    [account, ensureBase, publicClient, writeContractAsync],
   );
 
   const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
@@ -168,10 +204,18 @@ export function useDeposit() {
           });
           hashes.push(approveHash);
           setState({ phase: 'approving', error: null, hashes: [...hashes] });
-          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+          await assertMined(publicClient, approveHash, 'Approval reverted');
         }
 
         setState((s) => ({ ...s, phase: 'depositing' }));
+        // Pre-flight the deposit now that the allowance is set, so a revert surfaces before signing.
+        await publicClient.simulateContract({
+          account: address,
+          address: teller,
+          abi: TELLER_ABI,
+          functionName: 'deposit',
+          args: [asset, amount, 0n],
+        });
         const depositHash = await writeContractAsync({
           address: teller,
           abi: TELLER_ABI,
@@ -181,8 +225,7 @@ export function useDeposit() {
         });
         hashes.push(depositHash);
         setState({ phase: 'depositing', error: null, hashes: [...hashes] });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: depositHash });
-        if (receipt.status !== 'success') throw new Error('Deposit transaction reverted');
+        await assertMined(publicClient, depositHash, 'Deposit transaction reverted');
 
         setState({ phase: 'done', error: null, hashes });
         return depositHash;
@@ -241,10 +284,18 @@ export function useRequestWithdraw() {
           });
           hashes.push(approveHash);
           setState({ phase: 'approving', error: null, hashes: [...hashes] });
-          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+          await assertMined(publicClient, approveHash, 'Approval reverted');
         }
 
         setState((s) => ({ ...s, phase: 'depositing' }));
+        // Pre-flight the request now that the share allowance is set.
+        await publicClient.simulateContract({
+          account: address,
+          address: delayedWithdrawer,
+          abi: DELAYED_WITHDRAW_ABI,
+          functionName: 'requestWithdraw',
+          args: [asset, shares, 0, true],
+        });
         const reqHash = await writeContractAsync({
           address: delayedWithdrawer,
           abi: DELAYED_WITHDRAW_ABI,
@@ -254,8 +305,7 @@ export function useRequestWithdraw() {
         });
         hashes.push(reqHash);
         setState({ phase: 'depositing', error: null, hashes: [...hashes] });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: reqHash });
-        if (receipt.status !== 'success') throw new Error('Withdraw request reverted');
+        await assertMined(publicClient, reqHash, 'Withdraw request reverted');
 
         setState({ phase: 'done', error: null, hashes });
         return reqHash;
@@ -274,6 +324,7 @@ export function useRequestWithdraw() {
 // completeWithdraw(asset, account) — callable once past maturity, within the completion window.
 export function useCompleteWithdraw() {
   const ensureBase = useEnsureBase();
+  const { address: caller } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
@@ -282,7 +333,15 @@ export function useCompleteWithdraw() {
     async (params: { delayedWithdrawer: Address; asset: Address; account: Address }): Promise<Hex> => {
       setState({ isPending: true, error: null, hash: null });
       try {
+        if (!publicClient) throw new Error('No RPC client available');
         await ensureBase();
+        await publicClient.simulateContract({
+          account: caller,
+          address: params.delayedWithdrawer,
+          abi: DELAYED_WITHDRAW_ABI,
+          functionName: 'completeWithdraw',
+          args: [params.asset, params.account],
+        });
         const hash = await writeContractAsync({
           address: params.delayedWithdrawer,
           abi: DELAYED_WITHDRAW_ABI,
@@ -291,7 +350,7 @@ export function useCompleteWithdraw() {
           chainId: BASE_CHAIN_ID,
         });
         setState({ isPending: true, error: null, hash });
-        if (publicClient) await publicClient.waitForTransactionReceipt({ hash });
+        await assertMined(publicClient, hash, 'Withdraw completion reverted');
         setState({ isPending: false, error: null, hash });
         return hash;
       } catch (err) {
@@ -299,7 +358,7 @@ export function useCompleteWithdraw() {
         throw err;
       }
     },
-    [ensureBase, publicClient, writeContractAsync],
+    [caller, ensureBase, publicClient, writeContractAsync],
   );
   const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
   return { completeWithdraw, reset, ...state };
@@ -308,6 +367,7 @@ export function useCompleteWithdraw() {
 // cancelWithdraw(asset) — reclaim the escrowed shares.
 export function useCancelWithdraw() {
   const ensureBase = useEnsureBase();
+  const { address: caller } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
@@ -316,7 +376,15 @@ export function useCancelWithdraw() {
     async (params: { delayedWithdrawer: Address; asset: Address }): Promise<Hex> => {
       setState({ isPending: true, error: null, hash: null });
       try {
+        if (!publicClient) throw new Error('No RPC client available');
         await ensureBase();
+        await publicClient.simulateContract({
+          account: caller,
+          address: params.delayedWithdrawer,
+          abi: DELAYED_WITHDRAW_ABI,
+          functionName: 'cancelWithdraw',
+          args: [params.asset],
+        });
         const hash = await writeContractAsync({
           address: params.delayedWithdrawer,
           abi: DELAYED_WITHDRAW_ABI,
@@ -325,7 +393,7 @@ export function useCancelWithdraw() {
           chainId: BASE_CHAIN_ID,
         });
         setState({ isPending: true, error: null, hash });
-        if (publicClient) await publicClient.waitForTransactionReceipt({ hash });
+        await assertMined(publicClient, hash, 'Withdraw cancellation reverted');
         setState({ isPending: false, error: null, hash });
         return hash;
       } catch (err) {
@@ -333,7 +401,7 @@ export function useCancelWithdraw() {
         throw err;
       }
     },
-    [ensureBase, publicClient, writeContractAsync],
+    [caller, ensureBase, publicClient, writeContractAsync],
   );
   const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
   return { cancelWithdraw, reset, ...state };
