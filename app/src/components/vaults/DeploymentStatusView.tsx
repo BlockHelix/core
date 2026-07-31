@@ -284,6 +284,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                 vault={record.addresses.boringVault}
                 delayedWithdrawer={record.addresses.delayedWithdrawer}
                 asset={record.baseAsset}
+                accountant={record.addresses.accountant}
                 symbol="USDC"
                 shareDecimals={6}
                 onChanged={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}

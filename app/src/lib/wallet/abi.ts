@@ -15,6 +15,13 @@ export const ACCOUNTANT_ABI = [
     inputs: [{ name: 'newExchangeRate', type: 'uint96' }],
     outputs: [],
   },
+  {
+    type: 'function',
+    name: 'getRate',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
 ] as const;
 
 // Veda TellerWithMultiAssetSupport: deposit(depositAsset, depositAmount, minimumMint) -> shares.

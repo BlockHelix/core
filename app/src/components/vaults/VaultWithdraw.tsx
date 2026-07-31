@@ -5,7 +5,7 @@ import { formatUnits, parseUnits, type Address } from 'viem';
 import { useAccount, useReadContract } from 'wagmi';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { useCancelWithdraw, useCompleteWithdraw, useRequestWithdraw } from '@/lib/wallet/hooks';
-import { DELAYED_WITHDRAW_ABI, ERC20_ABI } from '@/lib/wallet/abi';
+import { ACCOUNTANT_ABI, DELAYED_WITHDRAW_ABI, ERC20_ABI } from '@/lib/wallet/abi';
 import { BASE_CHAIN_ID, BASESCAN_URL } from '@/lib/vault-types';
 
 // Vault default: a completed request stays completable for 7 days past maturity.
@@ -25,6 +25,7 @@ export default function VaultWithdraw({
   vault,
   delayedWithdrawer,
   asset,
+  accountant,
   symbol,
   shareDecimals,
   onChanged,
@@ -32,6 +33,7 @@ export default function VaultWithdraw({
   vault: string;
   delayedWithdrawer: string;
   asset: string;
+  accountant?: string | null;
   symbol: string;
   shareDecimals: number;
   onChanged?: () => void;
@@ -69,6 +71,32 @@ export default function VaultWithdraw({
   const pendingShares = asBig(tuple[3]);
   const maturity = asNum(tuple[2]);
   const hasPending = pendingShares > 0n;
+  const reqRate = asBig(tuple[4]);
+
+  // Liquidity truth for a pending request: completion pays shares * min(request rate, current
+  // rate) and reverts unless the vault's idle base covers it. Read both so the panel can say
+  // whether Complete will actually succeed instead of just "matured".
+  const { data: rateData } = useReadContract({
+    address: (accountant ?? undefined) as Address | undefined,
+    abi: ACCOUNTANT_ABI,
+    functionName: 'getRate',
+    chainId: BASE_CHAIN_ID,
+    query: { enabled: !!accountant && hasPending, refetchInterval: 30_000 },
+  });
+  const { data: idleData } = useReadContract({
+    address: asset as Address,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: [vault as Address],
+    chainId: BASE_CHAIN_ID,
+    query: { enabled: hasPending, refetchInterval: 30_000 },
+  });
+  const curRate = typeof rateData === 'bigint' ? rateData : 0n;
+  const idleBase = typeof idleData === 'bigint' ? idleData : null;
+  const minRate = curRate > 0n && reqRate > 0n ? (curRate < reqRate ? curRate : reqRate) : 0n;
+  const expectedPayout = minRate > 0n ? (pendingShares * minRate) / 10n ** BigInt(shareDecimals) : 0n;
+  const liquidityShort =
+    expectedPayout > 0n && idleBase != null && idleBase < expectedPayout ? expectedPayout - idleBase : 0n;
 
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
@@ -157,13 +185,27 @@ export default function VaultWithdraw({
               <span className="font-data text-lg text-zinc-950">{formatUnits(pendingShares, shareDecimals)}</span>
               <span className="text-[11px] uppercase tracking-wider-2 text-zinc-400">shares pending</span>
             </div>
+            {expectedPayout > 0n && (
+              <p className="mt-1 text-xs text-zinc-500">
+                Payout at the current rate: ~{formatUnits(expectedPayout, shareDecimals)} {symbol}
+              </p>
+            )}
             <p className="mt-1 text-xs text-zinc-500">
               {expired
                 ? 'Request expired — cancel to reclaim your shares.'
                 : matured
-                  ? 'Matured — ready to complete.'
+                  ? liquidityShort > 0n
+                    ? 'Matured — waiting on vault liquidity.'
+                    : 'Matured — ready to complete.'
                   : `Completable in ${fmtEta(maturity - now)}.`}
             </p>
+            {matured && !expired && liquidityShort > 0n && (
+              <p className="mt-2 text-xs text-amber-600">
+                The vault is {formatUnits(liquidityShort, shareDecimals)} {symbol} short of this payout right now.
+                Liquidity is freed automatically and the payout re-prices at the next NAV update, so completing
+                usually clears within a few hours. Retry later or cancel to reclaim your shares.
+              </p>
+            )}
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
