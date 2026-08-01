@@ -156,7 +156,7 @@ export default async function AdminAttributionPage() {
                             title={`// ECON P&L · ${address.slice(0, 6)}… · ${fmtDate(series[0]?.t)}–${fmtDate(series[series.length - 1]?.t)}`}
                             startLabel={fmtDate(series[0]?.t)}
                             endLabel={fmtDate(series[series.length - 1]?.t)}
-                            markerLabel="SCALE-UP"
+                            markerLabel="SHIFT"
                             format={compact}
                           />
                         </div>
