@@ -22,6 +22,15 @@ export const ACCOUNTANT_ABI = [
     inputs: [],
     outputs: [{ type: 'uint256' }],
   },
+  { type: 'error', name: 'AccountantWithRateProviders__UpperBoundTooSmall', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__LowerBoundTooLarge', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__ManagementFeeTooLarge', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__PerformanceFeeTooLarge', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__Paused', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__ZeroFeesOwed', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__OnlyCallableByBoringVault', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__UpdateDelayTooLarge', inputs: [] },
+  { type: 'error', name: 'AccountantWithRateProviders__ExchangeRateAboveHighwaterMark', inputs: [] },
 ] as const;
 
 // Veda TellerWithMultiAssetSupport: deposit(depositAsset, depositAmount, minimumMint) -> shares.
@@ -38,6 +47,27 @@ export const TELLER_ABI = [
       { name: 'minimumMint', type: 'uint256' },
     ],
     outputs: [{ name: 'shares', type: 'uint256' }],
+  },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__ShareLockPeriodTooLong', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__SharesAreLocked', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__SharesAreUnLocked', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__BadDepositHash', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__AssetNotSupported', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__ZeroAssets', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__MinimumMintNotMet', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__MinimumAssetsNotMet', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__PermitFailedAndAllowanceTooLow', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__ZeroShares', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__DualDeposit', inputs: [] },
+  { type: 'error', name: 'TellerWithMultiAssetSupport__Paused', inputs: [] },
+  {
+    type: 'error',
+    name: 'TellerWithMultiAssetSupport__TransferDenied',
+    inputs: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'operator', type: 'address' },
+    ],
   },
 ] as const;
 
@@ -90,6 +120,19 @@ export const DELAYED_WITHDRAW_ABI = [
       { name: 'exchangeRateAtTimeOfRequest', type: 'uint96' },
     ],
   },
+  { type: 'error', name: 'DelayedWithdraw__WithdrawFeeTooHigh', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__MaxLossTooLarge', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__AlreadySetup', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__WithdrawsNotAllowed', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__WithdrawNotMatured', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__NoSharesToWithdraw', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__MaxLossExceeded', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__BadAddress', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__ThirdPartyCompletionNotAllowed', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__RequestPastCompletionWindow', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__Paused', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__CallerNotBoringVault', inputs: [] },
+  { type: 'error', name: 'DelayedWithdraw__CannotWithdrawBoringToken', inputs: [] },
 ] as const;
 
 // Minimal ERC20 for the deposit approve / allowance / balance flow.

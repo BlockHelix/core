@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from 'wagmi';
 import type { Address, Hex } from 'viem';
 import { BASE_CHAIN_ID } from '@/lib/vault-types';
@@ -53,6 +54,7 @@ function usePausableAction(functionName: 'pause' | 'unpause') {
   const { address: account } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const queryClient = useQueryClient();
   const [state, setState] = useState<MultiTxState>({ isPending: false, error: null, hashes: [] });
 
   const run = useCallback(
@@ -81,6 +83,7 @@ function usePausableAction(functionName: 'pause' | 'unpause') {
           setState((s) => ({ ...s, hashes: [...s.hashes, hash] }));
           await assertMined(publicClient, hash, `${functionName} reverted`);
         }
+        void queryClient.invalidateQueries();
         setState((s) => ({ ...s, isPending: false }));
         return hashes;
       } catch (err) {
@@ -88,7 +91,7 @@ function usePausableAction(functionName: 'pause' | 'unpause') {
         throw err;
       }
     },
-    [account, ensureBase, functionName, publicClient, writeContractAsync],
+    [account, ensureBase, functionName, publicClient, queryClient, writeContractAsync],
   );
 
   const reset = useCallback(() => setState({ isPending: false, error: null, hashes: [] }), []);
@@ -120,6 +123,7 @@ export function useUpdateExchangeRate() {
   const { address: account } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const queryClient = useQueryClient();
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
 
   const updateExchangeRate = useCallback(
@@ -144,6 +148,7 @@ export function useUpdateExchangeRate() {
         });
         setState({ isPending: true, error: null, hash });
         await assertMined(publicClient, hash, 'updateExchangeRate reverted');
+        void queryClient.invalidateQueries();
         setState({ isPending: false, error: null, hash });
         return hash;
       } catch (err) {
@@ -151,7 +156,7 @@ export function useUpdateExchangeRate() {
         throw err;
       }
     },
-    [account, ensureBase, publicClient, writeContractAsync],
+    [account, ensureBase, publicClient, queryClient, writeContractAsync],
   );
 
   const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
@@ -175,6 +180,7 @@ export function useDeposit() {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const queryClient = useQueryClient();
   const [state, setState] = useState<DepositState>({ phase: 'idle', error: null, hashes: [] });
 
   const deposit = useCallback(
@@ -227,6 +233,7 @@ export function useDeposit() {
         setState({ phase: 'depositing', error: null, hashes: [...hashes] });
         await assertMined(publicClient, depositHash, 'Deposit transaction reverted');
 
+        void queryClient.invalidateQueries();
         setState({ phase: 'done', error: null, hashes });
         return depositHash;
       } catch (err) {
@@ -234,7 +241,7 @@ export function useDeposit() {
         throw err;
       }
     },
-    [address, ensureBase, publicClient, writeContractAsync],
+    [address, ensureBase, publicClient, queryClient, writeContractAsync],
   );
 
   const reset = useCallback(() => setState({ phase: 'idle', error: null, hashes: [] }), []);
@@ -250,6 +257,7 @@ export function useRequestWithdraw() {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const queryClient = useQueryClient();
   const [state, setState] = useState<DepositState>({ phase: 'idle', error: null, hashes: [] });
 
   const requestWithdraw = useCallback(
@@ -307,6 +315,7 @@ export function useRequestWithdraw() {
         setState({ phase: 'depositing', error: null, hashes: [...hashes] });
         await assertMined(publicClient, reqHash, 'Withdraw request reverted');
 
+        void queryClient.invalidateQueries();
         setState({ phase: 'done', error: null, hashes });
         return reqHash;
       } catch (err) {
@@ -314,7 +323,7 @@ export function useRequestWithdraw() {
         throw err;
       }
     },
-    [address, ensureBase, publicClient, writeContractAsync],
+    [address, ensureBase, publicClient, queryClient, writeContractAsync],
   );
 
   const reset = useCallback(() => setState({ phase: 'idle', error: null, hashes: [] }), []);
@@ -327,6 +336,7 @@ export function useCompleteWithdraw() {
   const { address: caller } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const queryClient = useQueryClient();
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
 
   const completeWithdraw = useCallback(
@@ -351,6 +361,7 @@ export function useCompleteWithdraw() {
         });
         setState({ isPending: true, error: null, hash });
         await assertMined(publicClient, hash, 'Withdraw completion reverted');
+        void queryClient.invalidateQueries();
         setState({ isPending: false, error: null, hash });
         return hash;
       } catch (err) {
@@ -358,7 +369,7 @@ export function useCompleteWithdraw() {
         throw err;
       }
     },
-    [caller, ensureBase, publicClient, writeContractAsync],
+    [caller, ensureBase, publicClient, queryClient, writeContractAsync],
   );
   const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
   return { completeWithdraw, reset, ...state };
@@ -370,6 +381,7 @@ export function useCancelWithdraw() {
   const { address: caller } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const queryClient = useQueryClient();
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
 
   const cancelWithdraw = useCallback(
@@ -394,6 +406,7 @@ export function useCancelWithdraw() {
         });
         setState({ isPending: true, error: null, hash });
         await assertMined(publicClient, hash, 'Withdraw cancellation reverted');
+        void queryClient.invalidateQueries();
         setState({ isPending: false, error: null, hash });
         return hash;
       } catch (err) {
@@ -401,7 +414,7 @@ export function useCancelWithdraw() {
         throw err;
       }
     },
-    [caller, ensureBase, publicClient, writeContractAsync],
+    [caller, ensureBase, publicClient, queryClient, writeContractAsync],
   );
   const reset = useCallback(() => setState({ isPending: false, error: null, hash: null }), []);
   return { cancelWithdraw, reset, ...state };
