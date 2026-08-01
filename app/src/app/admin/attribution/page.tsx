@@ -139,12 +139,13 @@ export default async function AdminAttributionPage() {
                         </div>
 
                         {/* metrics strip */}
-                        <div className="grid grid-cols-2 gap-y-5 gap-x-4 border-t border-dashed border-gray-200 px-4 py-5 sm:grid-cols-5 sm:px-6">
+                        <div className="grid grid-cols-2 gap-y-5 gap-x-4 border-t border-dashed border-gray-200 px-4 py-5 sm:grid-cols-3 lg:grid-cols-6 sm:px-6">
                           {stat('leverage', `${(m.leverage ?? 0).toFixed(1)}x`)}
                           {stat('equity', compact(m.equity_usd ?? 0))}
                           {stat('borrow apr', `${(m.borrow_apr ?? 0).toFixed(2)}%`, RED)}
                           {stat('reward apr', `${(m.reward_apr ?? 0).toFixed(2)}%`, GREEN)}
-                          {stat('net apy', pct(m.net_apy ?? 0), (m.net_apy ?? 0) < 0 ? RED : GREEN)}
+                          {stat('realized apy', pct(m.net_apy ?? 0), (m.net_apy ?? 0) < 0 ? RED : GREEN)}
+                          {stat('fwd apy · $1 now', pct(m.forward_apy ?? 0), (m.forward_apy ?? 0) < 0 ? RED : GREEN)}
                         </div>
 
                         {/* economic-value line */}
@@ -159,6 +160,21 @@ export default async function AdminAttributionPage() {
                             format={compact}
                           />
                         </div>
+
+                        {/* realized APY over time: what a dollar in the book was earning, annualized */}
+                        {(m.apy_series?.length ?? 0) > 1 && (
+                          <div className="border-t border-dashed border-gray-200 px-4 py-5 sm:px-6">
+                            <NavLine
+                              series={m.apy_series}
+                              refValue={0}
+                              title={`// REALIZED APY · 30D ROLLING · ${address.slice(0, 6)}…`}
+                              startLabel={fmtDate(m.apy_series?.[0]?.t)}
+                              endLabel={fmtDate(m.apy_series?.[m.apy_series.length - 1]?.t)}
+                              markerLabel=""
+                              format={pct}
+                            />
+                          </div>
+                        )}
 
                         {/* itemised trace */}
                         <div className="border-t border-dashed border-gray-200 px-4 py-5 sm:px-6">
@@ -186,7 +202,12 @@ export default async function AdminAttributionPage() {
                             <span className="font-semibold" style={{ color: netEconomic < 0 ? RED : GREEN }}>
                               net {full(netEconomic)}
                             </span>{' '}
-                            at {(m.leverage ?? 0).toFixed(1)}x.{upside ? ` ${upside}` : ''}
+                            at {(m.leverage ?? 0).toFixed(1)}x. Realized APY is measured on the time-weighted equity, so
+                            it is what a dollar in the book actually earned. A dollar added now makes about{' '}
+                            <span className="font-semibold" style={{ color: (m.forward_apy ?? 0) < 0 ? RED : GREEN }}>
+                              {pct(m.forward_apy ?? 0)}
+                            </span>{' '}
+                            at current rates and this leverage.{upside ? ` ${upside}` : ''}
                           </p>
                         </div>
                       </div>

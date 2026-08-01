@@ -173,8 +173,10 @@ export interface AttributionMetrics {
   collateral_usd?: number;
   debt_usd?: number;
   equity_usd?: number;
+  avg_equity_usd?: number;
   borrow_apr?: number;
   reward_apr?: number;
+  coll_yield_apr?: number;
   rewards_usd?: number;
   net_economic_usd?: number;
   cash_apy?: number;
@@ -182,6 +184,7 @@ export interface AttributionMetrics {
   forward_apy?: number;
   holding_days?: number;
   series?: Array<{ t: number; v: number }>;
+  apy_series?: Array<{ t: number; v: number }>;
 }
 
 export interface AttributionRow {
