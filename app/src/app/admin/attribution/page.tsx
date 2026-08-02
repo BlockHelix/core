@@ -144,7 +144,7 @@ export default async function AdminAttributionPage() {
                           {stat('equity', compact(m.equity_usd ?? 0))}
                           {stat('borrow apr', `${(m.borrow_apr ?? 0).toFixed(2)}%`, RED)}
                           {stat('reward apr', `${(m.reward_apr ?? 0).toFixed(2)}%`, GREEN)}
-                          {stat('realized apy', pct(m.net_apy ?? 0), (m.net_apy ?? 0) < 0 ? RED : GREEN)}
+                          {stat(`realized apy · ${Math.round(m.holding_days ?? 0)}d held`, pct(m.net_apy ?? 0), (m.net_apy ?? 0) < 0 ? RED : GREEN)}
                           {stat('fwd apy · $1 now', pct(m.forward_apy ?? 0), (m.forward_apy ?? 0) < 0 ? RED : GREEN)}
                         </div>
 
