@@ -15,7 +15,7 @@ export default function SignUpPage() {
   return (
     <div className="flex flex-col items-center py-16 px-6">
       <p className="mb-8 text-sm text-gray-500 max-w-md text-center">
-        Sign-ups are full for now. Join the waitlist and we will email you when a place opens.
+        We onboard in small batches. Join the waitlist and we will email you when the next batch opens.
       </p>
       <Waitlist />
     </div>

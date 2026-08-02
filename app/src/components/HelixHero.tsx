@@ -45,7 +45,7 @@ export default function HelixHero() {
               Colosseum hackathon <span className="font-medium bg-[#adffd9] text-gray-900 px-1.5 py-0.5 rounded-md">3rd out of 454 projects</span>
             </p>
 
-            <p className="text-sm text-gray-500 mb-4">Sign-ups are full for now.</p>
+            <p className="text-sm text-gray-500 mb-4">We onboard in small batches.</p>
             <div className="flex items-center justify-center lg:justify-start gap-4">
               <Link
                 href="/sign-up"
