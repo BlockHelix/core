@@ -18,7 +18,7 @@ const DRIVER_REF: Record<string, string> = {
   carry: 'collateral yield accrued',
   mark: 'collateral mark to oracle',
   borrow_interest: 'interest accrued · Morpho',
-  friction: 'entry-swap slippage',
+  friction: 'loop swap cost · measured lower bound',
   fees: 'protocol fees',
   incidents: 'liquidations',
 };
