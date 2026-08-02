@@ -45,12 +45,13 @@ export default function HelixHero() {
               Colosseum hackathon <span className="font-medium bg-[#adffd9] text-gray-900 px-1.5 py-0.5 rounded-md">3rd out of 454 projects</span>
             </p>
 
+            <p className="text-sm text-gray-500 mb-4">Sign-ups are full for now.</p>
             <div className="flex items-center justify-center lg:justify-start gap-4">
               <Link
                 href="/sign-up"
                 className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium bg-[#adffd9] text-gray-900 hover:bg-[#8ceec8] transition-all duration-300 whitespace-nowrap"
               >
-                Get started
+                Join the waitlist
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
               </Link>
               <Link

@@ -1,6 +1,6 @@
-import { SignUp } from '@clerk/nextjs';
+import { Waitlist } from '@clerk/nextjs';
 
-export const metadata = { title: 'Sign Up | BlockHelix' };
+export const metadata = { title: 'Join the Waitlist | BlockHelix' };
 
 const CLERK_ENABLED = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -13,8 +13,11 @@ export default function SignUpPage() {
     );
   }
   return (
-    <div className="flex justify-center py-16 px-6">
-      <SignUp />
+    <div className="flex flex-col items-center py-16 px-6">
+      <p className="mb-8 text-sm text-gray-500 max-w-md text-center">
+        Sign-ups are full for now. Join the waitlist and we will email you when a place opens.
+      </p>
+      <Waitlist />
     </div>
   );
 }

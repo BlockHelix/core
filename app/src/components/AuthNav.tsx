@@ -32,7 +32,7 @@ function AuthNavInner() {
           href="/sign-up"
           className="text-sm font-medium px-5 py-2 rounded-full bg-[#adffd9] text-gray-900 hover:bg-[#8ceec8] transition-colors duration-300"
         >
-          Sign Up
+          Join Waitlist
         </Link>
       </div>
     );

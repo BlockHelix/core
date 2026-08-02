@@ -123,7 +123,7 @@ export default function ProblemSection() {
                 href="/sign-up"
                 className="group inline-flex items-center gap-2 mt-10 px-8 py-4 text-sm font-medium tracking-widest bg-gray-900 text-white hover:bg-black transition-all duration-300"
               >
-                GET STARTED
+                JOIN THE WAITLIST
                 <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
               </Link>
             </Reveal>
