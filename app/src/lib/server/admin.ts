@@ -11,13 +11,14 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { UpstreamError, vaultApiConfig } from '@/lib/server/vault-factory';
 import type { AdminEntitlement, AdminEntitlementInput, AdminUser, AdminVault } from '@/lib/admin-types';
 
-async function adminUpstream(path: string, init?: RequestInit): Promise<unknown> {
+async function adminUpstream(path: string, init?: RequestInit, actingUserId?: string): Promise<unknown> {
   const config = vaultApiConfig();
   if (!config) {
     throw new UpstreamError(503, 'The BlockHelix API is not configured');
   }
-  // ServiceUserGuard requires a non-empty X-User-Id; use the acting admin's Clerk id.
-  const { userId } = await auth();
+  // ServiceUserGuard requires a non-empty X-User-Id; use the acting admin's Clerk id,
+  // or the caller-supplied tag for public server-side reads (no Clerk session).
+  const userId = actingUserId ?? (await auth()).userId;
   let res: Response;
   try {
     res = await fetch(`${config.url}${path}`, {
@@ -203,10 +204,21 @@ export interface AttributionRow {
 }
 
 export async function getAttribution(): Promise<{ loaded: boolean; items: AttributionRow[] }> {
-  const body = (await adminUpstream('/admin/attribution')) as {
-    loaded?: boolean;
-    items?: Array<Record<string, unknown>>;
-  } | null;
+  return attributionFrom(await adminUpstream('/admin/attribution'));
+}
+
+// Attribution for PUBLIC pages (research): same upstream read of public chain data, but
+// no Clerk session - a fixed tag satisfies the service guard and identifies the caller.
+export async function getAttributionPublic(): Promise<{ loaded: boolean; items: AttributionRow[] }> {
+  try {
+    return attributionFrom(await adminUpstream('/admin/attribution', undefined, 'public-research'));
+  } catch {
+    return { loaded: false, items: [] };
+  }
+}
+
+function attributionFrom(raw: unknown): { loaded: boolean; items: AttributionRow[] } {
+  const body = raw as { loaded?: boolean; items?: Array<Record<string, unknown>> } | null;
   const items = Array.isArray(body?.items) ? body!.items : [];
   return {
     loaded: Boolean(body?.loaded),

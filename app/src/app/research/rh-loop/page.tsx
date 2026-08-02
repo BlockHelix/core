@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getAttribution } from '@/lib/server/admin';
+import { getAttributionPublic } from '@/lib/server/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -85,7 +85,7 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
 }
 
 export default async function RhLoopPage() {
-  const [market, rewardApr, attribution] = await Promise.all([fetchMarket(), fetchRewardAprPct(), getAttribution()]);
+  const [market, rewardApr, attribution] = await Promise.all([fetchMarket(), fetchRewardAprPct(), getAttributionPublic()]);
 
   const spreadPerTurn = rewardApr != null && market ? rewardApr - market.borrowAprPct : null;
   const fwdAt = (lev: number) =>
