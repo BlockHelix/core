@@ -97,6 +97,10 @@ export default async function AdminAttributionPage() {
                     const rawSeries = m.series ?? [];
                     const series: NavPoint[] = rawSeries.length > 1 ? rawSeries : [{ t: 0, v: 0 }, { t: 1, v: netEconomic }];
                     const upside = upsideNote(s.chainId, s.collateralAsset);
+                    const heldDays = Math.round(m.holding_days ?? 0);
+                    // Annualizing a days-old book is noise, and Merkl posts rewards in epochs,
+                    // so early realized systematically lags. Show the rate only once it means something.
+                    const tooYoung = (m.holding_days ?? 0) < 7;
 
                     const rows: Row[] = [
                       ...Object.entries(drivers).map(([k, v]) => ({ driver: DRIVER_LABEL[k] ?? k, v, ref: DRIVER_REF[k] ?? '' })),
@@ -144,7 +148,9 @@ export default async function AdminAttributionPage() {
                           {stat('equity', compact(m.equity_usd ?? 0))}
                           {stat('borrow apr', `${(m.borrow_apr ?? 0).toFixed(2)}%`, RED)}
                           {stat('reward apr', `${(m.reward_apr ?? 0).toFixed(2)}%`, GREEN)}
-                          {stat(`realized apy · ${Math.round(m.holding_days ?? 0)}d held`, pct(m.net_apy ?? 0), (m.net_apy ?? 0) < 0 ? RED : GREEN)}
+                          {tooYoung
+                            ? stat(`realized apy · ${heldDays}d held`, '— too young')
+                            : stat(`realized apy · ${heldDays}d held`, pct(m.net_apy ?? 0), (m.net_apy ?? 0) < 0 ? RED : GREEN)}
                           {stat('fwd apy · $1 now', pct(m.forward_apy ?? 0), (m.forward_apy ?? 0) < 0 ? RED : GREEN)}
                         </div>
 
@@ -217,8 +223,20 @@ export default async function AdminAttributionPage() {
                             <span className="font-semibold" style={{ color: netEconomic < 0 ? RED : GREEN }}>
                               net {full(netEconomic)}
                             </span>{' '}
-                            at {(m.leverage ?? 0).toFixed(1)}x. Realized APY is measured on the time-weighted equity, so
-                            it is what a dollar in the book actually earned. A dollar added now makes about{' '}
+                            at {(m.leverage ?? 0).toFixed(1)}x.{' '}
+                            {tooYoung ? (
+                              <>
+                                The book is {heldDays === 1 ? '1 day' : `${heldDays} days`} old: annualized rates are
+                                not meaningful yet, and Merkl posts rewards in epochs, so the early tally lags what the
+                                position is really earning.{' '}
+                              </>
+                            ) : (
+                              <>
+                                Realized APY is measured on the time-weighted equity, so it is what a dollar in the book
+                                actually earned.{' '}
+                              </>
+                            )}
+                            A dollar added now makes about{' '}
                             <span className="font-semibold" style={{ color: (m.forward_apy ?? 0) < 0 ? RED : GREEN }}>
                               {pct(m.forward_apy ?? 0)}
                             </span>{' '}
