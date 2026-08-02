@@ -148,6 +148,21 @@ export default async function AdminAttributionPage() {
                           {stat('fwd apy · $1 now', pct(m.forward_apy ?? 0), (m.forward_apy ?? 0) < 0 ? RED : GREEN)}
                         </div>
 
+                        {/* NAV curve: book size through time (flows in/out + P&L drift) */}
+                        {(m.equity_series?.length ?? 0) > 1 && (
+                          <div className="border-t border-dashed border-gray-200 px-4 py-5 sm:px-6">
+                            <NavLine
+                              series={m.equity_series}
+                              refValue={0}
+                              title={`// NAV · money in/out + P&L · ${address.slice(0, 6)}…`}
+                              startLabel={fmtDate(m.equity_series?.[0]?.t)}
+                              endLabel={fmtDate(m.equity_series?.[m.equity_series.length - 1]?.t)}
+                              markerLabel="FLOW"
+                              format={compact}
+                            />
+                          </div>
+                        )}
+
                         {/* economic-value line */}
                         <div className="border-t border-dashed border-gray-200 px-4 py-5 sm:px-6">
                           <NavLine

@@ -184,6 +184,7 @@ export interface AttributionMetrics {
   forward_apy?: number;
   holding_days?: number;
   series?: Array<{ t: number; v: number }>;
+  equity_series?: Array<{ t: number; v: number }>;
   apy_series?: Array<{ t: number; v: number }>;
 }
 
