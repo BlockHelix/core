@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getAttributionPublic } from '@/lib/server/admin';
 
@@ -282,6 +283,24 @@ export default async function RhLoopPage() {
           the on-chain P&amp;L with a zero residual. Nothing here is a projection, and none of it is
           financial advice.
         </p>
+
+        {/* waitlist CTA */}
+        <div className="mt-16 border border-gray-200 bg-gray-50 px-6 py-8 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 mb-3">{'// BlockHelix'}</p>
+          <p className="text-lg font-semibold text-gray-900">
+            This analysis is what our engine does to every position, every day.
+          </p>
+          <p className="mt-2 text-sm text-gray-600 max-w-md mx-auto">
+            Measured returns, named cost drivers, zero-residual proof. We onboard in small batches.
+          </p>
+          <Link
+            href="/sign-up"
+            className="mt-6 inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm font-medium bg-[#adffd9] text-gray-900 hover:bg-[#8ceec8] transition-colors duration-300"
+          >
+            Join the waitlist
+            <span>&rarr;</span>
+          </Link>
+        </div>
       </div>
     </main>
   );
