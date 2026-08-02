@@ -219,6 +219,26 @@ export default function NewVaultForm() {
       </div>
 
       <div>
+        <label className={labelClass}>Network</label>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-[#10c689]/40 bg-[#f7f7f8] px-4 py-3">
+            <div>
+              <span className="text-sm font-medium text-zinc-900">Base</span>
+              <span className="ml-3 text-xs text-zinc-500">chain {BASE_CHAIN_ID} · live</span>
+            </div>
+            <span className="text-xs text-zinc-500">Lend-side profiles · ~4% class</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-white px-4 py-3 opacity-60">
+            <div>
+              <span className="text-sm font-medium text-zinc-900">Ethereum mainnet</span>
+              <span className="ml-3 text-xs text-zinc-500">chain 1 · coming soon</span>
+            </div>
+            <span className="text-xs text-zinc-500">Levered carry profiles run here</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
         <label className={labelClass}>Base Asset</label>
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-[#f7f7f8] px-4 py-3">
           <div>
