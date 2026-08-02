@@ -10,7 +10,7 @@ import {
 import { rateLimit } from '@/lib/server/rate-limit';
 import {
   BASE_CHAIN_ID,
-  BASE_USDC_ADDRESS,
+  DEPLOY_CHAINS,
   MAX_PERFORMANCE_FEE_BPS,
   MAX_PLATFORM_FEE_BPS,
   VAULT_NAME_RE,
@@ -30,6 +30,7 @@ function errorJson(err: unknown): NextResponse {
 }
 
 type Body = {
+  chainId?: unknown;
   vaultName?: unknown;
   vaultSymbol?: unknown;
   pauserAddress?: unknown;
@@ -70,11 +71,18 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
   // derives the trade policy from it — we just forward the choice.
   const riskProfileId = typeof body.riskProfileId === 'string' ? body.riskProfileId : undefined;
 
-  // chainId and base asset are pinned server-side for v1: USDC on Base.
+  // Chain: only chains marked live in DEPLOY_CHAINS; base asset is that chain's USDC.
+  // The backend's DEPLOYABLE_CHAIN_IDS is the final gate.
+  const requestedChainId = body.chainId == null ? BASE_CHAIN_ID : Number(body.chainId);
+  const chain = DEPLOY_CHAINS.find((c) => c.chainId === requestedChainId && c.live);
+  if (!chain) {
+    return { error: 'Vault deploys are not open on that network yet' };
+  }
+
   return {
     payload: {
-      chainId: BASE_CHAIN_ID,
-      baseAssetAddress: BASE_USDC_ADDRESS,
+      chainId: chain.chainId,
+      baseAssetAddress: chain.usdcAddress,
       pauserAddress,
       payoutAddress,
       platformFeeBps,

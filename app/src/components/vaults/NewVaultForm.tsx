@@ -6,7 +6,7 @@ import { checkSafeOnBase, type SafeCheck } from '@/lib/safe';
 import { truncateAddress } from '@/lib/format';
 import {
   BASE_CHAIN_ID,
-  BASE_USDC_ADDRESS,
+  DEPLOY_CHAINS,
   MAX_PERFORMANCE_FEE_BPS,
   MAX_PLATFORM_FEE_BPS,
   VAULT_NAME_RE,
@@ -48,6 +48,7 @@ export default function NewVaultForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<RiskProfileSummary[]>([]);
   const [riskProfileId, setRiskProfileId] = useState('');
+  const [chainId, setChainId] = useState(BASE_CHAIN_ID);
   const checkSeq = useRef(0);
   const hydrated = useRef(false);
 
@@ -151,6 +152,7 @@ export default function NewVaultForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          chainId,
           vaultName: vaultName.trim(),
           vaultSymbol: vaultSymbol.trim(),
           pauserAddress: pauserAddress.trim(),
@@ -221,33 +223,57 @@ export default function NewVaultForm() {
       <div>
         <label className={labelClass}>Network</label>
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-[#10c689]/40 bg-[#f7f7f8] px-4 py-3">
-            <div>
-              <span className="text-sm font-medium text-zinc-900">Base</span>
-              <span className="ml-3 text-xs text-zinc-500">chain {BASE_CHAIN_ID} · live</span>
-            </div>
-            <span className="text-xs text-zinc-500">Lend-side profiles · ~4% class</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-white px-4 py-3 opacity-60">
-            <div>
-              <span className="text-sm font-medium text-zinc-900">Ethereum mainnet</span>
-              <span className="ml-3 text-xs text-zinc-500">chain 1 · coming soon</span>
-            </div>
-            <span className="text-xs text-zinc-500">Levered carry profiles run here</span>
-          </div>
+          {DEPLOY_CHAINS.map((c) => {
+            const selected = chainId === c.chainId;
+            return (
+              <button
+                key={c.chainId}
+                type="button"
+                disabled={!c.live}
+                onClick={() => c.live && setChainId(c.chainId)}
+                aria-pressed={selected}
+                className={`flex w-full flex-wrap items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left transition-colors ${
+                  selected
+                    ? 'border-[#10c689]/40 bg-[#f7f7f8]'
+                    : c.live
+                      ? 'border-black/[0.06] bg-white hover:border-black/20'
+                      : 'border-black/[0.06] bg-white opacity-60 cursor-not-allowed'
+                }`}
+              >
+                <div>
+                  <span className="text-sm font-medium text-zinc-900">{c.name}</span>
+                  <span className="ml-3 text-xs text-zinc-500">
+                    chain {c.chainId} · {c.live ? 'live' : 'enabling'}
+                  </span>
+                </div>
+                <span className="text-xs text-zinc-500">{c.tagline}</span>
+              </button>
+            );
+          })}
         </div>
+        <p className="mt-2 text-xs text-zinc-400">
+          Mainnet opens when the chain-1 factory contracts are deployed; the deploy flow is
+          chain-parameterized end to end.
+        </p>
       </div>
 
       <div>
         <label className={labelClass}>Base Asset</label>
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-[#f7f7f8] px-4 py-3">
-          <div>
-            <span className="text-sm font-medium text-zinc-900">USDC</span>
-            <span className="ml-3 text-xs text-zinc-500">Base · chain {BASE_CHAIN_ID}</span>
-          </div>
-          <span className="break-all font-data text-xs text-zinc-400">{BASE_USDC_ADDRESS}</span>
-        </div>
-        <p className="mt-2 text-xs text-zinc-400">Fixed to USDC on Base for v1.</p>
+        {(() => {
+          const chain = DEPLOY_CHAINS.find((c) => c.chainId === chainId) ?? DEPLOY_CHAINS[0];
+          return (
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-[#f7f7f8] px-4 py-3">
+              <div>
+                <span className="text-sm font-medium text-zinc-900">USDC</span>
+                <span className="ml-3 text-xs text-zinc-500">
+                  {chain.name} · chain {chain.chainId}
+                </span>
+              </div>
+              <span className="break-all font-data text-xs text-zinc-400">{chain.usdcAddress}</span>
+            </div>
+          );
+        })()}
+        <p className="mt-2 text-xs text-zinc-400">Vaults are USDC-denominated on every chain for v1.</p>
       </div>
 
       <div>

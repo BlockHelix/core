@@ -2,6 +2,37 @@ export const BASE_CHAIN_ID = 8453;
 export const BASE_USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const BASESCAN_URL = 'https://basescan.org';
 
+export const MAINNET_CHAIN_ID = 1;
+export const MAINNET_USDC_ADDRESS = '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+
+// Chains offered in the deploy form. `live: false` renders the option but blocks
+// selection: the chain goes live when the factory contracts exist there (the backend
+// DTO is the real gate; this flag only drives the UI state).
+export interface DeployChainOption {
+  chainId: number;
+  name: string;
+  usdcAddress: string;
+  live: boolean;
+  tagline: string;
+}
+
+export const DEPLOY_CHAINS: DeployChainOption[] = [
+  {
+    chainId: BASE_CHAIN_ID,
+    name: 'Base',
+    usdcAddress: BASE_USDC_ADDRESS,
+    live: true,
+    tagline: 'Lend-side profiles · ~4% class',
+  },
+  {
+    chainId: MAINNET_CHAIN_ID,
+    name: 'Ethereum mainnet',
+    usdcAddress: MAINNET_USDC_ADDRESS,
+    live: false,
+    tagline: 'Levered carry profiles run here',
+  },
+];
+
 export const DEPLOYMENT_STATUSES = [
   'queued',
   'validating',
