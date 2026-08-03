@@ -10,8 +10,8 @@ const DRIVER_LABEL: Record<string, string> = {
   carry: 'carry',
   mark: 'price move',
   borrow_interest: 'borrow',
-  execution: 'execution',
-  friction: 'execution', // engine <= v2 rows
+  execution: 'impact',
+  friction: 'impact', // engine <= v2 rows
   fees: 'fees',
   incidents: 'incidents',
 };
@@ -19,9 +19,9 @@ const DRIVER_REF: Record<string, string> = {
   carry: 'collateral yield accrued',
   mark: 'collateral mark to oracle',
   borrow_interest: 'interest accrued · Morpho',
-  execution: 'swap legs + fees · measured from transfer logs',
+  execution: 'swap price impact · measured from transfer logs',
   friction: 'loop swap cost · engine v2 lower bound',
-  fees: 'protocol fees',
+  fees: 'integrator + protocol · measured to fee collectors',
   incidents: 'liquidations',
 };
 
@@ -154,6 +154,12 @@ export default async function AdminAttributionPage() {
                             ? stat(`realized apy · ${heldDays}d held`, '— too young')
                             : stat(`realized apy · ${heldDays}d held`, pct(m.net_apy ?? 0), (m.net_apy ?? 0) < 0 ? RED : GREEN)}
                           {stat('fwd apy · $1 now', pct(m.forward_apy ?? 0), (m.forward_apy ?? 0) < 0 ? RED : GREEN)}
+                          {m.lltv_pct != null &&
+                            stat(
+                              `liq buffer · lltv ${m.lltv_pct.toFixed(1)}%`,
+                              `${(m.liq_buffer_pp ?? 0).toFixed(2)}pp`,
+                              (m.liq_buffer_pp ?? 0) < 1 ? RED : undefined,
+                            )}
                         </div>
 
                         {/* NAV curve: book size through time (flows in/out + P&L drift) */}

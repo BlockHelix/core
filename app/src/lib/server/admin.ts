@@ -184,6 +184,11 @@ export interface AttributionMetrics {
   net_apy?: number;
   forward_apy?: number;
   holding_days?: number;
+  execution_cost_usd?: number;
+  fees_usd?: number;
+  lltv_pct?: number;
+  ltv_pct?: number;
+  liq_buffer_pp?: number;
   series?: Array<{ t: number; v: number }>;
   equity_series?: Array<{ t: number; v: number }>;
   apy_series?: Array<{ t: number; v: number }>;
