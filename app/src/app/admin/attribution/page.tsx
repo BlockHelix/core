@@ -10,7 +10,8 @@ const DRIVER_LABEL: Record<string, string> = {
   carry: 'carry',
   mark: 'price move',
   borrow_interest: 'borrow',
-  friction: 'slippage',
+  execution: 'execution',
+  friction: 'execution', // engine <= v2 rows
   fees: 'fees',
   incidents: 'incidents',
 };
@@ -18,7 +19,8 @@ const DRIVER_REF: Record<string, string> = {
   carry: 'collateral yield accrued',
   mark: 'collateral mark to oracle',
   borrow_interest: 'interest accrued · Morpho',
-  friction: 'loop swap cost · measured lower bound',
+  execution: 'swap legs + fees · measured from transfer logs',
+  friction: 'loop swap cost · engine v2 lower bound',
   fees: 'protocol fees',
   incidents: 'liquidations',
 };
