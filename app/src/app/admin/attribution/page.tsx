@@ -30,6 +30,10 @@ const CHAIN_LABEL: Record<number, string> = {
   4663: 'Robinhood Chain',
 };
 
+const TX_EXPLORER: Record<number, string> = {
+  1: 'https://etherscan.io/tx/',
+};
+
 // Unpriced upside is chain- and collateral-specific: Ethena sats only accrue to Ethena
 // collateral, the airdrop only to Robinhood Chain activity.
 function upsideNote(chainId: number, collateral: string | null): string | null {
@@ -87,7 +91,7 @@ export default async function AdminAttributionPage() {
                     chain {chainId} · {chainItems.length} books
                   </span>
                 </div>
-                <div className="space-y-10">
+                <div className="space-y-3">
                   {chainItems.map((s) => {
                     const m = s.metrics ?? {};
                     const drivers = s.drivers ?? {};
@@ -119,30 +123,44 @@ export default async function AdminAttributionPage() {
                     );
 
                     return (
-                      <div key={s.id} className="border border-gray-200 shadow-sm bg-white">
-                        {/* header */}
-                        <div className="flex flex-wrap items-baseline justify-between gap-3 px-4 py-4 sm:px-6">
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900">{s.label ?? s.id}</div>
-                            <div className="mt-0.5 font-mono text-[11px] text-gray-400">
-                              {s.collateralAsset}/{s.loanAsset} · chain {s.chainId} ·{' '}
-                              <a
-                                href={`https://app.merkl.xyz/users/${address}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-gray-500 underline decoration-dotted underline-offset-2 hover:text-gray-900"
+                      <details key={s.id} className="group border border-gray-200 shadow-sm bg-white">
+                        {/* one row per book; click to expand the full card */}
+                        <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-3 px-4 py-3 hover:bg-gray-50 sm:px-6 [&::-webkit-details-marker]:hidden">
+                          <div className="flex items-baseline gap-3">
+                            <span className="font-mono text-[10px] text-gray-400 transition-transform group-open:rotate-90">▶</span>
+                            <div>
+                              <div className="text-sm font-semibold text-gray-900">{s.label ?? s.id}</div>
+                              <div className="mt-0.5 font-mono text-[11px] text-gray-400">
+                                {s.collateralAsset}/{s.loanAsset} · chain {s.chainId} ·{' '}
+                                <a
+                                  href={`https://app.merkl.xyz/users/${address}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-gray-500 underline decoration-dotted underline-offset-2 hover:text-gray-900"
+                                >
+                                  {address.slice(0, 6)}…{address.slice(-4)} ↗
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-baseline gap-5">
+                            <span className="font-mono text-[11px] text-gray-400 tabular-nums">{(m.leverage ?? 0).toFixed(1)}x</span>
+                            {m.liq_buffer_pp != null && (
+                              <span
+                                className="font-mono text-[11px] tabular-nums"
+                                style={{ color: m.liq_buffer_pp < 1 ? RED : undefined }}
                               >
-                                {address.slice(0, 6)}…{address.slice(-4)} ↗
-                              </a>
+                                {m.liq_buffer_pp.toFixed(2)}pp
+                              </span>
+                            )}
+                            <div className="text-right">
+                              <div className="font-data text-lg font-semibold tabular-nums" style={{ color: netEconomic < 0 ? RED : GREEN }}>
+                                {compact(netEconomic)}
+                              </div>
+                              <div className="font-mono text-[10px] uppercase tracking-widest text-gray-400">net economic</div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="font-data text-xl font-semibold tabular-nums" style={{ color: netEconomic < 0 ? RED : GREEN }}>
-                              {compact(netEconomic)}
-                            </div>
-                            <div className="font-mono text-[10px] uppercase tracking-widest text-gray-400">net economic return</div>
-                          </div>
-                        </div>
+                        </summary>
 
                         {/* metrics strip */}
                         <div className="grid grid-cols-2 gap-y-5 gap-x-4 border-t border-dashed border-gray-200 px-4 py-5 sm:grid-cols-3 lg:grid-cols-6 sm:px-6">
@@ -161,6 +179,65 @@ export default async function AdminAttributionPage() {
                               (m.liq_buffer_pp ?? 0) < 1 ? RED : undefined,
                             )}
                         </div>
+
+                        {/* per-trade legs: one row per tx, execution split per fill */}
+                        {(m.trades?.length ?? 0) > 0 && (
+                          <div className="border-t border-dashed border-gray-200 px-4 py-5 sm:px-6">
+                            <div className="mb-3 font-mono text-[10px] uppercase tracking-widest text-gray-400">
+                              {`// trades · ${(m.trades ?? []).length}`}
+                            </div>
+                            <table className="w-full text-left">
+                              <thead>
+                                <tr className="font-mono text-[10px] uppercase tracking-widest text-gray-400">
+                                  <th className="pb-2 font-normal">date</th>
+                                  <th className="pb-2 font-normal">type</th>
+                                  <th className="pb-2 text-right font-normal">flow</th>
+                                  <th className="pb-2 text-right font-normal">fees</th>
+                                  <th className="pb-2 text-right font-normal">impact</th>
+                                  <th className="pb-2 text-right font-normal">tx</th>
+                                </tr>
+                              </thead>
+                              <tbody className="font-data text-sm tabular-nums text-gray-900">
+                                {(m.trades ?? []).map((tr) => {
+                                  const type = tr.incident !== 0 ? 'liquidation' : tr.flow >= 0 ? 'build' : 'unwind';
+                                  const explorer = TX_EXPLORER[s.chainId];
+                                  return (
+                                    <tr key={tr.hash} className="border-t border-dashed border-gray-100">
+                                      <td className="py-2 font-mono text-[11px] text-gray-500">{fmtDate(tr.t)}</td>
+                                      <td className="py-2 font-mono text-[11px]" style={type === 'liquidation' ? { color: RED } : undefined}>
+                                        {type}
+                                      </td>
+                                      <td className="py-2 text-right">{full(tr.flow)}</td>
+                                      <td className="py-2 text-right" style={tr.fee > 0.005 ? { color: RED } : undefined}>
+                                        {full(-tr.fee)}
+                                      </td>
+                                      <td
+                                        className="py-2 text-right"
+                                        style={tr.impact > 0.005 ? { color: RED } : tr.impact < -0.005 ? { color: GREEN } : undefined}
+                                      >
+                                        {full(-tr.impact)}
+                                      </td>
+                                      <td className="py-2 text-right font-mono text-[11px]">
+                                        {explorer ? (
+                                          <a
+                                            href={`${explorer}${tr.hash}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-gray-500 underline decoration-dotted underline-offset-2 hover:text-gray-900"
+                                          >
+                                            {tr.hash.slice(0, 10)}… ↗
+                                          </a>
+                                        ) : (
+                                          <span className="text-gray-400">{tr.hash.slice(0, 10)}…</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
 
                         {/* NAV curve: book size through time (flows in/out + P&L drift) */}
                         {(m.equity_series?.length ?? 0) > 1 && (
@@ -251,7 +328,7 @@ export default async function AdminAttributionPage() {
                             at current rates and this leverage.{upside ? ` ${upside}` : ''}
                           </p>
                         </div>
-                      </div>
+                      </details>
                     );
                   })}
                 </div>

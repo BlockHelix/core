@@ -189,6 +189,7 @@ export interface AttributionMetrics {
   lltv_pct?: number;
   ltv_pct?: number;
   liq_buffer_pp?: number;
+  trades?: Array<{ t: number; hash: string; flow: number; fee: number; impact: number; incident: number }>;
   series?: Array<{ t: number; v: number }>;
   equity_series?: Array<{ t: number; v: number }>;
   apy_series?: Array<{ t: number; v: number }>;
