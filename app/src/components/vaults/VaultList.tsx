@@ -81,14 +81,18 @@ export default function VaultList() {
     return <TableSkeleton />;
   }
 
-  const quotaReached = data.quota.used >= data.quota.limit;
+  // limit null = unlimited (entitlement override) — never quota-blocked. The naive
+  // `used >= limit` reads null as 0 and locks unlimited users out of the button.
+  const quotaReached = data.quota.limit != null && data.quota.used >= data.quota.limit;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <p className="text-[11px] uppercase tracking-wider-2 text-zinc-500">
-            {data.quota.used} of {data.quota.limit} free vault{data.quota.limit === 1 ? '' : 's'} used
+            {data.quota.limit == null
+              ? `${data.quota.used} vault${data.quota.used === 1 ? '' : 's'} · unlimited plan`
+              : `${data.quota.used} of ${data.quota.limit} vault${data.quota.limit === 1 ? '' : 's'} used`}
           </p>
           <span className="flex items-center gap-1">
             <LastUpdated since={updatedAt} />
@@ -97,7 +101,7 @@ export default function VaultList() {
         </div>
         {quotaReached ? (
           <span className="rounded-lg border border-black/[0.08] px-4 py-2 text-[11px] uppercase tracking-wider-2 text-zinc-400">
-            Free vault used
+            Vault limit reached
           </span>
         ) : (
           <Link

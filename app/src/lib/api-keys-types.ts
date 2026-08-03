@@ -28,6 +28,7 @@ export interface AccountUsage {
   remainingToday: number | null; // null = unlimited
   resetsAt: string;
   unlimited: boolean;
+  vaults: { used: number; limit: number | null }; // limit null = unlimited
 }
 
 export const API_KEY_NAME_RE = /^[a-zA-Z0-9 ._-]+$/;

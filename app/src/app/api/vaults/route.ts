@@ -7,6 +7,7 @@ import {
   listVaultsUpstream,
   UpstreamError,
 } from '@/lib/server/vault-factory';
+import { getUsage } from '@/lib/server/api-account';
 import { rateLimit } from '@/lib/server/rate-limit';
 import {
   BASE_CHAIN_ID,
@@ -147,14 +148,19 @@ export async function GET() {
 
   try {
     // One backend call returns every deployment for this user (X-User-Id scoped),
-    // replacing the old getUser + per-id fan-out (N+1).
-    const deployments = await listVaultsUpstream(userId);
+    // replacing the old getUser + per-id fan-out (N+1). Usage carries the user's
+    // EFFECTIVE vault limit (tier + entitlement override; null = unlimited) so an
+    // admin-granted override actually reaches the UI.
+    const [deployments, usage] = await Promise.all([
+      listVaultsUpstream(userId),
+      getUsage(userId).catch(() => null),
+    ]);
     // Quota mirrors the backend: only NON-FAILED deployments consume a slot, so
     // a user whose only vault failed sees 0 used and can retry.
     const used = deployments.filter((d) => d.status !== 'failed').length;
     return NextResponse.json({
       deployments,
-      quota: { used, limit: FREE_VAULT_LIMIT },
+      quota: { used, limit: usage ? usage.vaults.limit : FREE_VAULT_LIMIT },
     });
   } catch (err) {
     return errorJson(err);

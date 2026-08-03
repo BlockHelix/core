@@ -108,7 +108,7 @@ export function sourceVerified(
 
 export interface VaultListResponse {
   deployments: DeploymentRecord[];
-  quota: { used: number; limit: number };
+  quota: { used: number; limit: number | null }; // limit null = unlimited (entitlement override)
 }
 
 export const VAULT_NAME_RE = /^[a-zA-Z0-9 ._-]+$/;
