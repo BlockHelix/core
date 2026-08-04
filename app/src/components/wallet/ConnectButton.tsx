@@ -3,7 +3,15 @@
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from '@reown/appkit/react';
 import { clsx } from 'clsx';
 import { truncateAddress } from '@/lib/format';
-import { BASE_CHAIN_ID, chainLabel } from '@/lib/vault-types';
+import { base, mainnet } from '@reown/appkit/networks';
+import { BASE_CHAIN_ID, MAINNET_CHAIN_ID, chainLabel } from '@/lib/vault-types';
+
+// AppKit's switchNetwork takes the NETWORK OBJECT, not an id:
+//   switchNetwork(appKitNetwork: AppKitNetwork, ...)
+// It was being called as switchNetwork({ id } as never) — the cast silenced that exact type
+// error, so the call was always malformed and the button silently did nothing. Resolve the id
+// to the registered network instead; a chain missing here cannot be switched to.
+const NETWORK_BY_ID = { [BASE_CHAIN_ID]: base, [MAINNET_CHAIN_ID]: mainnet } as const;
 
 // Custom connect control (rather than the <appkit-button> web component) so it
 // matches the dashboard's button styling and avoids custom-element JSX typing.
@@ -35,7 +43,10 @@ export default function ConnectButton({ expectedChainId = BASE_CHAIN_ID }: { exp
       {wrongChain && (
         <button
           type="button"
-          onClick={() => switchNetwork({ id: expectedChainId } as never)}
+          onClick={() => {
+            const target = NETWORK_BY_ID[expectedChainId as keyof typeof NETWORK_BY_ID];
+            if (target) void switchNetwork(target);
+          }}
           className="rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-2 text-[11px] font-medium uppercase tracking-wider-2 text-amber-700 transition-colors hover:bg-amber-100"
         >
           Switch to {chainLabel(expectedChainId)}
