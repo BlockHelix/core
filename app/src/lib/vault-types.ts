@@ -1,6 +1,21 @@
 export const BASE_CHAIN_ID = 8453;
 export const BASE_USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const BASESCAN_URL = 'https://basescan.org';
+export const ETHERSCAN_URL = 'https://etherscan.io';
+
+// Chain 1 deploys landed while every label and explorer link in the UI was hardcoded to Base,
+// so a mainnet vault rendered as "Base (1)" and every address/tx link pointed at basescan.org
+// where those addresses do not exist. Derive both from the record's chainId instead.
+export function chainLabel(chainId: number): string {
+  return DEPLOY_CHAINS.find((c) => c.chainId === chainId)?.name ?? `Chain ${chainId}`;
+}
+
+export function explorerUrl(chainId: number): string {
+  return chainId === MAINNET_CHAIN_ID ? ETHERSCAN_URL : BASESCAN_URL;
+}
+
+export const explorerAddress = (chainId: number, address: string) => `${explorerUrl(chainId)}/address/${address}`;
+export const explorerTx = (chainId: number, hash: string) => `${explorerUrl(chainId)}/tx/${hash}`;
 
 export const MAINNET_CHAIN_ID = 1;
 export const MAINNET_USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';

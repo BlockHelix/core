@@ -6,7 +6,7 @@ import { useAccount, useReadContract } from 'wagmi';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { useDeposit } from '@/lib/wallet/hooks';
 import { ERC20_ABI } from '@/lib/wallet/abi';
-import { BASE_CHAIN_ID, BASESCAN_URL } from '@/lib/vault-types';
+import { explorerTx } from '@/lib/vault-types';
 
 export default function VaultDeposit({
   vault,
@@ -15,6 +15,7 @@ export default function VaultDeposit({
   symbol,
   decimals,
   onDeposited,
+  chainId,
 }: {
   vault: string;
   teller: string;
@@ -22,6 +23,7 @@ export default function VaultDeposit({
   symbol: string;
   decimals: number;
   onDeposited?: () => void;
+  chainId: number;
 }) {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState('');
@@ -32,7 +34,7 @@ export default function VaultDeposit({
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    chainId: BASE_CHAIN_ID,
+    chainId,
     query: { enabled: !!address },
   });
   const walletBal = typeof balData === 'bigint' ? balData : 0n;
@@ -67,7 +69,7 @@ export default function VaultDeposit({
     <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Deposit {symbol}</h2>
-        <ConnectButton />
+        <ConnectButton expectedChainId={chainId} />
       </div>
 
       {!isConnected ? (
@@ -121,7 +123,7 @@ export default function VaultDeposit({
               {hashes.map((h, i) => (
                 <a
                   key={h}
-                  href={`${BASESCAN_URL}/tx/${h}`}
+                  href={explorerTx(chainId, h)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-data text-[11px] text-[#10c689] hover:text-[#10c689]"

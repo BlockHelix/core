@@ -13,7 +13,7 @@ import TxTable from '@/components/vaults/TxTable';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { usePauseVault, useUnpauseVault, useUpdateExchangeRate } from '@/lib/wallet/hooks';
 import { fetcher } from '@/lib/swr-fetcher';
-import { BASESCAN_URL, BASE_CHAIN_ID, COMPONENT_LABELS, type DeploymentStatus } from '@/lib/vault-types';
+import { COMPONENT_LABELS, type DeploymentStatus, chainLabel, explorerAddress, explorerTx } from '@/lib/vault-types';
 import type { AdminVault, AdminVaultsResponse } from '@/lib/admin-types';
 import type { TxListResponse, VaultState } from '@/lib/onchain-types';
 
@@ -90,7 +90,7 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-zinc-950">{vault.vaultName || '—'}</h1>
             <p className="mt-1 font-data text-xs text-zinc-400">
-              {vault.vaultSymbol} · Base ({vault.chainId})
+              {vault.vaultSymbol} · {chainLabel(vault.chainId)} ({vault.chainId})
             </p>
             <p className="mt-2 text-sm text-zinc-600">
               Owner: {vault.email ?? '—'} <span className="font-data text-xs text-zinc-400">({vault.userId})</span>
@@ -104,7 +104,7 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
       <VaultStatePanel id={vault.id} />
 
       {/* Etherscan activity */}
-      <VaultActivityPanel id={vault.id} />
+      <VaultActivityPanel id={vault.id} chainId={vault.chainId} />
 
       {/* Components */}
       {componentEntries.length > 0 && (
@@ -115,7 +115,7 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
               <div key={key} className="flex flex-wrap items-center justify-between gap-4 py-3">
                 <span className="text-sm text-zinc-700">{COMPONENT_LABELS[key] ?? key}</span>
                 <a
-                  href={`${BASESCAN_URL}/address/${address}`}
+                  href={explorerAddress(vault.chainId, address)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="break-all font-data text-xs text-[#10c689] hover:text-[#10c689]"
@@ -129,7 +129,7 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
       )}
 
       {/* On-chain actions */}
-      <OnChainActions pausableTargets={pausableTargets} accountant={accountant} />
+      <OnChainActions pausableTargets={pausableTargets} accountant={accountant} chainId={vault.chainId} />
 
       {/* Transactions */}
       {vault.transactionHashes.length > 0 && (
@@ -139,7 +139,7 @@ function VaultDetailBody({ vault }: { vault: AdminVault }) {
             {vault.transactionHashes.map((hash) => (
               <a
                 key={hash}
-                href={`${BASESCAN_URL}/tx/${hash}`}
+                href={explorerTx(vault.chainId, hash)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block break-all font-data text-xs text-zinc-500 hover:text-[#10c689]"
@@ -370,7 +370,7 @@ function VaultStatePanel({ id }: { id: string }) {
 }
 
 // Etherscan-style activity, rendered with the shared <TxTable>.
-function VaultActivityPanel({ id }: { id: string }) {
+function VaultActivityPanel({ id, chainId }: { id: string; chainId: number }) {
   const { data, error, isLoading, isValidating, mutate } = useSWR<TxListResponse>(
     `/api/admin/vaults/${id}/txs`,
     fetcher,
@@ -390,20 +390,20 @@ function VaultActivityPanel({ id }: { id: string }) {
         </button>
       </div>
       <div className="mt-4">
-        <TxTable txs={data?.txs} loading={isLoading} error={error ? error.message : null} />
+        <TxTable txs={data?.txs} loading={isLoading} error={error ? error.message : null} chainId={chainId} />
       </div>
     </div>
   );
 }
 
-function TxHashLinks({ hashes }: { hashes: Hex[] }) {
+function TxHashLinks({ hashes, chainId }: { hashes: Hex[]; chainId: number }) {
   if (hashes.length === 0) return null;
   return (
     <div className="mt-3 space-y-1">
       {hashes.map((h) => (
         <a
           key={h}
-          href={`${BASESCAN_URL}/tx/${h}`}
+          href={explorerTx(chainId, h)}
           target="_blank"
           rel="noopener noreferrer"
           className="block break-all font-data text-xs text-[#10c689] hover:text-[#10c689]"
@@ -418,9 +418,11 @@ function TxHashLinks({ hashes }: { hashes: Hex[] }) {
 function OnChainActions({
   pausableTargets,
   accountant,
+  chainId,
 }: {
   pausableTargets: { key: string; address: Address }[];
   accountant: Address | null;
+  chainId: number;
 }) {
   const toast = useToast();
   const { isConnected } = useAccount();
@@ -478,7 +480,7 @@ function OnChainActions({
     <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">On-chain actions</h2>
-        <ConnectButton />
+        <ConnectButton expectedChainId={chainId} />
       </div>
 
       {!isConnected ? (
@@ -516,7 +518,7 @@ function OnChainActions({
             </div>
             {pause.error && <p className="mt-2 text-xs text-[#b82214]">{pause.error}</p>}
             {unpause.error && <p className="mt-2 text-xs text-[#b82214]">{unpause.error}</p>}
-            <TxHashLinks hashes={pause.hashes.length ? pause.hashes : unpause.hashes} />
+            <TxHashLinks chainId={chainId} hashes={pause.hashes.length ? pause.hashes : unpause.hashes} />
           </section>
 
           <div className="h-px bg-black/[0.06]" />
@@ -557,11 +559,11 @@ function OnChainActions({
               <p className="mt-2 text-xs text-amber-600">Must be an integer between 0 and 2^96 − 1.</p>
             )}
             {rate.error && <p className="mt-2 text-xs text-[#b82214]">{rate.error}</p>}
-            {rate.hash && <TxHashLinks hashes={[rate.hash]} />}
+            {rate.hash && <TxHashLinks chainId={chainId} hashes={[rate.hash]} />}
           </section>
 
           <p className="text-[11px] text-zinc-400">
-            Chain: Base ({BASE_CHAIN_ID}). Each target component is a separate transaction.
+            Chain: {chainLabel(chainId)} ({chainId}). Each target component is a separate transaction.
           </p>
         </div>
       )}

@@ -14,7 +14,7 @@ import { fetcher } from '@/lib/swr-fetcher';
 import { useEventStream, type StreamEvent } from '@/lib/use-event-stream';
 import { useUpdatedAt } from '@/lib/use-updated-at';
 import { requeueVault } from '@/lib/vault-requeue';
-import { TERMINAL_STATUSES, type DeploymentRecord, type DeploymentStatus, type VaultListResponse } from '@/lib/vault-types';
+import { TERMINAL_STATUSES, type DeploymentRecord, type DeploymentStatus, type VaultListResponse, chainLabel } from '@/lib/vault-types';
 
 const GRID = 'sm:grid-cols-[1.6fr_0.9fr_0.9fr_auto]';
 
@@ -195,7 +195,7 @@ function VaultRow({
         <span className={label}>Vault</span>
         <p className="truncate text-sm font-medium text-zinc-900">{d.vaultName}</p>
         <p className="mt-0.5 truncate font-data text-xs text-zinc-400">
-          {d.vaultSymbol} · Base ({d.chainId})
+          {d.vaultSymbol} · {chainLabel(d.chainId)} ({d.chainId})
         </p>
       </div>
       <div>

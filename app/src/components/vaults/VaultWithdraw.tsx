@@ -6,7 +6,7 @@ import { useAccount, useReadContract } from 'wagmi';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { useCancelWithdraw, useCompleteWithdraw, useRequestWithdraw } from '@/lib/wallet/hooks';
 import { ACCOUNTANT_ABI, DELAYED_WITHDRAW_ABI, ERC20_ABI } from '@/lib/wallet/abi';
-import { BASE_CHAIN_ID, BASESCAN_URL } from '@/lib/vault-types';
+import { explorerTx } from '@/lib/vault-types';
 
 // Vault default: a completed request stays completable for 7 days past maturity.
 const COMPLETION_WINDOW = 7 * 24 * 60 * 60;
@@ -29,6 +29,7 @@ export default function VaultWithdraw({
   symbol,
   shareDecimals,
   onChanged,
+  chainId,
 }: {
   vault: string;
   delayedWithdrawer: string;
@@ -37,6 +38,7 @@ export default function VaultWithdraw({
   symbol: string;
   shareDecimals: number;
   onChanged?: () => void;
+  chainId: number;
 }) {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState('');
@@ -49,7 +51,7 @@ export default function VaultWithdraw({
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    chainId: BASE_CHAIN_ID,
+    chainId,
     query: { enabled: !!address },
   });
   const shareBal = typeof balData === 'bigint' ? balData : 0n;
@@ -59,7 +61,7 @@ export default function VaultWithdraw({
     abi: DELAYED_WITHDRAW_ABI,
     functionName: 'withdrawRequests',
     args: address ? [address as Address, asset as Address] : undefined,
-    chainId: BASE_CHAIN_ID,
+    chainId,
     query: { enabled: !!address },
   });
   // Public mapping getter returns the struct fields as a tuple:
@@ -80,7 +82,7 @@ export default function VaultWithdraw({
     address: (accountant ?? undefined) as Address | undefined,
     abi: ACCOUNTANT_ABI,
     functionName: 'getRate',
-    chainId: BASE_CHAIN_ID,
+    chainId,
     query: { enabled: !!accountant && hasPending, refetchInterval: 30_000 },
   });
   const { data: idleData } = useReadContract({
@@ -88,7 +90,7 @@ export default function VaultWithdraw({
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: [vault as Address],
-    chainId: BASE_CHAIN_ID,
+    chainId,
     query: { enabled: hasPending, refetchInterval: 30_000 },
   });
   const curRate = typeof rateData === 'bigint' ? rateData : 0n;
@@ -160,7 +162,7 @@ export default function VaultWithdraw({
   const txLink = (hash: string, label: string) => (
     <a
       key={hash}
-      href={`${BASESCAN_URL}/tx/${hash}`}
+      href={explorerTx(chainId, hash)}
       target="_blank"
       rel="noopener noreferrer"
       className="font-data text-[11px] text-[#10c689] hover:text-[#10c689]"
@@ -173,7 +175,7 @@ export default function VaultWithdraw({
     <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Withdraw {symbol}</h2>
-        <ConnectButton />
+        <ConnectButton expectedChainId={chainId} />
       </div>
 
       {!isConnected ? (

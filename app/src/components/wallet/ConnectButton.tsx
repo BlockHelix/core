@@ -3,11 +3,14 @@
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from '@reown/appkit/react';
 import { clsx } from 'clsx';
 import { truncateAddress } from '@/lib/format';
-import { BASE_CHAIN_ID } from '@/lib/vault-types';
+import { BASE_CHAIN_ID, chainLabel } from '@/lib/vault-types';
 
 // Custom connect control (rather than the <appkit-button> web component) so it
 // matches the dashboard's button styling and avoids custom-element JSX typing.
-export default function ConnectButton() {
+// expectedChainId defaults to Base for the header/admin shell, where there is no vault in
+// context. Anywhere a specific vault IS in context (deposit, withdraw) it must be passed, or
+// the button tells you a mainnet vault is on the wrong network and switches you to Base.
+export default function ConnectButton({ expectedChainId = BASE_CHAIN_ID }: { expectedChainId?: number } = {}) {
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
   const { chainId, switchNetwork } = useAppKitNetwork();
@@ -25,17 +28,17 @@ export default function ConnectButton() {
     );
   }
 
-  const wrongChain = chainId !== undefined && Number(chainId) !== BASE_CHAIN_ID;
+  const wrongChain = chainId !== undefined && Number(chainId) !== expectedChainId;
 
   return (
     <div className="flex items-center gap-2">
       {wrongChain && (
         <button
           type="button"
-          onClick={() => switchNetwork({ id: BASE_CHAIN_ID } as never)}
+          onClick={() => switchNetwork({ id: expectedChainId } as never)}
           className="rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-2 text-[11px] font-medium uppercase tracking-wider-2 text-amber-700 transition-colors hover:bg-amber-100"
         >
-          Switch to Base
+          Switch to {chainLabel(expectedChainId)}
         </button>
       )}
       <button

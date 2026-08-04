@@ -6,7 +6,7 @@ import { clsx } from 'clsx';
 import StatusBadge from '@/components/vaults/StatusBadge';
 import { fetcher } from '@/lib/swr-fetcher';
 import { timeAgo } from '@/lib/format';
-import { BASESCAN_URL, COMPONENT_LABELS, type DeploymentStatus } from '@/lib/vault-types';
+import { COMPONENT_LABELS, type DeploymentStatus, chainLabel, explorerAddress } from '@/lib/vault-types';
 import type { AdminVault, AdminVaultsResponse } from '@/lib/admin-types';
 
 const GRID = 'sm:grid-cols-[1.5fr_1.4fr_0.9fr_0.7fr_auto]';
@@ -89,7 +89,7 @@ function AdminVaultRow({ v }: { v: AdminVault }) {
             {components.map(([key, address]) => (
               <a
                 key={key}
-                href={`${BASESCAN_URL}/address/${address}`}
+                href={explorerAddress(v.chainId, address)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-data text-[11px] text-[#10c689] hover:text-[#10c689]"
@@ -112,7 +112,7 @@ function AdminVaultRow({ v }: { v: AdminVault }) {
       </div>
       <div>
         <span className={label}>Chain</span>
-        <p className="text-xs text-zinc-500">Base ({v.chainId})</p>
+        <p className="text-xs text-zinc-500">{chainLabel(v.chainId)} ({v.chainId})</p>
         <p className="mt-0.5 text-[11px] text-zinc-400">{v.createdAt ? timeAgo(v.createdAt) : ''}</p>
       </div>
       <div className="mt-1 flex items-center sm:mt-0 sm:justify-end">

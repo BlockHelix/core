@@ -18,14 +18,12 @@ import { fetcher } from '@/lib/swr-fetcher';
 import { requeueVault } from '@/lib/vault-requeue';
 import type { TxListResponse } from '@/lib/onchain-types';
 import {
-  BASESCAN_URL,
   COMPONENT_LABELS,
   PROGRESS_STEPS,
   sourceVerified,
   statusLabel,
   TERMINAL_STATUSES,
-  type DeploymentRecord,
-} from '@/lib/vault-types';
+  type DeploymentRecord, chainLabel, explorerAddress } from '@/lib/vault-types';
 
 // Slow safety net only — the SSE stream drives the real-time updates now.
 const POLL_MS = 30_000;
@@ -153,7 +151,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-zinc-950">{record.vaultName}</h1>
             <p className="mt-1 font-data text-xs text-zinc-400">
-              {record.vaultSymbol} · Base ({record.chainId}) · {record.id}
+              {record.vaultSymbol} · {chainLabel(record.chainId)} ({record.chainId}) · {record.id}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -272,6 +270,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         <WalletProvider>
           <div className="space-y-8">
             <VaultDeposit
+              chainId={record.chainId}
               vault={record.addresses.boringVault}
               teller={record.addresses.teller}
               asset={record.baseAsset}
@@ -281,6 +280,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
             />
             {record.addresses.delayedWithdrawer && (
               <VaultWithdraw
+                chainId={record.chainId}
                 vault={record.addresses.boringVault}
                 delayedWithdrawer={record.addresses.delayedWithdrawer}
                 asset={record.baseAsset}
@@ -313,7 +313,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                     </span>
                   )}
                   <a
-                    href={`${BASESCAN_URL}/address/${address}`}
+                    href={explorerAddress(record.chainId, address)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="break-all font-data text-xs text-[#10c689] hover:text-[#10c689]"
@@ -328,7 +328,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
       )}
 
       {(record.transactionHashes.length > 0 || record.addresses?.boringVault) && (
-        <TransactionActivity id={id} />
+        <TransactionActivity id={id} chainId={record.chainId} />
       )}
 
       {error && record && <p className="text-xs text-amber-600">{error}</p>}
@@ -375,7 +375,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
 
 // Owner-scoped Etherscan activity for this vault, rendered with the shared
 // <TxTable>. The route confirms ownership before returning any txs.
-function TransactionActivity({ id }: { id: string }) {
+function TransactionActivity({ id, chainId }: { id: string; chainId: number }) {
   const { data, error, isLoading, isValidating, mutate } = useSWR<TxListResponse>(
     `/api/vaults/${encodeURIComponent(id)}/txs`,
     fetcher,
@@ -393,7 +393,7 @@ function TransactionActivity({ id }: { id: string }) {
         </span>
       </div>
       <div className="mt-4">
-        <TxTable txs={data?.txs} loading={isLoading} error={error ? error.message : null} />
+        <TxTable txs={data?.txs} loading={isLoading} error={error ? error.message : null} chainId={chainId} />
       </div>
     </div>
   );

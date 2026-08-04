@@ -3,7 +3,7 @@
 import { clsx } from 'clsx';
 import { CopyButton } from '@/components/ui/CopyButton';
 import { timeAgo, truncateAddress } from '@/lib/format';
-import { BASESCAN_URL } from '@/lib/vault-types';
+import { explorerAddress, explorerTx } from '@/lib/vault-types';
 import type { NormalizedTx } from '@/lib/onchain-types';
 
 // Etherscan-style activity table, shared by the admin vault console and the
@@ -12,10 +12,12 @@ export default function TxTable({
   txs,
   loading,
   error,
+  chainId,
 }: {
   txs?: NormalizedTx[];
   loading?: boolean;
   error?: string | null;
+  chainId: number;
 }) {
   if (loading) {
     return <div className="h-40 skeleton rounded-xl" />;
@@ -52,7 +54,7 @@ export default function TxTable({
         </thead>
         <tbody>
           {txs.map((t, i) => (
-            <Row key={`${t.hash}-${t.kind}-${i}`} t={t} />
+            <Row key={`${t.hash}-${t.kind}-${i}`} t={t} chainId={chainId} />
           ))}
         </tbody>
       </table>
@@ -60,13 +62,13 @@ export default function TxTable({
   );
 }
 
-function Row({ t }: { t: NormalizedTx }) {
+function Row({ t, chainId }: { t: NormalizedTx; chainId: number }) {
   return (
     <tr className="border-b border-black/[0.05] last:border-b-0 align-middle">
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <a
-            href={`${BASESCAN_URL}/tx/${t.hash}`}
+            href={explorerTx(chainId, t.hash)}
             target="_blank"
             rel="noopener noreferrer"
             className="font-data text-xs text-[#10c689] hover:text-[#10c689]"
@@ -93,9 +95,9 @@ function Row({ t }: { t: NormalizedTx }) {
           <span className="text-zinc-300">—</span>
         ) : (
           <div className="flex items-center gap-1.5 font-data text-xs text-zinc-500">
-            <Addr address={t.from} />
+            <Addr address={t.from} chainId={chainId} />
             <span aria-hidden className="text-zinc-300">→</span>
-            <Addr address={t.to} />
+            <Addr address={t.to} chainId={chainId} />
           </div>
         )}
       </td>
@@ -124,11 +126,11 @@ function Row({ t }: { t: NormalizedTx }) {
   );
 }
 
-function Addr({ address }: { address: string }) {
+function Addr({ address, chainId }: { address: string; chainId: number }) {
   if (!address) return <span className="text-zinc-300">—</span>;
   return (
     <a
-      href={`${BASESCAN_URL}/address/${address}`}
+      href={explorerAddress(chainId, address)}
       target="_blank"
       rel="noopener noreferrer"
       className="hover:text-[#10c689]"
