@@ -8,7 +8,22 @@ import type { NormalizedTx } from '@/lib/onchain-types';
 
 // Server-only Alchemy endpoint preferred (getAssetTransfers + large JSON-RPC batches need it,
 // and the key stays off the client). Falls back to the public client RPC / base.org.
-const RPC_URL = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
+// Per-chain RPC. This was a single BASE_RPC_URL constant, which meant a mainnet vault's deploy
+// hashes were looked up on BASE: every eth_getTransactionByHash returned null, so the whole tx
+// table rendered as "—" with no method, from, to, or value. The one row that still populated was
+// an airdropped spam transfer that genuinely was on Base, at the same CREATE3 address.
+const RPC_BY_CHAIN: Record<number, string | undefined> = {
+  1: process.env.MAINNET_RPC_URL,
+  8453: process.env.BASE_RPC_URL || 'https://mainnet.base.org',
+};
+
+function rpcUrlFor(chainId: number): string {
+  const url = RPC_BY_CHAIN[chainId];
+  // Refuse rather than silently falling back to another chain's RPC — a wrong-chain lookup
+  // returns null for every hash, which reads as "no data" instead of "wrong endpoint".
+  if (!url) throw new Error(`no RPC configured for chain ${chainId}`);
+  return url;
+}
 
 // Decode a tx's real method from its calldata selector. Deploy/admin/trade calls get their real
 // function name; a strategist merkle-manage call is unwrapped to the inner action (supply / swap /
@@ -103,9 +118,9 @@ interface RawTransfer {
 
 // One alchemy_getAssetTransfers POST. Never throws — returns [] on any RPC error
 // (including non-Alchemy RPCs that don't support the method).
-async function getAssetTransfers(params: Record<string, unknown>): Promise<RawTransfer[]> {
+async function getAssetTransfers(chainId: number, params: Record<string, unknown>): Promise<RawTransfer[]> {
   try {
-    const res = await fetch(RPC_URL, {
+    const res = await fetch(rpcUrlFor(chainId), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -153,12 +168,12 @@ function normalize(t: RawTransfer): NormalizedTx {
 }
 
 // Deposits / withdrawals / trades to & from the vault, merged newest-first.
-export async function fetchVaultTransfers(vault: string, limit = 40): Promise<NormalizedTx[]> {
+export async function fetchVaultTransfers(vault: string, chainId: number, limit = 40): Promise<NormalizedTx[]> {
   if (!vault) return [];
   const common = { category: CATEGORIES, withMetadata: true, maxCount: '0x64', order: 'desc' };
   const [incoming, outgoing] = await Promise.all([
-    getAssetTransfers({ ...common, toAddress: vault }),
-    getAssetTransfers({ ...common, fromAddress: vault }),
+    getAssetTransfers(chainId, { ...common, toAddress: vault }),
+    getAssetTransfers(chainId, { ...common, fromAddress: vault }),
   ]);
 
   const seen = new Set<string>();
@@ -188,13 +203,13 @@ interface RawTx {
 
 // Batched JSON-RPC (Alchemy accepts request arrays). Chunked to stay under batch
 // limits; never throws — missing entries stay null and the row degrades gracefully.
-async function rpcBatch(calls: { method: string; params: unknown[] }[]): Promise<unknown[]> {
+async function rpcBatch(chainId: number, calls: { method: string; params: unknown[] }[]): Promise<unknown[]> {
   const out: unknown[] = new Array(calls.length).fill(null);
   const CHUNK = 50;
   for (let start = 0; start < calls.length; start += CHUNK) {
     const chunk = calls.slice(start, start + CHUNK);
     try {
-      const res = await fetch(RPC_URL, {
+      const res = await fetch(rpcUrlFor(chainId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
@@ -217,11 +232,12 @@ async function rpcBatch(calls: { method: string; params: unknown[] }[]): Promise
 // Deployment transactions from the record, enriched via batched RPC so the shared
 // <TxTable> shows real Age / From→To / Value (not just the hash). Deploy calls are
 // 0-value contract calls, so Value is typically 0.
-export async function deployTxs(hashes: string[]): Promise<NormalizedTx[]> {
+export async function deployTxs(hashes: string[], chainId: number): Promise<NormalizedTx[]> {
   const list = hashes.filter(Boolean);
   if (list.length === 0) return [];
 
   const txs = (await rpcBatch(
+    chainId,
     list.map((h) => ({ method: 'eth_getTransactionByHash', params: [h] })),
   )) as (RawTx | null)[];
 
@@ -229,6 +245,7 @@ export async function deployTxs(hashes: string[]): Promise<NormalizedTx[]> {
     new Set(txs.map((t) => t?.blockNumber).filter((b): b is string => !!b)),
   );
   const blocks = (await rpcBatch(
+    chainId,
     blockNums.map((bn) => ({ method: 'eth_getBlockByNumber', params: [bn, false] })),
   )) as ({ timestamp?: string } | null)[];
   const blockTs = new Map<string, number>();

@@ -19,8 +19,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Vault not found' }, { status: 404 });
     }
     const [deploy, activity] = await Promise.all([
-      deployTxs(src.transactionHashes),
-      src.boringVault ? fetchVaultTransfers(src.boringVault) : Promise.resolve([]),
+      deployTxs(src.transactionHashes, src.chainId),
+      src.boringVault ? fetchVaultTransfers(src.boringVault, src.chainId) : Promise.resolve([]),
     ]);
     return NextResponse.json({ txs: mergeNewestFirst(deploy, activity) });
   } catch (err) {

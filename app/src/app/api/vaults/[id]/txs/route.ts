@@ -23,8 +23,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const record = await getDeploymentUpstream(id, userId);
     const boringVault = record.addresses?.boringVault;
     const [deploy, activity] = await Promise.all([
-      deployTxs(record.transactionHashes),
-      boringVault ? fetchVaultTransfers(boringVault) : Promise.resolve([]),
+      deployTxs(record.transactionHashes, record.chainId),
+      boringVault ? fetchVaultTransfers(boringVault, record.chainId) : Promise.resolve([]),
     ]);
     return NextResponse.json({ txs: mergeNewestFirst(deploy, activity) });
   } catch (err) {
