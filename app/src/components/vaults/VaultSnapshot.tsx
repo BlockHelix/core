@@ -14,6 +14,14 @@ interface NavBalance {
   supplyApy?: number | null;
 }
 
+interface NavPosition {
+  protocol: string;
+  symbol: string;
+  kind: string;
+  amount: string; // SIGNED base units: collateral positive, debt negative
+  decimals: number;
+}
+
 interface NavResponse {
   baseAsset: { symbol: string; decimals: number } | null;
   sharePrice: string; // official on-chain getRate (~6h)
@@ -23,6 +31,9 @@ interface NavResponse {
   nav: string; // live NAV/TVL
   yield?: { blendedApy: number; deployedRatio: number };
   balances: NavBalance[];
+  positions?: NavPosition[];
+  unvalued?: { protocol: string; reason: string }[];
+  navIsLive?: boolean;
   asOf: string;
 }
 
@@ -104,7 +115,14 @@ export default function VaultSnapshot({ id }: { id: string }) {
       ) : (
         <>
           <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.06] sm:grid-cols-2 lg:grid-cols-4">
-            <Tile label="NAV / TVL" value={fmt(data.nav, baseDec, 2)} unit={baseSym} sub="live · on-chain" />
+            <Tile
+              label="NAV / TVL"
+              value={fmt(data.nav, baseDec, 2)}
+              unit={baseSym}
+              // Never label a fallback as a measurement: when anything is unvalued the figure is
+              // the stale on-chain rate, not a reading of what the vault holds.
+              sub={data.navIsLive === false ? 'incomplete · see below' : 'live · on-chain'}
+            />
             <Tile label="Share price" value={fmt(data.sharePrice, baseDec, 6)} unit={baseSym} sub="official · ~6h" />
             <Tile label="Shares outstanding" value={fmt(data.totalShares, data.shareDecimals, 2)} />
             <Tile
@@ -161,6 +179,54 @@ export default function VaultSnapshot({ id }: { id: string }) {
               )}
             </div>
           </div>
+
+          {(data.positions?.length ?? 0) > 0 && (
+            <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+              <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">
+                Protocol positions
+              </p>
+              <p className="mt-1 text-[11px] text-zinc-400">
+                Held by the protocol, not the vault — these never appear in a wallet or on a block explorer.
+              </p>
+              <div className="mt-3 divide-y divide-black/[0.05]">
+                {data.positions!.map((p) => {
+                  const isDebt = p.amount.startsWith('-');
+                  return (
+                    <div key={`${p.protocol}-${p.symbol}-${p.kind}`} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                      <span className="flex items-baseline gap-2">
+                        <span className="font-data text-sm font-medium text-zinc-800">{p.symbol}</span>
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">
+                          {p.protocol} · {p.kind}
+                        </span>
+                      </span>
+                      <span className={clsx('font-data text-sm tabular-nums', isDebt ? 'text-[#b82214]' : 'text-zinc-900')}>
+                        {fmt(p.amount, p.decimals, 4)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(data.unvalued?.length ?? 0) > 0 && (
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-50/60 p-5">
+              <p className="text-[11px] font-medium uppercase tracking-wider-2 text-amber-700">
+                NAV incomplete
+              </p>
+              <p className="mt-1.5 text-sm text-amber-900">
+                Part of this vault could not be valued, so NAV and the live share price fall back to the
+                last official rate. The share price will not update until this resolves.
+              </p>
+              <ul className="mt-2 space-y-1">
+                {data.unvalued!.map((u, i) => (
+                  <li key={i} className="font-data text-xs text-amber-800">
+                    {u.protocol}: {u.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-4 rounded-xl border border-dashed border-black/[0.12] bg-zinc-50/60 p-5">
             <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Attribution</p>

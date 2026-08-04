@@ -116,6 +116,13 @@ export interface VaultNavResponse {
   shareDecimals: number;
   nav: string;
   balances: VaultNavBalance[];
+  /** Protocol positions no balance scan can see (Morpho issues no receipt token). Signed:
+   *  collateral positive, debt negative. */
+  positions?: { protocol: string; symbol: string; kind: string; amount: string; decimals: number }[];
+  /** Exposure the backend could not value. Non-empty => nav is INCOMPLETE, not a measurement. */
+  unvalued?: { protocol: string; reason: string }[];
+  /** false when nav fell back to the stale on-chain rate. Never label such a number "live". */
+  navIsLive?: boolean;
   source: string;
   asOf: string;
 }
