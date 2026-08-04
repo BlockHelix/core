@@ -11,7 +11,11 @@ applications:
           commands:
             # Amplify injects console env vars at build time only; bridge the server-side
             # ones into .env.production so the Next.js SSR runtime can read them.
-            - env | grep -E '^(CLERK_SECRET_KEY|CLERK_WEBHOOK_SIGNING_SECRET|VAULT_API_KEY|VAULT_API_URL|RESEND_API_KEY|RESEND_AUDIENCE_ID|BASE_RPC_URL|RPC_PROXY_URL|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)=' >> .env.production
+            # NOTE: a var missing from this list is silently absent at runtime, it does not
+            # fail the build. MAINNET_RPC_URL was omitted when chain 1 was enabled, so the
+            # /api/rpc proxy had no chain-1 upstream and the Safe check reported the address
+            # unreachable rather than the config incomplete.
+            - env | grep -E '^(CLERK_SECRET_KEY|CLERK_WEBHOOK_SIGNING_SECRET|VAULT_API_KEY|VAULT_API_URL|RESEND_API_KEY|RESEND_AUDIENCE_ID|BASE_RPC_URL|MAINNET_RPC_URL|RPC_PROXY_URL|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)=' >> .env.production
             - npm run build
       artifacts:
         baseDirectory: .next

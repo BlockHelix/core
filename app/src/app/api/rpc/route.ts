@@ -20,6 +20,13 @@ const upstreamFor = (req: Request): string => {
   return UPSTREAMS[chainId] ?? '';
 };
 
+// An unconfigured chain and an unreachable node are different failures needing different
+// fixes, and reporting the first as the second sends you debugging the wrong thing.
+const chainIdOf = (req: Request): number => {
+  const raw = new URL(req.url).searchParams.get('chainId');
+  return raw ? Number(raw) : 8453;
+};
+
 // The read methods viem/wagmi issue. Anything else — above all eth_sendRawTransaction
 // — is rejected.
 const ALLOWED = new Set([
@@ -56,6 +63,7 @@ type RpcReq = { jsonrpc?: string; id?: unknown; method?: string; params?: unknow
 export async function POST(req: Request) {
   const UPSTREAM = upstreamFor(req);
   if (!UPSTREAM) {
+    console.error(`[api/rpc] no upstream configured for chain ${chainIdOf(req)} — check the env allowlist in amplify.yml`);
     return NextResponse.json({ error: 'RPC upstream not configured' }, { status: 503 });
   }
   if (!rateLimit(`rpc:${clientIp(req)}`, 300, 60_000)) {
