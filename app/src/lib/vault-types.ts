@@ -62,6 +62,8 @@ export interface CreateVaultRequest {
   chainId: number;
   baseAssetAddress: string;
   pauserAddress: string;
+  /** Owns the manager so the trade policy stays updatable. Omit to renounce (policy frozen). */
+  managerOwner?: string;
   payoutAddress: string;
   platformFeeBps: number;
   performanceFeeBps: number;

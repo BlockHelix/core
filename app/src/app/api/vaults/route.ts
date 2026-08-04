@@ -35,6 +35,7 @@ type Body = {
   vaultName?: unknown;
   vaultSymbol?: unknown;
   pauserAddress?: unknown;
+  managerOwner?: unknown;
   payoutAddress?: unknown;
   platformFeeBps?: unknown;
   performanceFeeBps?: unknown;
@@ -46,6 +47,8 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
   const vaultSymbol = typeof body.vaultSymbol === 'string' ? body.vaultSymbol.trim() : '';
   const pauserAddress = typeof body.pauserAddress === 'string' ? body.pauserAddress.trim() : '';
   const payoutAddress = typeof body.payoutAddress === 'string' ? body.payoutAddress.trim() : '';
+  // Optional. Blank = renounce manager ownership = the trade policy is frozen permanently.
+  const managerOwner = typeof body.managerOwner === 'string' ? body.managerOwner.trim() : '';
   const platformFeeBps = Number(body.platformFeeBps);
   const performanceFeeBps = Number(body.performanceFeeBps);
 
@@ -60,6 +63,9 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
   }
   if (!ADDRESS_RE.test(payoutAddress)) {
     return { error: 'Payout address must be a valid 0x address' };
+  }
+  if (managerOwner && !ADDRESS_RE.test(managerOwner)) {
+    return { error: 'Manager owner must be a valid 0x address, or blank to freeze the policy' };
   }
   if (!Number.isInteger(platformFeeBps) || platformFeeBps < 0 || platformFeeBps > MAX_PLATFORM_FEE_BPS) {
     return { error: `Platform fee must be an integer between 0 and ${MAX_PLATFORM_FEE_BPS} bps` };
@@ -85,6 +91,7 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
       chainId: chain.chainId,
       baseAssetAddress: chain.usdcAddress,
       pauserAddress,
+      ...(managerOwner ? { managerOwner } : {}),
       payoutAddress,
       platformFeeBps,
       performanceFeeBps,

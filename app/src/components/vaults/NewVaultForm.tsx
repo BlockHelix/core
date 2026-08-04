@@ -40,6 +40,7 @@ export default function NewVaultForm() {
   const [vaultName, setVaultName] = useState('');
   const [vaultSymbol, setVaultSymbol] = useState('');
   const [pauserAddress, setPauserAddress] = useState('');
+  const [managerOwner, setManagerOwner] = useState('');
   const [payoutAddress, setPayoutAddress] = useState('');
   const [platformFeeBps, setPlatformFeeBps] = useState(100);
   const [performanceFeeBps, setPerformanceFeeBps] = useState(1000);
@@ -78,6 +79,7 @@ export default function NewVaultForm() {
           if (typeof d.vaultName === 'string') setVaultName(d.vaultName);
           if (typeof d.vaultSymbol === 'string') setVaultSymbol(d.vaultSymbol);
           if (typeof d.pauserAddress === 'string') setPauserAddress(d.pauserAddress);
+          if (typeof d.managerOwner === 'string') setManagerOwner(d.managerOwner);
           if (typeof d.payoutAddress === 'string') setPayoutAddress(d.payoutAddress);
           if (typeof d.platformFeeBps === 'number') setPlatformFeeBps(d.platformFeeBps);
           if (typeof d.performanceFeeBps === 'number') setPerformanceFeeBps(d.performanceFeeBps);
@@ -100,6 +102,7 @@ export default function NewVaultForm() {
             vaultName,
             vaultSymbol,
             pauserAddress,
+            managerOwner,
             payoutAddress,
             platformFeeBps,
             performanceFeeBps,
@@ -110,7 +113,7 @@ export default function NewVaultForm() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [vaultName, vaultSymbol, pauserAddress, payoutAddress, platformFeeBps, performanceFeeBps]);
+  }, [vaultName, vaultSymbol, pauserAddress, managerOwner, payoutAddress, platformFeeBps, performanceFeeBps]);
 
   useEffect(() => {
     const addr = pauserAddress.trim();
@@ -136,11 +139,14 @@ export default function NewVaultForm() {
   const nameValid = vaultName.trim().length > 0 && vaultName.trim().length <= 64 && VAULT_NAME_RE.test(vaultName.trim());
   const symbolValid = vaultSymbol.trim().length > 0 && vaultSymbol.trim().length <= 16 && VAULT_SYMBOL_RE.test(vaultSymbol.trim());
   const payoutValid = ADDRESS_RE.test(payoutAddress.trim());
+  // Optional: blank renounces manager ownership, which freezes the trade policy permanently.
+  const managerOwnerValid = managerOwner.trim() === '' || ADDRESS_RE.test(managerOwner.trim());
   const platformValid = Number.isInteger(platformFeeBps) && platformFeeBps >= 0 && platformFeeBps <= MAX_PLATFORM_FEE_BPS;
   const performanceValid = Number.isInteger(performanceFeeBps) && performanceFeeBps >= 0 && performanceFeeBps <= MAX_PERFORMANCE_FEE_BPS;
   const safeOk = safeState.phase === 'done' && safeState.result.ok;
 
-  const canSubmit = nameValid && symbolValid && payoutValid && platformValid && performanceValid && safeOk && !submitting;
+  const canSubmit =
+    nameValid && symbolValid && payoutValid && managerOwnerValid && platformValid && performanceValid && safeOk && !submitting;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -156,6 +162,7 @@ export default function NewVaultForm() {
           vaultName: vaultName.trim(),
           vaultSymbol: vaultSymbol.trim(),
           pauserAddress: pauserAddress.trim(),
+          ...(managerOwner.trim() ? { managerOwner: managerOwner.trim() } : {}),
           payoutAddress: payoutAddress.trim(),
           platformFeeBps,
           performanceFeeBps,
@@ -360,6 +367,26 @@ export default function NewVaultForm() {
           <p className="mt-2 text-xs text-[#b82214]">Must be a valid 0x address</p>
         )}
         <p className="mt-2 text-xs text-zinc-400">Where fees are paid. Can be any Base address.</p>
+      </div>
+
+      <div>
+        <label className={labelClass} htmlFor="managerOwner">Manager Owner (optional)</label>
+        <input
+          id="managerOwner"
+          className={inputClass}
+          value={managerOwner}
+          onChange={(e) => setManagerOwner(e.target.value)}
+          placeholder="0x… — leave blank to freeze the policy permanently"
+          spellCheck={false}
+        />
+        {managerOwner && !managerOwnerValid && (
+          <p className="mt-2 text-xs text-[#b82214]">Must be a valid 0x address</p>
+        )}
+        <p className="mt-2 text-xs text-zinc-400">
+          Owns the manager, so it can update the trade policy (the merkle root) in place instead of
+          redeploying the vault. This address can authorise any call the vault can make, so use a Safe.
+          Leave blank to renounce: the policy is then frozen forever and a change costs a new vault.
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
