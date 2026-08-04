@@ -28,6 +28,24 @@ import {
 // Slow safety net only — the SSE stream drives the real-time updates now.
 const POLL_MS = 30_000;
 
+// Phases that legitimately run for many minutes. A mainnet suite is ~90 transactions sent with
+// forge --slow (one receipt awaited per tx), so 'broadcasting' can sit for half an hour. With no
+// elapsed time and a 30s poll, a working deploy is indistinguishable from a hung one — which is
+// exactly how the first mainnet deploy read.
+const LONG_PHASES: Record<string, string> = {
+  broadcasting: 'sending ~90 transactions, one at a time — this usually takes 15-30 min',
+  verifying: 'reading every component back from chain',
+  simulating: 'dry-running the deploy script',
+};
+
+function elapsedLabel(sinceIso: string | null | undefined): string | null {
+  if (!sinceIso) return null;
+  const secs = Math.floor((Date.now() - new Date(sinceIso).getTime()) / 1000);
+  if (!Number.isFinite(secs) || secs < 0) return null;
+  const m = Math.floor(secs / 60);
+  return m < 1 ? `${secs}s` : `${m}m ${secs % 60}s`;
+}
+
 export default function DeploymentStatusView({ id }: { id: string }) {
   const toast = useToast();
   const [record, setRecord] = useState<DeploymentRecord | null>(null);
@@ -142,6 +160,8 @@ export default function DeploymentStatusView({ id }: { id: string }) {
   }
 
   const failed = record.status === 'failed';
+  // Recomputed on every poll tick, so the number visibly moves even when the phase does not.
+  const elapsed = elapsedLabel(record.updatedAt ?? record.createdAt);
   const activeIndex = failed ? -1 : PROGRESS_STEPS.indexOf(record.status);
 
   return (
@@ -212,7 +232,11 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                     )}
                   >
                     {statusLabel(step)}
+                    {active && elapsed && <span className="ml-2 font-data normal-case tracking-normal text-zinc-400">{elapsed}</span>}
                   </p>
+                  {active && LONG_PHASES[step] && (
+                    <p className="mt-1 text-[11px] normal-case tracking-normal text-zinc-400">{LONG_PHASES[step]}</p>
+                  )}
                 </div>
               </li>
             );
