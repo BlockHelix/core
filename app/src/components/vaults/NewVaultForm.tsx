@@ -56,18 +56,22 @@ export default function NewVaultForm() {
   // Load curated risk profiles (backend is source of truth) and default to the first.
   useEffect(() => {
     let active = true;
-    fetch('/api/risk-profiles')
+    fetch(`/api/risk-profiles?chainId=${chainId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { profiles?: RiskProfileSummary[] } | null) => {
         if (!active || !body?.profiles?.length) return;
         setProfiles(body.profiles);
-        setRiskProfileId((cur) => cur || body.profiles![0].id);
+        // Drop a selection the newly-chosen chain does not offer, rather than carrying it over
+        // and failing at POST — profiles are chain-scoped, so switching chains can invalidate it.
+        setRiskProfileId((cur) =>
+          cur && body.profiles!.some((p) => p.id === cur) ? cur : body.profiles![0].id,
+        );
       })
       .catch(() => {});
     return () => {
       active = false;
     };
-  }, []);
+  }, [chainId]);
 
   // Restore a saved draft on mount so navigating back after a failure keeps input.
   useEffect(() => {

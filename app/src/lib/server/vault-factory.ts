@@ -88,10 +88,12 @@ export interface RiskProfileSummary {
 
 // Curated trade-policy profiles from the backend (source of truth for the merkle
 // templates). Shown in the deploy dropdown so the list can't drift from what's enforced.
-export async function listRiskProfilesUpstream(userId: string): Promise<RiskProfileSummary[]> {
-  const body = (await upstream('/vaults/risk-profiles', userId, { method: 'GET' })) as {
-    profiles?: RiskProfileSummary[];
-  };
+export async function listRiskProfilesUpstream(userId: string, chainId?: number): Promise<RiskProfileSummary[]> {
+  // Scoped by chain: a profile referencing a venue (Morpho market, Curve pool, 4626) only
+  // exists where that venue is registered, so an unscoped list offers profiles the selected
+  // chain will reject at POST time.
+  const path = chainId ? `/vaults/risk-profiles?chainId=${chainId}` : '/vaults/risk-profiles';
+  const body = (await upstream(path, userId, { method: 'GET' })) as { profiles?: RiskProfileSummary[] };
   return Array.isArray(body.profiles) ? body.profiles : [];
 }
 

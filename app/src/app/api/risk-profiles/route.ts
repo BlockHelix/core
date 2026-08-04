@@ -6,13 +6,15 @@ export const runtime = 'nodejs';
 
 // Curated trade-policy profiles for the deploy dropdown. Proxies the backend (its
 // merkle templates are the source of truth) so the shown permissions match the root.
-export async function GET() {
+export async function GET(req: Request) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const raw = new URL(req.url).searchParams.get('chainId');
+  const chainId = raw && Number.isFinite(Number(raw)) ? Number(raw) : undefined;
   try {
-    return NextResponse.json({ profiles: await listRiskProfilesUpstream(userId) });
+    return NextResponse.json({ profiles: await listRiskProfilesUpstream(userId, chainId) });
   } catch (err) {
     if (err instanceof UpstreamError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
