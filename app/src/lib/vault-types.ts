@@ -28,7 +28,7 @@ export const DEPLOY_CHAINS: DeployChainOption[] = [
     chainId: MAINNET_CHAIN_ID,
     name: 'Ethereum mainnet',
     usdcAddress: MAINNET_USDC_ADDRESS,
-    live: false,
+    live: true,
     tagline: 'Levered carry profiles run here',
   },
 ];

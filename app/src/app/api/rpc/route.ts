@@ -8,7 +8,17 @@ export const runtime = 'nodejs';
 // same-origin endpoint instead. Reads only (wallet writes go through the user's own
 // wallet provider, never here) and rate-limited, so it can't be turned into an open
 // relay on our RPC quota.
-const UPSTREAM = process.env.RPC_PROXY_URL || process.env.BASE_RPC_URL || '';
+// Per-chain upstreams. ?chainId=1 routes to mainnet; anything else (and no param) stays on
+// Base, so existing callers are unaffected.
+const UPSTREAMS: Record<number, string> = {
+  8453: process.env.RPC_PROXY_URL || process.env.BASE_RPC_URL || '',
+  1: process.env.MAINNET_RPC_URL || '',
+};
+const upstreamFor = (req: Request): string => {
+  const raw = new URL(req.url).searchParams.get('chainId');
+  const chainId = raw ? Number(raw) : 8453;
+  return UPSTREAMS[chainId] ?? '';
+};
 
 // The read methods viem/wagmi issue. Anything else — above all eth_sendRawTransaction
 // — is rejected.
@@ -44,6 +54,7 @@ function clientIp(req: Request): string {
 type RpcReq = { jsonrpc?: string; id?: unknown; method?: string; params?: unknown };
 
 export async function POST(req: Request) {
+  const UPSTREAM = upstreamFor(req);
   if (!UPSTREAM) {
     return NextResponse.json({ error: 'RPC upstream not configured' }, { status: 503 });
   }

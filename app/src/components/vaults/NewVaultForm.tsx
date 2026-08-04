@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { checkSafeOnBase, type SafeCheck } from '@/lib/safe';
+import { checkSafe, type SafeCheck } from '@/lib/safe';
 import { truncateAddress } from '@/lib/format';
 import {
   BASE_CHAIN_ID,
@@ -128,13 +128,13 @@ export default function NewVaultForm() {
     setSafeState({ phase: 'checking' });
     const seq = ++checkSeq.current;
     const timer = setTimeout(async () => {
-      const result = await checkSafeOnBase(addr);
+      const result = await checkSafe(addr, chainId);
       if (checkSeq.current === seq) {
         setSafeState({ phase: 'done', result });
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [pauserAddress]);
+  }, [pauserAddress, chainId]);
 
   const nameValid = vaultName.trim().length > 0 && vaultName.trim().length <= 64 && VAULT_NAME_RE.test(vaultName.trim());
   const symbolValid = vaultSymbol.trim().length > 0 && vaultSymbol.trim().length <= 16 && VAULT_SYMBOL_RE.test(vaultSymbol.trim());
@@ -320,7 +320,9 @@ export default function NewVaultForm() {
       </div>
 
       <div>
-        <label className={labelClass} htmlFor="pauserAddress">Pauser Safe (Gnosis Safe on Base)</label>
+        <label className={labelClass} htmlFor="pauserAddress">
+          Pauser Safe (Gnosis Safe on {chainId === 1 ? 'Ethereum mainnet' : 'Base'})
+        </label>
         <input
           id="pauserAddress"
           className={inputClass}
@@ -330,7 +332,9 @@ export default function NewVaultForm() {
           spellCheck={false}
         />
         <div className="mt-2 text-xs">
-          {safeState.phase === 'checking' && <p className="text-zinc-500">Checking Safe on Base…</p>}
+          {safeState.phase === 'checking' && (
+            <p className="text-zinc-500">Checking Safe on {chainId === 1 ? 'Ethereum mainnet' : 'Base'}…</p>
+          )}
           {safeState.phase === 'done' && safeState.result.ok && (
             <div className="text-[#10c689]">
               <p>

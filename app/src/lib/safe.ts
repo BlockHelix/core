@@ -1,5 +1,5 @@
 import { createPublicClient, http, isAddress, type Address } from 'viem';
-import { base } from 'viem/chains';
+import { base, mainnet } from 'viem/chains';
 
 // Client-side preflight only. The vault-factory API re-validates the Safe
 // on-chain at POST time, so this is purely UX — never trusted server-side.
@@ -32,29 +32,34 @@ export type SafeCheck =
   | { ok: true; version: string; threshold: number; owners: string[] }
   | { ok: false; reason: string };
 
-function client() {
+function client(chainId: number) {
   // Same-origin proxy — the Alchemy key stays server-side. These are eth_call reads,
-  // which the proxy allows.
-  return createPublicClient({ chain: base, transport: http('/api/rpc') });
+  // which the proxy allows. The proxy routes upstream by ?chainId, so the Safe is checked
+  // on the chain the vault will actually deploy to (a Safe address is NOT chain-portable).
+  return createPublicClient({
+    chain: chainId === 1 ? mainnet : base,
+    transport: http(`/api/rpc?chainId=${chainId}`),
+  });
 }
 
-export async function checkSafeOnBase(address: string): Promise<SafeCheck> {
+export async function checkSafe(address: string, chainId = 8453): Promise<SafeCheck> {
   if (!isAddress(address)) {
     return { ok: false, reason: 'Not a valid Ethereum address.' };
   }
+  const chainLabel = chainId === 1 ? 'Ethereum mainnet' : 'Base';
   const addr = address as Address;
-  const rpc = client();
+  const rpc = client(chainId);
 
   let code: string | undefined;
   try {
     code = await rpc.getCode({ address: addr });
   } catch {
-    return { ok: false, reason: 'Could not reach Base RPC. Try again.' };
+    return { ok: false, reason: `Could not reach the ${chainLabel} RPC. Try again.` };
   }
   if (!code || code === '0x') {
     return {
       ok: false,
-      reason: 'No contract at this address on Base — looks like an EOA. The pauser must be a deployed Gnosis Safe.',
+      reason: `No contract at this address on ${chainLabel} — looks like an EOA. The pauser must be a deployed Gnosis Safe.`,
     };
   }
 
