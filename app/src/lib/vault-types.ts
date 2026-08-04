@@ -3,7 +3,7 @@ export const BASE_USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const BASESCAN_URL = 'https://basescan.org';
 
 export const MAINNET_CHAIN_ID = 1;
-export const MAINNET_USDC_ADDRESS = '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+export const MAINNET_USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 
 // Chains offered in the deploy form. `live: false` renders the option but blocks
 // selection: the chain goes live when the factory contracts exist there (the backend
