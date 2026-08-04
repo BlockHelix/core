@@ -42,9 +42,9 @@ export default function VaultWithdraw({
 }) {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState('');
-  const req = useRequestWithdraw();
-  const comp = useCompleteWithdraw();
-  const canc = useCancelWithdraw();
+  const req = useRequestWithdraw(chainId);
+  const comp = useCompleteWithdraw(chainId);
+  const canc = useCancelWithdraw(chainId);
 
   const { data: balData, refetch: refetchBal } = useReadContract({
     address: vault as Address,

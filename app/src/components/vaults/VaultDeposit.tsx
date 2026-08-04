@@ -27,7 +27,7 @@ export default function VaultDeposit({
 }) {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState('');
-  const { deposit, phase, error, hashes } = useDeposit();
+  const { deposit, phase, error, hashes } = useDeposit(chainId);
 
   const { data: balData, refetch: refetchBal } = useReadContract({
     address: asset as Address,

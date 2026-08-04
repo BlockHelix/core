@@ -29,16 +29,17 @@ async function assertMined(
   if (receipt.status !== 'success') throw new Error(revertMsg);
 }
 
-// Make sure the connected wallet is on Base before sending a write. wagmi will
-// prompt the wallet to switch networks; if it refuses the action surfaces the error.
-function useEnsureBase() {
-  const { chainId } = useAccount();
+// Make sure the connected wallet is on the VAULT'S chain before sending a write. Every hook
+// here used to pin BASE_CHAIN_ID, so against a mainnet vault the reads hit Base and an
+// allowance() on mainnet USDC returned '0x' (no code at that address on Base).
+function useEnsureChain(chainId: number) {
+  const { chainId: current } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   return useCallback(async () => {
-    if (chainId !== BASE_CHAIN_ID) {
-      await switchChainAsync({ chainId: BASE_CHAIN_ID });
+    if (current !== chainId) {
+      await switchChainAsync({ chainId });
     }
-  }, [chainId, switchChainAsync]);
+  }, [current, chainId, switchChainAsync]);
 }
 
 interface MultiTxState {
@@ -49,11 +50,11 @@ interface MultiTxState {
 
 // Shared implementation for pause()/unpause(): calls the no-arg function on each
 // target component (manager, teller, accountant) sequentially, collecting hashes.
-function usePausableAction(functionName: 'pause' | 'unpause') {
-  const ensureBase = useEnsureBase();
+function usePausableAction(functionName: 'pause' | 'unpause', chainId: number = BASE_CHAIN_ID) {
+  const ensureBase = useEnsureChain(chainId);
   const { address: account } = useAccount();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const [state, setState] = useState<MultiTxState>({ isPending: false, error: null, hashes: [] });
 
@@ -77,7 +78,7 @@ function usePausableAction(functionName: 'pause' | 'unpause') {
             abi: PAUSABLE_ABI,
             functionName,
             args: [],
-            chainId: BASE_CHAIN_ID,
+            chainId,
           });
           hashes.push(hash);
           setState((s) => ({ ...s, hashes: [...s.hashes, hash] }));
@@ -100,14 +101,14 @@ function usePausableAction(functionName: 'pause' | 'unpause') {
 }
 
 // pause() across the vault's manager, teller and accountant.
-export function usePauseVault() {
-  const { run, ...rest } = usePausableAction('pause');
+export function usePauseVault(chainId: number = BASE_CHAIN_ID) {
+  const { run, ...rest } = usePausableAction('pause', chainId);
   return { pause: run, ...rest };
 }
 
 // unpause() across the vault's manager, teller and accountant.
-export function useUnpauseVault() {
-  const { run, ...rest } = usePausableAction('unpause');
+export function useUnpauseVault(chainId: number = BASE_CHAIN_ID) {
+  const { run, ...rest } = usePausableAction('unpause', chainId);
   return { unpause: run, ...rest };
 }
 
@@ -118,11 +119,11 @@ interface SingleTxState {
 }
 
 // accountant.updateExchangeRate(uint96 newExchangeRate).
-export function useUpdateExchangeRate() {
-  const ensureBase = useEnsureBase();
+export function useUpdateExchangeRate(chainId: number = BASE_CHAIN_ID) {
+  const ensureBase = useEnsureChain(chainId);
   const { address: account } = useAccount();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
 
@@ -144,7 +145,7 @@ export function useUpdateExchangeRate() {
           abi: ACCOUNTANT_ABI,
           functionName: 'updateExchangeRate',
           args: [newExchangeRate],
-          chainId: BASE_CHAIN_ID,
+          chainId,
         });
         setState({ isPending: true, error: null, hash });
         await assertMined(publicClient, hash, 'updateExchangeRate reverted');
@@ -175,11 +176,11 @@ interface DepositState {
 // Deposit `amount` (base units) of `asset` into the vault. Veda's boringVault pulls the asset via
 // transferFrom, so we approve the VAULT (not the teller) when the allowance is short, then call
 // teller.deposit(asset, amount, 0). Waits for each receipt so the caller can refresh NAV after.
-export function useDeposit() {
-  const ensureBase = useEnsureBase();
+export function useDeposit(chainId: number = BASE_CHAIN_ID) {
+  const ensureBase = useEnsureChain(chainId);
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const [state, setState] = useState<DepositState>({ phase: 'idle', error: null, hashes: [] });
 
@@ -206,7 +207,7 @@ export function useDeposit() {
             abi: ERC20_ABI,
             functionName: 'approve',
             args: [vault, amount],
-            chainId: BASE_CHAIN_ID,
+            chainId,
           });
           hashes.push(approveHash);
           setState({ phase: 'approving', error: null, hashes: [...hashes] });
@@ -227,7 +228,7 @@ export function useDeposit() {
           abi: TELLER_ABI,
           functionName: 'deposit',
           args: [asset, amount, 0n],
-          chainId: BASE_CHAIN_ID,
+          chainId,
         });
         hashes.push(depositHash);
         setState({ phase: 'depositing', error: null, hashes: [...hashes] });
@@ -252,11 +253,11 @@ export function useDeposit() {
 // Request a DelayedWithdraw: escrow `shares` (approve the delayedWithdrawer to spend vault shares
 // if needed) then requestWithdraw(asset, shares, 0, true). maxLoss 0 uses the vault's global cap;
 // allowThirdPartyToComplete=true so a keeper OR the user can complete after maturity.
-export function useRequestWithdraw() {
-  const ensureBase = useEnsureBase();
+export function useRequestWithdraw(chainId: number = BASE_CHAIN_ID) {
+  const ensureBase = useEnsureChain(chainId);
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const [state, setState] = useState<DepositState>({ phase: 'idle', error: null, hashes: [] });
 
@@ -288,7 +289,7 @@ export function useRequestWithdraw() {
             abi: ERC20_ABI,
             functionName: 'approve',
             args: [delayedWithdrawer, shares],
-            chainId: BASE_CHAIN_ID,
+            chainId,
           });
           hashes.push(approveHash);
           setState({ phase: 'approving', error: null, hashes: [...hashes] });
@@ -309,7 +310,7 @@ export function useRequestWithdraw() {
           abi: DELAYED_WITHDRAW_ABI,
           functionName: 'requestWithdraw',
           args: [asset, shares, 0, true],
-          chainId: BASE_CHAIN_ID,
+          chainId,
         });
         hashes.push(reqHash);
         setState({ phase: 'depositing', error: null, hashes: [...hashes] });
@@ -331,11 +332,11 @@ export function useRequestWithdraw() {
 }
 
 // completeWithdraw(asset, account) — callable once past maturity, within the completion window.
-export function useCompleteWithdraw() {
-  const ensureBase = useEnsureBase();
+export function useCompleteWithdraw(chainId: number = BASE_CHAIN_ID) {
+  const ensureBase = useEnsureChain(chainId);
   const { address: caller } = useAccount();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
 
@@ -357,7 +358,7 @@ export function useCompleteWithdraw() {
           abi: DELAYED_WITHDRAW_ABI,
           functionName: 'completeWithdraw',
           args: [params.asset, params.account],
-          chainId: BASE_CHAIN_ID,
+          chainId,
         });
         setState({ isPending: true, error: null, hash });
         await assertMined(publicClient, hash, 'Withdraw completion reverted');
@@ -376,11 +377,11 @@ export function useCompleteWithdraw() {
 }
 
 // cancelWithdraw(asset) — reclaim the escrowed shares.
-export function useCancelWithdraw() {
-  const ensureBase = useEnsureBase();
+export function useCancelWithdraw(chainId: number = BASE_CHAIN_ID) {
+  const ensureBase = useEnsureChain(chainId);
   const { address: caller } = useAccount();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient({ chainId: BASE_CHAIN_ID });
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const [state, setState] = useState<SingleTxState>({ isPending: false, error: null, hash: null });
 
@@ -402,7 +403,7 @@ export function useCancelWithdraw() {
           abi: DELAYED_WITHDRAW_ABI,
           functionName: 'cancelWithdraw',
           args: [params.asset],
-          chainId: BASE_CHAIN_ID,
+          chainId,
         });
         setState({ isPending: true, error: null, hash });
         await assertMined(publicClient, hash, 'Withdraw cancellation reverted');

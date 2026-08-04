@@ -426,9 +426,9 @@ function OnChainActions({
 }) {
   const toast = useToast();
   const { isConnected } = useAccount();
-  const pause = usePauseVault();
-  const unpause = useUnpauseVault();
-  const rate = useUpdateExchangeRate();
+  const pause = usePauseVault(chainId);
+  const unpause = useUnpauseVault(chainId);
+  const rate = useUpdateExchangeRate(chainId);
 
   const [confirm, setConfirm] = useState<null | 'pause' | 'unpause'>(null);
   const [newRate, setNewRate] = useState('');
