@@ -89,7 +89,7 @@ export default function PolicyCheckCard() {
 
   return (
     <div className="bg-white border border-gray-200 shadow-xl w-full max-w-md mx-auto lg:mx-0">
-      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 sm:px-5 py-3">
         <span className="text-[10px] uppercase tracking-widest text-gray-400 font-mono">
           Policy check
         </span>
@@ -99,13 +99,13 @@ export default function PolicyCheckCard() {
         </span>
       </div>
 
-      <div className="px-5 py-4 border-b border-gray-100 font-mono">
+      <div className="px-4 sm:px-5 py-4 border-b border-gray-100 font-mono">
         <p className="text-[11px] text-gray-400 truncate">{scenario.endpoint}</p>
         <p className="text-sm text-gray-900 mt-1">{scenario.trade}</p>
       </div>
 
       {/* Fixed height so the card doesn't jump between scenarios */}
-      <div className="px-5 py-4 min-h-[292px] flex flex-col">
+      <div className="px-4 sm:px-5 py-4 min-h-[292px] flex flex-col">
         <div className="space-y-3">
           {scenario.rows.slice(0, rowsVisible).map((row, i) => (
             <motion.div
@@ -113,9 +113,9 @@ export default function PolicyCheckCard() {
               initial={reduced ? false : { opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex items-center justify-between gap-4"
+              className="flex items-center justify-between gap-2 sm:gap-4"
             >
-              <span className="flex items-center gap-2.5">
+              <span className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                 {row.ok ? (
                   <Check className="w-3.5 h-3.5 text-[#10c689]" strokeWidth={3} />
                 ) : row.flag ? (
@@ -123,9 +123,9 @@ export default function PolicyCheckCard() {
                 ) : (
                   <X className="w-3.5 h-3.5 text-[#d62e1f]" strokeWidth={3} />
                 )}
-                <span className="text-xs font-mono text-gray-900">{row.label}</span>
+                <span className="text-[11px] sm:text-xs font-mono text-gray-900 whitespace-nowrap">{row.label}</span>
               </span>
-              <span className={`text-xs font-mono ${row.ok ? 'text-gray-400' : row.flag ? 'text-amber-600' : 'text-[#b82214]'}`}>
+              <span className={`text-[11px] sm:text-xs font-mono text-right ${row.ok ? 'text-gray-400' : row.flag ? 'text-amber-600' : 'text-[#b82214]'}`}>
                 {row.detail}
               </span>
             </motion.div>
