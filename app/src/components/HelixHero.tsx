@@ -31,7 +31,7 @@ export default function HelixHero() {
         <div className="lg:w-1/2 flex flex-col items-center lg:items-start">
           <div className="text-center lg:text-left">
             <div className="w-fit mb-6 text-left">
-              <h1 className="text-[2.75rem] md:text-[5rem] lg:text-[6.5rem] leading-[0.92] tracking-[-0.04em] font-light text-gray-900 mb-0 -ml-[3px] lg:-ml-[5px]">
+              <h1 className="text-[2.75rem] md:text-[5rem] lg:text-[6.5rem] leading-[0.92] tracking-[-0.04em] font-light text-gray-900 mb-0 lg:-ml-[5px]">
                 Block<span className="font-bold">Helix</span>
               </h1>
               <p className="text-base md:text-lg lg:text-2xl leading-[1.1] tracking-[-0.01em] font-normal text-gray-900 -mt-1 lg:-mt-2">
