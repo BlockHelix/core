@@ -34,10 +34,20 @@ export default function EvidenceSection() {
             Asked how automated execution is constrained, most operators answer with a promise.
           </p>
           <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
-            Controls written and audited by the same team that wrote the strategy are weak evidence
-            everywhere in finance. That is why external audit exists. An independent enforcement
-            layer, with its own log, is a categorically stronger answer than checks living inside
-            the code being checked.
+            The rule is already written. AIFMD requires a manager to{' '}
+            <span className="text-gray-900">
+              &ldquo;functionally and hierarchically separate the functions of risk management
+              &hellip; from the functions of portfolio management&rdquo;
+            </span>{' '}
+            — and to be able to <span className="text-gray-900">demonstrate</span> it. MiCA says the
+            same thing about this industry directly: where one entity designs the strategy, executes
+            the rebalances and runs the infrastructure, the conflict must be documented and shown to
+            a regulator.
+          </p>
+          <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
+            Risk checks living inside the strategy code are not a lighter version of that
+            separation. They are none of it — the same team writes the trades and the limits, and
+            the same process runs both.
           </p>
         </div>
 
