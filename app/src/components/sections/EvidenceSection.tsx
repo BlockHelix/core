@@ -28,10 +28,12 @@ export default function EvidenceSection() {
         <div className="max-w-2xl">
           <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Evidence, not assertion</p>
           <h2 className="mt-4 text-3xl font-light leading-tight tracking-[-0.02em] text-gray-900 md:text-4xl">
-            Your auditor asks how automated execution is constrained.
-            <span className="text-zinc-400"> Today you answer with a promise.</span>
+            Prove your automated execution stayed inside policy
           </h2>
           <p className="mt-6 text-[15px] leading-relaxed text-gray-500">
+            Asked how automated execution is constrained, most operators answer with a promise.
+          </p>
+          <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
             Controls written and audited by the same team that wrote the strategy are weak evidence
             everywhere in finance. That is why external audit exists. An independent enforcement
             layer, with its own log, is a categorically stronger answer than checks living inside
