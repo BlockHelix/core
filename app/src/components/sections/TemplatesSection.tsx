@@ -51,6 +51,22 @@ const TEMPLATES = [
     desc: 'The strategy can call these contracts and these functions, and nothing else. The vault checks this itself, so the limit holds even if our service is down.',
     meta: 'Enforced on-chain',
   },
+  {
+    tag: 'Contagion',
+    tagColor: 'text-[#b82214]',
+    accent: 'bg-[#b82214]',
+    title: 'Issuer look-through',
+    desc: 'A wrapper hides its issuer. sUSDe is an ERC-4626 over USDe, so holding it is holding Ethena — and a position with sUSDe collateral against a USDtb borrow is three tokens and one balance sheet.',
+    meta: 'Coming',
+  },
+  {
+    tag: 'Contagion',
+    tagColor: 'text-[#b82214]',
+    accent: 'bg-[#b82214]',
+    title: 'Correlated liquidation',
+    desc: 'If your collateral depegs, every other borrower in that market is liquidated at the same moment and the exit liquidity you were counting on is gone. We measure how much of the market looks like you.',
+    meta: 'Coming',
+  },
 ];
 
 export default function TemplatesSection() {
