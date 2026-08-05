@@ -54,7 +54,7 @@ export default function WaitlistSection() {
               disabled={status === 'sending'}
               className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-gray-900 text-white hover:bg-black transition-all duration-300 disabled:opacity-60 whitespace-nowrap"
             >
-              {status === 'sending' ? 'SENDING…' : 'BOOK A CALL'}
+              {status === 'sending' ? 'SENDING…' : 'TALK TO SALES'}
               <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
             </button>
           </form>

@@ -51,10 +51,10 @@ export default function HelixHero() {
             </p>
             <div className="flex items-center justify-center lg:justify-start gap-4">
               <Link
-                href="/sign-up"
+                href="#waitlist"
                 className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium bg-[#adffd9] text-gray-900 hover:bg-[#8ceec8] transition-all duration-300 whitespace-nowrap"
               >
-                Join the waitlist
+                Talk to sales
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
               </Link>
               <Link
