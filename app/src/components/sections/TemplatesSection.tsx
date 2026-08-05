@@ -48,16 +48,8 @@ const TEMPLATES = [
     tagColor: 'text-gray-500',
     accent: 'bg-gray-400',
     title: 'Venue and function bounds',
-    desc: 'Which contracts, which functions, which tokens. Compiled to a merkle root the vault itself enforces, so an out-of-mandate call cannot be signed at all.',
+    desc: 'The strategy can call these contracts and these functions, and nothing else. The vault checks this itself, so the limit holds even if our service is down.',
     meta: 'Enforced on-chain',
-  },
-  {
-    tag: 'Record',
-    tagColor: 'text-gray-500',
-    accent: 'bg-gray-400',
-    title: 'The measured values',
-    desc: 'Every check that ran, with the number it passed on, against the policy version in force at the time. Not a pass flag — the figure.',
-    meta: 'Per trade',
   },
 ];
 
