@@ -31,6 +31,12 @@ const TRADFI = [
     onchain: 'nothing',
     status: 'missing',
   },
+  {
+    layer: 'Exposure and concentration',
+    tradfi: 'MSCI, Axioma',
+    onchain: 'nothing',
+    status: 'missing',
+  },
 ];
 
 export default function CategorySection() {
@@ -47,6 +53,13 @@ export default function CategorySection() {
             Charles River checks every order against the mandate before it leaves the desk, across
             roughly 300 managers and{' '}
             <span className="text-gray-900">$36 trillion in assets</span>.
+          </p>
+          <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
+            The checks that matter most are about how positions relate. A levered carry position
+            can hold sUSDe against a USDtb borrow — three tokens, one issuer, one balance sheet.
+            Every venue is reputable and every limit passes, and the position is{' '}
+            <span className="text-gray-900">100% concentrated</span> in a single counterparty. No
+            allowlist catches that, because nothing about it is out of bounds.
           </p>
         </div>
 
