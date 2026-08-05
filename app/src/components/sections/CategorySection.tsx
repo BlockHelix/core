@@ -46,9 +46,7 @@ export default function CategorySection() {
           <p className="mt-6 text-[15px] leading-relaxed text-gray-500">
             Charles River checks every order against the mandate before it leaves the desk, across
             roughly 300 managers and{' '}
-            <span className="text-gray-900">$36 trillion in assets</span>. No regulation names it.
-            It is simply what running money professionally looks like, and it sits on top of
-            custody rather than replacing it.
+            <span className="text-gray-900">$36 trillion in assets</span>.
           </p>
           <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
             On-chain rebuilt custody. It rebuilt fund administration. It has not rebuilt the layer
