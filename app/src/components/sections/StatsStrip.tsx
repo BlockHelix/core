@@ -1,11 +1,15 @@
 import { ArrowUpRight } from 'lucide-react';
 import Reveal from '@/components/ui/Reveal';
 
+// Facts, not features. 'Policy engine / curated policy per vault' told the reader nothing they
+// could check. A licensed operator wants to know it runs, on what, and who audited the base.
+// The hackathon placing moved out: it is already in the hero, and to a fund COO 'hackathon
+// project' reads as a risk rather than a credential.
 const STATS: { v: string; k: string; href?: string }[] = [
-  { v: '3rd/454', k: 'Colosseum hackathon, 3rd out of 454 projects', href: 'https://x.com/colosseum/status/2034666123577442394' },
-  { v: 'Policy engine', k: 'curated policy per vault' },
+  { v: 'Live', k: 'mainnet vault, enforcing' },
+  { v: '276', k: 'legs merkle-verified in one transaction' },
   { v: 'Veda core', k: 'audited Arctic base · MIT' },
-  { v: 'On-chain', k: 'merkle-bounded execution' },
+  { v: 'Pre-trade', k: 'checked before the vault signs' },
 ];
 
 export default function StatsStrip() {
