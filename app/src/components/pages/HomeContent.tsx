@@ -12,7 +12,6 @@ import AuthorizedSection from '@/components/sections/AuthorizedSection';
 import HowItWorksSection from '@/components/sections/HowItWorksSection';
 import LoopSection from '@/components/sections/LoopSection';
 import CategorySection from '@/components/sections/CategorySection';
-import EvidenceSection from '@/components/sections/EvidenceSection';
 import WaitlistSection from '@/components/sections/WaitlistSection';
 
 export default function HomeContent() {
@@ -21,7 +20,6 @@ export default function HomeContent() {
       <HelixHero />
       <StatsStrip />
       <CategorySection />
-      <EvidenceSection />
       <ApiSection />
       <MonitoringSection />
       <AttributionSection />
