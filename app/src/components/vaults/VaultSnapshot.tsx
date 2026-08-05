@@ -35,6 +35,10 @@ interface NavResponse {
   positions?: NavPosition[];
   unvalued?: { protocol: string; reason: string }[];
   navIsLive?: boolean;
+  risk?: {
+    leverage: number; ltv: number; lltv: number; bufferPp: number;
+    collateralBase: number; debtBase: number; equityBase: number;
+  } | null;
   markCheck?: {
     verdict: 'ok' | 'flag' | 'block';
     worstNavImpactBps: number;
@@ -139,6 +143,43 @@ function MarkCheck({ data, baseSym, baseDec }: { data: NavResponse; baseSym: str
       <p className="mt-3 text-[10px] leading-relaxed text-zinc-400">
         Prices are never changed by this check. A leg with no venue deep enough to quote is reported
         unchecked rather than treated as agreeing.
+      </p>
+    </div>
+  );
+}
+
+// NAV says what the position is worth. This says whether it survives, which is the only thing
+// that decides the outcome of a levered book. A page showing holdings but not leverage or
+// distance-to-liquidation is not showing the risk.
+function RiskLevels({ risk, baseSym }: { risk: NonNullable<NavResponse['risk']>; baseSym: string }) {
+  // A liquidation buffer is not a linear scale: 2pp is comfortable at 3x and thin at 10x, because
+  // the same LTV move is a much larger share of equity when equity is a smaller share of the book.
+  const tone = risk.bufferPp < 1 ? 'text-red-600' : risk.bufferPp < 2.5 ? 'text-amber-600' : 'text-zinc-950';
+  return (
+    <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+      <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Risk levels</p>
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+        <div>
+          <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">{risk.leverage.toFixed(2)}x</p>
+          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Leverage</p>
+        </div>
+        <div>
+          <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">{(risk.ltv * 100).toFixed(2)}%</p>
+          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">LTV</p>
+        </div>
+        <div>
+          <p className="font-data text-2xl font-semibold tracking-tight text-zinc-500">{(risk.lltv * 100).toFixed(2)}%</p>
+          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Liquidation at</p>
+        </div>
+        <div>
+          <p className={`font-data text-2xl font-semibold tracking-tight ${tone}`}>{risk.bufferPp.toFixed(2)}pp</p>
+          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Buffer</p>
+        </div>
+      </div>
+      <p className="mt-4 text-[11px] text-zinc-400">
+        {usd(risk.collateralBase)} collateral against {usd(risk.debtBase)} debt ={' '}
+        <span className="text-zinc-950">{usd(risk.equityBase)}</span> equity. Collateral can fall{' '}
+        <span className="text-zinc-950">{((risk.lltv - risk.ltv) / risk.lltv * 100).toFixed(2)}%</span> before liquidation.
       </p>
     </div>
   );
@@ -252,6 +293,8 @@ export default function VaultSnapshot({ id }: { id: string }) {
               )}
             </div>
           </div>
+
+          {data.risk && <RiskLevels risk={data.risk} baseSym={baseSym} />}
 
           <div className="mt-4 overflow-hidden rounded-xl border border-black/[0.06] shadow-soft">
             <MarkCheck data={data} baseSym={baseSym} baseDec={baseDec} />
