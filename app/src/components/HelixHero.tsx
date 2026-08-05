@@ -35,17 +35,21 @@ export default function HelixHero() {
                 Block<span className="font-bold">Helix</span>
               </h1>
               <p className="text-base md:text-lg lg:text-2xl leading-[1.1] tracking-[-0.01em] font-normal text-gray-900 -mt-1 lg:-mt-2">
-                The execution risk layer for automated finance
+                Prove your automated execution stayed inside policy
               </p>
             </div>
             <p className="text-[15px] leading-[1.5] font-normal text-gray-500 max-w-md mb-4">
-              Every trade your bots and agents run is checked against the full risk policy and enforced by the vault on-chain.
+              Every trade checked against your written policy, every check logged, every exception
+              documented. The evidence pack your auditor asks for, generated automatically and
+              enforced on-chain rather than asserted.
             </p>
             <p className="text-sm text-gray-900 mb-12">
               Colosseum hackathon <span className="font-medium bg-[#adffd9] text-gray-900 px-1.5 py-0.5 rounded-md">3rd out of 454 projects</span>
             </p>
 
-            <p className="text-sm text-gray-500 mb-4">We onboard in small batches.</p>
+            <p className="text-sm text-gray-500 mb-4">
+              For licensed and structured fund operators. We onboard in small batches.
+            </p>
             <div className="flex items-center justify-center lg:justify-start gap-4">
               <Link
                 href="/sign-up"
