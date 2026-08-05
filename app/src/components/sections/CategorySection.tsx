@@ -48,11 +48,6 @@ export default function CategorySection() {
             roughly 300 managers and{' '}
             <span className="text-gray-900">$36 trillion in assets</span>.
           </p>
-          <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
-            On-chain finance has custodians and fund administrators. It has no pre-trade check. An
-            allowlist approves the venue. It never looks at the order — the size, the price, or the
-            depth of the book it is about to hit.
-          </p>
         </div>
 
         <div className="mt-12 overflow-x-auto">
@@ -82,11 +77,6 @@ export default function CategorySection() {
             </tbody>
           </table>
         </div>
-
-        <p className="mt-8 max-w-2xl text-[15px] leading-relaxed text-gray-500">
-          We build those two rows. The checks run before the trade is signed, the vault enforces
-          the bounds on-chain, and what happened is logged where an auditor can read it.
-        </p>
       </div>
     </section>
   );
