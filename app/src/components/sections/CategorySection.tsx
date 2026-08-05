@@ -55,11 +55,11 @@ export default function CategorySection() {
             <span className="text-gray-900">$36 trillion in assets</span>.
           </p>
           <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
-            The checks that matter most are about how positions relate. A levered carry position
-            can hold sUSDe against a USDtb borrow — three tokens, one issuer, one balance sheet.
-            Every venue is reputable and every limit passes, and the position is{' '}
-            <span className="text-gray-900">100% concentrated</span> in a single counterparty. No
-            allowlist catches that, because nothing about it is out of bounds.
+            Concentration is a property of the whole book, not of any one trade. A levered carry
+            position can hold sUSDe collateral against a USDtb borrow: both are Ethena, and sUSDe
+            wraps USDe, so three tokens resolve to{' '}
+            <span className="text-gray-900">one balance sheet</span>. Every venue is on the list and
+            every limit passes. Nothing about it is out of bounds.
           </p>
         </div>
 
