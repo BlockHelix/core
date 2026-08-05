@@ -35,6 +35,14 @@ interface NavResponse {
   positions?: NavPosition[];
   unvalued?: { protocol: string; reason: string }[];
   navIsLive?: boolean;
+  markCheck?: {
+    verdict: 'ok' | 'flag' | 'block';
+    worstNavImpactBps: number;
+    netNavImpactBps: number;
+    sharePriceAtVenue: string | null;
+    disagreements: { symbol: string; feedRate: number; venueRate: number; venue: string; deviationBps: number; navImpactBps: number }[];
+    unchecked: { symbol: string; exposureBase: number; reason: string }[];
+  } | null;
   asOf: string;
 }
 
@@ -73,6 +81,65 @@ function Tile({ label, value, unit, sub }: { label: string; value: string; unit?
       </p>
       <p className="mt-2 text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">{label}</p>
       {sub && <p className="mt-0.5 text-[10px] text-zinc-400">{sub}</p>}
+    </div>
+  );
+}
+
+// A share price on its own is a hypothesis: it is only as good as the prices it was computed
+// from, and nothing upstream had ever asked whether those prices were obtainable. On this vault
+// the feed and the venue differed by under 6bps on the borrowed leg, which at 8.66x leverage was
+// 51bps of NAV — 0.9928 against ~0.9990. This panel puts the two numbers beside each other so the
+// error bar is visible instead of implied.
+function MarkCheck({ data, baseSym, baseDec }: { data: NavResponse; baseSym: string; baseDec: number }) {
+  const mc = data.markCheck;
+  if (!mc) {
+    return (
+      <div className="border-t border-black/[0.06] bg-white px-5 py-4">
+        <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Mark check</p>
+        <p className="mt-2 text-xs text-zinc-500">
+          Not checked. No position leg had a venue deep enough to price against, so the share price
+          above is unverified rather than confirmed.
+        </p>
+      </div>
+    );
+  }
+  const flagged = mc.verdict !== 'ok';
+  return (
+    <div className="border-t border-black/[0.06] bg-white px-5 py-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Mark check</p>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${flagged ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}`}>
+          {flagged ? `${mc.worstNavImpactBps.toFixed(0)}bps of NAV` : 'agrees with venue'}
+        </span>
+      </div>
+
+      {mc.sharePriceAtVenue && (
+        <p className="mt-3 font-data text-sm text-zinc-950">
+          {fmt(data.liveSharePrice ?? data.sharePrice, baseDec, 6)}
+          <span className="mx-2 text-zinc-400">at our marks vs</span>
+          {fmt(mc.sharePriceAtVenue, baseDec, 6)}
+          <span className="ml-2 text-zinc-400">at venue prices</span>
+        </p>
+      )}
+
+      {mc.disagreements.map((d) => (
+        <p key={d.symbol} className="mt-2 text-xs text-zinc-500">
+          <span className="text-zinc-950">{d.symbol}</span> marked {d.feedRate.toFixed(6)}, {d.venue} says{' '}
+          {d.venueRate.toFixed(6)} ({d.deviationBps >= 0 ? '+' : ''}{d.deviationBps.toFixed(2)}bps) ={' '}
+          <span className="text-zinc-950">{d.navImpactBps >= 0 ? '+' : ''}{d.navImpactBps.toFixed(0)}bps of NAV</span>
+        </p>
+      ))}
+
+      {mc.unchecked.map((u) => (
+        <p key={u.symbol} className="mt-2 text-xs text-zinc-500">
+          <span className="text-zinc-950">{u.symbol}</span> {usd(Math.abs(u.exposureBase))} unchecked: {u.reason}
+        </p>
+      ))}
+
+      <p className="mt-3 text-[10px] leading-relaxed text-zinc-400">
+        Prices are never changed by this check. A leg with no venue deep enough to quote is reported
+        unchecked rather than treated as agreeing.
+      </p>
     </div>
   );
 }
@@ -184,6 +251,10 @@ export default function VaultSnapshot({ id }: { id: string }) {
                 })
               )}
             </div>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-xl border border-black/[0.06] shadow-soft">
+            <MarkCheck data={data} baseSym={baseSym} baseDec={baseDec} />
           </div>
 
           {(data.positions?.length ?? 0) > 0 && (
