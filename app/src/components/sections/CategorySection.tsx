@@ -49,9 +49,9 @@ export default function CategorySection() {
             <span className="text-gray-900">$36 trillion in assets</span>.
           </p>
           <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
-            On-chain rebuilt custody. It rebuilt fund administration. It has not rebuilt the layer
-            that decides whether an order should be sent at all — the closest thing is an allowlist,
-            which answers where capital may go and never whether the trade is worth doing.
+            On-chain finance has custodians and fund administrators. It has no pre-trade check. An
+            allowlist approves the venue. It never looks at the order — the size, the price, or the
+            depth of the book it is about to hit.
           </p>
         </div>
 
