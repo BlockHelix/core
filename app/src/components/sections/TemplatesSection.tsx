@@ -1,54 +1,63 @@
 import Link from 'next/link';
 import Reveal from '@/components/ui/Reveal';
 
+// The check library, not strategy templates.
+//
+// This section used to sell "spin up a vault, pick a profile". That is not the product: operators
+// already run their own vaults, and nobody is switching platform to get a policy engine. Charles
+// River does not hand a manager a portfolio, it checks the orders they were going to send anyway.
+//
+// So what belongs here is the list of things we can TEST. Every entry below runs today and ran on
+// the live mainnet position; nothing is aspirational, because the check list IS the product and
+// overstating it is the one lie a compliance buyer will definitely catch.
 const TEMPLATES = [
   {
-    tag: 'Bluechip',
+    tag: 'Execution',
     tagColor: 'text-[#10c689]',
     accent: 'bg-[#10c689]',
-    title: 'Bluechip',
-    desc: 'USDC ↔ WETH/cbBTC on top-liquidity pools only. Slippage capped at 50 bps per trade.',
-    meta: 'Risk: conservative · Hooks: swap',
+    title: 'Price impact',
+    desc: 'Simulated at the size actually being traded, marginal against effective, both fee-inclusive. Refuses above the bound instead of discovering the cost afterwards.',
+    meta: 'Measured pre-trade',
   },
   {
-    tag: 'Yield',
+    tag: 'Execution',
+    tagColor: 'text-[#10c689]',
+    accent: 'bg-[#10c689]',
+    title: 'Oracle dislocation',
+    desc: 'Spot mid against the TWAP, fee-exclusive on both sides so the comparison means something. A good quote on a dislocated book is refused.',
+    meta: 'Measured pre-trade',
+  },
+  {
+    tag: 'Execution',
+    tagColor: 'text-[#10c689]',
+    accent: 'bg-[#10c689]',
+    title: 'Depth and ticks crossed',
+    desc: 'How far a fill sweeps the book before it lands. Over the limit, the order is refused rather than sliced blindly at whatever the pool offers.',
+    meta: 'Measured pre-trade',
+  },
+  {
+    tag: 'Position',
     tagColor: 'text-[#0891b2]',
     accent: 'bg-[#35c4e2]',
-    title: 'All Yield',
-    desc: 'Morpho, Aave v3, and Moonwell whitelisted markets. No directional swaps.',
-    meta: 'Risk: conservative–moderate · Hooks: yield',
+    title: 'Leverage and health',
+    desc: 'Projected LTV against the market liquidation threshold, forward across every leg of a multi-step trade, not just the one being signed.',
+    meta: 'Projected pre-trade',
   },
   {
-    tag: 'Balanced',
-    tagColor: 'text-violet-600',
-    accent: 'bg-violet-500',
-    title: 'Balanced',
-    desc: 'Bluechip pairs plus yield sources, with per-transaction notional caps.',
-    meta: 'Risk: moderate · Hooks: swap + yield',
-  },
-  {
-    tag: 'Momentum',
-    tagColor: 'text-amber-600',
-    accent: 'bg-amber-500',
-    title: 'Midcap Momentum',
-    desc: 'Curated, liquidity-screened midcap list. Tighter caps, wider slippage band.',
-    meta: 'Risk: aggressive · Hooks: swap',
-  },
-  {
-    tag: 'Perps',
-    tagColor: 'text-[#b82214]',
-    accent: 'bg-[#d62e1f]',
-    title: 'Perps Midcap',
-    desc: 'Midcap perp markets, max 3× leverage, mandatory exit leaves. Ships in v2.',
-    meta: 'Risk: aggressive · Hooks: swap + perps',
-  },
-  {
-    tag: 'Custom',
+    tag: 'Mandate',
     tagColor: 'text-gray-500',
-    accent: 'bg-gray-300',
-    title: 'Custom',
-    desc: 'Define your own bounds. Validated by the config service, activated via timelock.',
-    meta: 'Risk: you decide · Hooks: any',
+    accent: 'bg-gray-400',
+    title: 'Venue and function bounds',
+    desc: 'Which contracts, which functions, which tokens. Compiled to a merkle root the vault itself enforces, so an out-of-mandate call cannot be signed at all.',
+    meta: 'Enforced on-chain',
+  },
+  {
+    tag: 'Record',
+    tagColor: 'text-gray-500',
+    accent: 'bg-gray-400',
+    title: 'The measured values',
+    desc: 'Every check that ran, with the number it passed on, against the policy version in force at the time. Not a pass flag — the figure.',
+    meta: 'Per trade',
   },
 ];
 
@@ -59,13 +68,13 @@ export default function TemplatesSection() {
       <section className="py-20 lg:py-48 bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <Reveal>
-            <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-400 mb-8">{'// Policy templates'}</p>
+            <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-400 mb-8">{'// The checks'}</p>
             <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 mb-8 lg:mb-12">
-              Start from a risk profile.
+              What we test before you sign.
             </h2>
             <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed max-w-3xl mb-16 lg:mb-24">
-              Compose your own bounds, or start from a maintained template. We version the
-              leaf sets and publish vetted updates operators adopt through the timelock.
+              Your strategy proposes a trade. These run against it first, on your own vault, and the
+              measured values are written down whether the trade passes or not.
             </p>
           </Reveal>
 
