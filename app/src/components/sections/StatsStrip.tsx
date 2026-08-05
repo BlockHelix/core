@@ -1,15 +1,18 @@
 import { ArrowUpRight } from 'lucide-react';
 import Reveal from '@/components/ui/Reveal';
 
-// Facts, not features. 'Policy engine / curated policy per vault' told the reader nothing they
-// could check. A licensed operator wants to know it runs, on what, and who audited the base.
-// The hackathon placing moved out: it is already in the hero, and to a fund COO 'hackathon
-// project' reads as a risk rather than a credential.
+// 'Policy engine' leads deliberately: it is the category's term of art. Charles River sells a
+// rules engine, Fireblocks titles its product page 'Governance and Policy Engine'. A fund manager
+// reading those two words knows what this is without being told.
+//
+// The sub-lines carry facts rather than restating the title, which is what the old strip did
+// ('Policy engine / curated policy per vault' said nothing a reader could check). The hackathon
+// placing moved out: already in the hero, and to a fund COO 'hackathon project' reads as a risk.
 const STATS: { v: string; k: string; href?: string }[] = [
+  { v: 'Policy engine', k: 'pre-trade, enforced on-chain' },
   { v: 'Live', k: 'mainnet vault, enforcing' },
   { v: '276', k: 'legs merkle-verified in one transaction' },
   { v: 'Veda core', k: 'audited Arctic base · MIT' },
-  { v: 'Pre-trade', k: 'checked before the vault signs' },
 ];
 
 export default function StatsStrip() {
