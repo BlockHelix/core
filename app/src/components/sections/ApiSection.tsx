@@ -48,7 +48,7 @@ export default function ApiSection() {
   return (
     <>
       {/* API: the full risk decision */}
-      <section className="py-20 lg:py-32 bg-white">
+      <section className="-mt-16 pt-40 pb-20 lg:pt-52 lg:pb-32 bg-white">
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
           <Reveal>
             <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-400 mb-8">{'// The API'}</p>
@@ -57,7 +57,7 @@ export default function ApiSection() {
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
-            <div className="border border-gray-800 bg-[#0d0d0d] shadow-2xl overflow-hidden">
+            <div className="rounded-2xl border border-gray-800 bg-[#0d0d0d] shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between border-b border-white/10 px-5 py-3 font-mono text-[11px]">
                 <span className="text-white/30">bash</span>
                 <CopyButton value={CURL_SNIPPET} label="Copy" className="text-white/40 hover:text-white" />

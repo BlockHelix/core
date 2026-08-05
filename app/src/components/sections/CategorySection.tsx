@@ -6,6 +6,8 @@
 // Deliberately does NOT claim regulation mandates us. Charles River is not mandated either. It is
 // the thing you buy because trading without it is unprofessional.
 
+import Reveal from '@/components/ui/Reveal';
+
 const TRADFI = [
   {
     layer: 'Custody',
@@ -22,74 +24,103 @@ const TRADFI = [
   {
     layer: 'Pre-trade compliance',
     tradfi: 'Charles River, Aladdin, SimCorp',
-    onchain: 'allowlists',
+    onchain: 'Allowlists',
     status: 'missing',
   },
   {
     layer: 'Execution cost analysis',
     tradfi: 'Virtu, Abel Noser, Bloomberg',
-    onchain: 'nothing',
+    onchain: 'Nothing',
     status: 'missing',
   },
   {
     layer: 'Exposure and concentration',
     tradfi: 'MSCI, Axioma',
-    onchain: 'nothing',
+    onchain: 'Nothing',
     status: 'missing',
   },
 ];
 
 export default function CategorySection() {
   return (
-    <section className="border-t border-black/[0.06] bg-[#fafafa] py-24">
+    <section className="relative z-10 -mt-16 mx-4 lg:mx-8 rounded-[4rem] bg-[#fafafa] py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="max-w-2xl">
-          <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">The missing layer</p>
-          <h2 className="mt-4 text-3xl font-light leading-tight tracking-[-0.02em] text-gray-900 md:text-4xl">
-            No institutional manager trades without pre-trade compliance.
-            <span className="text-zinc-400"> On-chain, almost everyone does.</span>
-          </h2>
-          <p className="mt-6 text-[15px] leading-relaxed text-gray-500">
-            Charles River checks every order against the mandate before it leaves the desk, across
-            roughly 300 managers and{' '}
-            <span className="text-gray-900">$36 trillion in assets</span>.
-          </p>
-          <p className="mt-4 text-[15px] leading-relaxed text-gray-500">
-            Concentration is a property of the whole book, not of any one trade. A levered carry
-            position can hold sUSDe collateral against a USDtb borrow: both are Ethena, and sUSDe
-            wraps USDe, so three tokens resolve to{' '}
-            <span className="text-gray-900">one balance sheet</span>. Every venue is on the list and
-            every limit passes. Nothing about it is out of bounds.
-          </p>
-        </div>
+        <Reveal>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-black/[0.08] bg-white p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)] lg:p-10">
+              <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">The missing layer</p>
+              <h2 className="mt-4 text-3xl font-light leading-tight tracking-[-0.02em] text-gray-900 md:text-4xl">
+                No institutional manager trades without pre-trade compliance.
+                <span className="text-zinc-400"> On-chain, almost everyone does.</span>
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="rounded-2xl border border-black/[0.08] bg-white p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <p className="text-[15px] leading-relaxed text-gray-500">
+                  Charles River checks every order against the mandate before it leaves the desk, across
+                  roughly 300 managers and{' '}
+                  <span className="text-gray-900">$36 trillion in assets</span>.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-black/[0.08] bg-white p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <p className="text-[15px] leading-relaxed text-gray-500">
+                  Every trade can pass and the book can still be wrong. Three different tokens can all
+                  resolve to the same balance sheet, so a position that reads as diversified is{' '}
+                  <span className="text-gray-900">100% concentrated</span> in a single issuer. No
+                  allowlist catches that.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Reveal>
 
-        <div className="mt-12 overflow-x-auto">
-          <table className="w-full min-w-[42rem] border-separate border-spacing-0 text-left">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider-2 text-zinc-400">
-                <th className="pb-3 font-medium">Layer</th>
-                <th className="pb-3 font-medium">Traditional finance</th>
-                <th className="pb-3 font-medium">On-chain</th>
-              </tr>
-            </thead>
-            <tbody className="font-data text-sm">
-              {TRADFI.map((r) => (
-                <tr key={r.layer} className={r.status === 'missing' ? 'text-gray-900' : 'text-zinc-400'}>
-                  <td className="border-t border-black/[0.06] py-4 pr-6">{r.layer}</td>
-                  <td className="border-t border-black/[0.06] py-4 pr-6">{r.tradfi}</td>
-                  <td className="border-t border-black/[0.06] py-4">
-                    {r.onchain}
-                    {r.status === 'missing' && (
-                      <span className="ml-3 rounded-md bg-[#adffd9] px-1.5 py-0.5 text-[11px] font-medium text-gray-900">
-                        gap
+        <Reveal delay={0.1}>
+          <div className="mt-14 overflow-x-auto rounded-2xl border border-black/[0.08] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05),0_12px_32px_-16px_rgba(0,0,0,0.08)]">
+            <div className="min-w-[42rem]">
+              {/* Header */}
+              <div className="grid grid-cols-[1fr_1.3fr_1.3fr] items-center gap-6 border-b border-black/[0.06] bg-gray-50/60 px-6 py-4 lg:px-8">
+                <span className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Layer</span>
+                <span className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Traditional finance</span>
+                <span className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">On-chain</span>
+              </div>
+
+              {/* Rows */}
+              {TRADFI.map((r, i) => {
+                const missing = r.status === 'missing';
+                return (
+                  <div
+                    key={r.layer}
+                    className={`grid grid-cols-[1fr_1.3fr_1.3fr] items-center gap-6 px-6 py-5 transition-colors lg:px-8 ${
+                      i !== TRADFI.length - 1 ? 'border-b border-black/[0.06]' : ''
+                    } ${missing ? 'bg-[#f2fdf8] hover:bg-[#eafbf4]' : 'hover:bg-gray-50/70'}`}
+                  >
+                    <span className={`text-sm font-medium ${missing ? 'text-gray-900' : 'text-zinc-500'}`}>
+                      {r.layer}
+                    </span>
+                    <span className={`font-data text-sm ${missing ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      {r.tradfi}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className={`font-data text-sm ${missing ? 'text-gray-900' : 'text-zinc-400'}`}>
+                        {r.onchain}
                       </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      {missing ? (
+                        <span className="rounded-full bg-[#adffd9] px-2.5 py-0.5 text-[11px] font-medium text-gray-900">
+                          gap
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-zinc-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          live
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

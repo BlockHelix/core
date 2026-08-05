@@ -44,14 +44,6 @@ const TEMPLATES = [
     meta: 'Projected pre-trade',
   },
   {
-    tag: 'Mandate',
-    tagColor: 'text-[#475569]',
-    accent: 'bg-[#94a3b8]',
-    title: 'Venue and function bounds',
-    desc: 'The strategy can call these contracts and these functions, and nothing else. The vault checks this itself, so the limit holds even if our service is down.',
-    meta: 'Enforced on-chain',
-  },
-  {
     tag: 'Concentration',
     tagColor: 'text-[#b82214]',
     accent: 'bg-[#ef4444]',
@@ -73,7 +65,7 @@ export default function TemplatesSection() {
   return (
     <>
       {/* Policy templates */}
-      <section className="py-20 lg:py-48 bg-white border-t border-gray-200">
+      <section className="relative z-10 -mt-16 rounded-t-[4rem] py-20 lg:py-48 bg-[#fafafa]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <Reveal>
             <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-400 mb-8">{'// The checks'}</p>
@@ -89,7 +81,7 @@ export default function TemplatesSection() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {TEMPLATES.map((t, i) => (
               <Reveal key={t.title} delay={(i % 3) * 0.08}>
-                <div className="border border-gray-200 p-6 lg:p-8 bg-white shadow-soft transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-gray-300 h-full">
+                <div className="rounded-2xl border border-black/[0.08] p-6 lg:p-8 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-black/[0.16] h-full">
                   <div className={`h-0.5 w-8 ${t.accent} mb-5`} />
                   <div className={`text-[10px] uppercase tracking-widest ${t.tagColor} font-mono font-bold mb-3`}>{t.tag}</div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{t.title}</h3>

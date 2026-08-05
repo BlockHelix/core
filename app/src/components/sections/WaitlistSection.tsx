@@ -24,7 +24,7 @@ export default function WaitlistSection() {
   }
 
   return (
-    <section id="waitlist" className="py-20 lg:py-48 bg-gray-50 border-t border-gray-200">
+    <section id="waitlist" className="-mt-16 pt-40 pb-20 lg:pt-64 lg:pb-48 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
         <Reveal>
           <p className="text-xs uppercase tracking-[0.15em] font-mono text-gray-400 mb-8">{'// Talk to us'}</p>
@@ -47,12 +47,12 @@ export default function WaitlistSection() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@yourfund.com"
-              className="flex-1 px-6 py-4 text-sm bg-white text-gray-900 border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#10c689] focus:border-[#10c689] font-mono"
+              className="flex-1 px-6 py-4 rounded-full text-sm bg-white text-gray-900 border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#10c689] focus:border-[#10c689] font-mono"
             />
             <button
               type="submit"
               disabled={status === 'sending'}
-              className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-medium tracking-widest bg-gray-900 text-white hover:bg-black transition-all duration-300 disabled:opacity-60 whitespace-nowrap"
+              className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-medium tracking-widest bg-gray-900 text-white hover:bg-black transition-all duration-300 disabled:opacity-60 whitespace-nowrap"
             >
               {status === 'sending' ? 'SENDING…' : 'TALK TO SALES'}
               <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>

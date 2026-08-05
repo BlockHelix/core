@@ -5,7 +5,7 @@ export default function LoopSection() {
   return (
     <>
       {/* The loop */}
-      <section className="py-20 lg:py-40 bg-[#0a0a0a] border-y border-white/10">
+      <section className="relative z-10 -mt-16 rounded-t-[4rem] rounded-b-[4rem] py-20 lg:py-40 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <Reveal>
             <p className="text-xs uppercase tracking-[0.15em] font-mono text-[#10c689] mb-8">{'// The loop'}</p>

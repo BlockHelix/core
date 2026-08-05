@@ -15,7 +15,7 @@ export default function MonitoringSection() {
   return (
     <>
       {/* Continuous monitoring: watched every block */}
-      <section className="py-20 lg:py-32 bg-[#0a0a0a]">
+      <section className="relative z-10 -mt-16 mx-4 lg:mx-8 rounded-[4rem] py-20 lg:py-32 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
             <div className="lg:col-span-5">
@@ -32,7 +32,7 @@ export default function MonitoringSection() {
             </div>
             <div className="lg:col-span-7">
               <Reveal delay={0.1}>
-                <div className="border-y border-white/10">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
                   <div className="flex items-center justify-between py-3 font-mono text-[11px]">
                     <span className="text-white/50">
                       <span className="text-[#adffd9]">MONITOR</span> vault 0x8f3a · every block

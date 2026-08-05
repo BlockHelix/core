@@ -1,7 +1,6 @@
 'use client';
 
 import HelixHero from '@/components/HelixHero';
-import StatsStrip from '@/components/sections/StatsStrip';
 import ApiSection from '@/components/sections/ApiSection';
 import MonitoringSection from '@/components/sections/MonitoringSection';
 import AttributionSection from '@/components/sections/AttributionSection';
@@ -17,7 +16,6 @@ export default function HomeContent() {
   return (
     <main className="min-h-screen">
       <HelixHero />
-      <StatsStrip />
       <CategorySection />
       <ApiSection />
       <MonitoringSection />
