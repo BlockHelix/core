@@ -28,9 +28,9 @@ export default function HelixHero() {
       </div>
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center justify-between gap-16 z-10">
-        <div className="lg:w-1/2 flex flex-col items-center lg:items-start">
-          <div className="text-center lg:text-left">
-            <div className="w-fit mb-6 text-left">
+        <div className="lg:w-1/2 flex flex-col items-start">
+          <div className="text-left">
+            <div className="mb-6">
               <h1 className="text-[2.75rem] md:text-[5rem] lg:text-[6.5rem] leading-[0.92] tracking-[-0.04em] font-light text-gray-900 mb-0 lg:-ml-[5px]">
                 Block<span className="font-bold">Helix</span>
               </h1>
@@ -49,7 +49,7 @@ export default function HelixHero() {
             <p className="text-sm text-gray-500 mb-4">
               For licensed and structured fund operators. We onboard in small batches.
             </p>
-            <div className="flex items-center justify-center lg:justify-start gap-4">
+            <div className="flex items-center justify-start gap-4">
               <Link
                 href="#waitlist"
                 className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium bg-[#adffd9] text-gray-900 hover:bg-[#8ceec8] transition-all duration-300 whitespace-nowrap"
