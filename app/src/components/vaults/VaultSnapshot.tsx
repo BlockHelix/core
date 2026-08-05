@@ -20,6 +20,7 @@ interface NavPosition {
   kind: string;
   amount: string; // SIGNED base units: collateral positive, debt negative
   decimals: number;
+  usdValue: number | null;
 }
 
 interface NavResponse {
@@ -35,6 +36,11 @@ interface NavResponse {
   unvalued?: { protocol: string; reason: string }[];
   navIsLive?: boolean;
   asOf: string;
+}
+
+function usd(v: number): string {
+  const sign = v < 0 ? '-' : '';
+  return `${sign}$${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // Format a bigint base-unit string to a grouped human decimal (tabular). Never throws —
@@ -164,7 +170,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
                           idle <span className="ml-1 text-zinc-900">{fmt(b.idle, b.decimals, 2)}</span>
                         </span>
                         <span className="text-zinc-500">
-                          Aave{' '}
+                          supplied{' '}
                           <span className={clsx('ml-1', supplied ? 'text-[#10c689]' : 'text-zinc-300')}>
                             {supplied ? fmt(b.supplied, b.decimals, 2) : '—'}
                           </span>
@@ -199,13 +205,26 @@ export default function VaultSnapshot({ id }: { id: string }) {
                           {p.protocol} · {p.kind}
                         </span>
                       </span>
-                      <span className={clsx('font-data text-sm tabular-nums', isDebt ? 'text-[#b82214]' : 'text-zinc-900')}>
-                        {fmt(p.amount, p.decimals, 4)}
+                      <span className="flex items-baseline gap-3">
+                        <span className={clsx('font-data text-xs tabular-nums', isDebt ? 'text-[#b82214]/70' : 'text-zinc-400')}>
+                          {fmt(p.amount, p.decimals, 4)}
+                        </span>
+                        <span className={clsx('w-28 text-right font-data text-sm tabular-nums', isDebt ? 'text-[#b82214]' : 'text-zinc-900')}>
+                          {p.usdValue == null ? '—' : usd(p.usdValue)}
+                        </span>
                       </span>
                     </div>
                   );
                 })}
               </div>
+              {data.positions!.every((p) => p.usdValue != null) && (
+                <div className="mt-3 flex items-center justify-between border-t border-black/[0.06] pt-3">
+                  <span className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Net position</span>
+                  <span className="font-data text-sm font-medium tabular-nums text-zinc-900">
+                    {usd(data.positions!.reduce((n, p) => n + (p.usdValue ?? 0), 0))}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
