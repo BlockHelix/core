@@ -35,7 +35,7 @@ export default function HelixHero() {
                 Block<span className="font-bold">Helix</span>
               </h1>
               <p className="text-base md:text-lg lg:text-2xl leading-[1.1] tracking-[-0.01em] font-normal text-gray-900 -mt-1 lg:-mt-2">
-                Prove your automated execution stayed inside policy
+                The execution risk layer for automated finance
               </p>
             </div>
             <p className="text-[15px] leading-[1.5] font-normal text-gray-500 max-w-md mb-4">
