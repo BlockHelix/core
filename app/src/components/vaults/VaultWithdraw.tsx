@@ -273,7 +273,7 @@ export default function VaultWithdraw({
           {overBalance && <p className="mt-3 text-sm text-amber-600">Amount exceeds your share balance.</p>}
           {req.error && <p className="mt-3 break-words text-sm text-[#9a1c10]">{req.error}</p>}
           <p className="mt-3 text-xs text-zinc-400">
-            Withdrawals settle after a 3-day delay (the strategist unwinds the vault's positions first), then you complete the
+            Withdrawals settle after a 3-day delay (the strategist unwinds the vault&apos;s positions first), then you complete the
             withdrawal. Shares are held in escrow meanwhile and can be cancelled.
           </p>
           <div className="mt-2 flex flex-wrap gap-4">{req.hashes.map((h, i) => txLink(h, i === 0 && req.hashes.length > 1 ? 'approve' : 'request'))}</div>
