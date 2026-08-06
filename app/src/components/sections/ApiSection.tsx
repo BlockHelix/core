@@ -8,7 +8,7 @@ import { CopyButton } from '@/components/ui/CopyButton';
 // The framing matters as much as the accuracy: this is not "we trade for you". The trade is the
 // operator's; the API is the gate it passes through, and the measured values come back whether it
 // passes or not.
-const CURL_SNIPPET = `curl -X POST https://api.blockhelix.dev/v1/trade/loop \\
+const CURL_SNIPPET = `curl -X POST https://api.blockhelix.tech/trade/loop \\
   -H "Authorization: Bearer <api-key>" \\
   -d '{"deploymentId":"dep_a7a0108e","seedUsdc":"49205595","turns":30,
        "targetLtvBps":9000,"maxImpactBps":30,"maxDislocationBps":50,"maxTicksCrossed":2}'`;
@@ -20,14 +20,14 @@ const DIM = 'rgba(255,255,255,0.3)';
 
 // Hand-highlighted, static content only.
 const CURL_HTML = [
-  `<span style="color:${DIM}">$</span> curl -X POST https://api.blockhelix.dev/v1/trade/loop \\`,
+  `<span style="color:${DIM}">$</span> curl -X POST https://api.blockhelix.tech/trade/loop \\`,
   `  -H <span style="color:${EM}">"Authorization: Bearer &lt;api-key&gt;"</span> \\`,
   `  -d '{ <span style="color:${SKY}">"deploymentId"</span>: <span style="color:${EM}">"dep_a7a0108e"</span>, <span style="color:${SKY}">"turns"</span>: <span style="color:${AMBER}">30</span>, <span style="color:${SKY}">"targetLtvBps"</span>: <span style="color:${AMBER}">9000</span>,`,
   `       <span style="color:${SKY}">"maxImpactBps"</span>: <span style="color:${AMBER}">30</span>, <span style="color:${SKY}">"maxDislocationBps"</span>: <span style="color:${AMBER}">50</span>, <span style="color:${SKY}">"maxTicksCrossed"</span>: <span style="color:${AMBER}">2</span> }'`,
   ``,
   `<span style="color:${DIM}"># the limits are measured against live state, not trusted from the caller</span>`,
   ``,
-  `<span style="color:${DIM}">$</span> curl https://api.blockhelix.dev/v1/trade/trd_784418f3`,
+  `<span style="color:${DIM}">$</span> curl https://api.blockhelix.tech/trade/trd_784418f3`,
   `<span style="color:${DIM}"># 200 OK`,
   `# {`,
   `#   <span style="color:${SKY}">"status"</span>: <span style="color:#2beead">"confirmed"</span>,`,
