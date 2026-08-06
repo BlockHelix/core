@@ -47,6 +47,16 @@ interface NavResponse {
     disagreements: { symbol: string; feedRate: number; venueRate: number; venue: string; deviationBps: number; navImpactBps: number }[];
     unchecked: { symbol: string; exposureBase: number; reason: string }[];
   } | null;
+  /** MMF-style dual NAV: liveSharePrice restated with the PT leg at the Pendle AMM instead of
+   *  the deliberately-below-market liquidation oracle. Display-only; never feeds the rate. */
+  shadow?: {
+    sharePrice: string;
+    navUsd: number;
+    bridgePp: number;
+    ptOracleUsd: number;
+    ptAmmUsd: number;
+    note: string;
+  } | null;
   asOf: string;
 }
 
@@ -260,6 +270,49 @@ export default function VaultSnapshot({ id }: { id: string }) {
               </span>{' '}
               — marks current holdings; the official rate catches up on its next update (~6h).
             </p>
+          )}
+
+          {/* Money-market funds publish amortised cost AND shadow NAV; same discipline here. The
+              official basis marks PT collateral at the liquidation oracle, which its issuer sets
+              below market by design, so the official share price understates until maturity. This
+              panel shows the market's answer beside it instead of leaving the gap to be discovered
+              as a "loss". The shadow number never feeds the official rate. */}
+          {data.shadow && (
+            <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">
+                  Share price · two bases
+                </p>
+                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                  dual NAV
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-black/[0.06] bg-black/[0.06] sm:grid-cols-2">
+                <Tile
+                  label="Official (conservative)"
+                  value={fmt(data.liveSharePrice ?? data.sharePrice, baseDec, 6)}
+                  unit={baseSym}
+                  sub="collateral at the liquidation oracle"
+                />
+                <Tile
+                  label="Mark-to-market"
+                  value={fmt(data.shadow.sharePrice, baseDec, 6)}
+                  unit={baseSym}
+                  sub="collateral at market (Pendle AMM)"
+                />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-zinc-500">
+                The official basis marks PT collateral at the same oracle that governs liquidation
+                ({data.shadow.ptOracleUsd.toFixed(4)} vs the AMM&apos;s {data.shadow.ptAmmUsd.toFixed(4)}),
+                which its issuer sets below market by design. The{' '}
+                <span className="font-data text-zinc-800">
+                  {data.shadow.bridgePp >= 0 ? '+' : ''}{data.shadow.bridgePp.toFixed(2)}pp
+                </span>{' '}
+                gap is an accounting choice, not a loss: it amortises to zero by PT maturity
+                (Nov 5, 2026). The mark-to-market number is published for disclosure and never
+                feeds the official rate.
+              </p>
+            </div>
           )}
 
           <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
