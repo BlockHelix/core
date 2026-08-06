@@ -121,8 +121,11 @@ function MarkCheck({ data, baseSym, baseDec }: { data: NavResponse; baseSym: str
   const flagged = mc.verdict !== 'ok';
   // Direction decides tone: marks that OVERSTATE NAV are the dangerous kind (amber). Marks below
   // venue are the deliberate conservative basis and can be any size without being a warning.
+  const overstate = mc.worstOverstatementBps ?? mc.worstNavImpactBps;
   const chip = flagged
-    ? `overstates ${(mc.worstOverstatementBps ?? mc.worstNavImpactBps).toFixed(0)}bps of NAV`
+    ? overstate >= 1
+      ? `overstates ${overstate.toFixed(0)}bps of NAV`
+      : 'unchecked exposure'
     : mc.disagreements.length && mc.netNavImpactBps > 0
       ? `conservative by ${mc.netNavImpactBps.toFixed(0)}bps`
       : 'agrees with venue';
