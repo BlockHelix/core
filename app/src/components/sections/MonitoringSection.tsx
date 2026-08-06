@@ -14,7 +14,7 @@ const MONITOR: { t: string; k: string; v: string; s: 'ok' | 'warn' | 'breach' | 
 export default function MonitoringSection() {
   return (
     <>
-      {/* Continuous monitoring: watched every block */}
+      {/* Continuous monitoring: scheduled sweeps + pre-trade gates. Not per-block - do not claim it. */}
       <section className="relative z-10 -mt-16 mx-4 lg:mx-8 rounded-[4rem] py-20 lg:py-32 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
@@ -22,11 +22,12 @@ export default function MonitoringSection() {
               <Reveal>
                 <p className="text-xs uppercase tracking-[0.15em] font-mono text-[#adffd9]/70 mb-8">{'// Between trades'}</p>
                 <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
-                  The engine watches liquidity, prices, and exposure every block.
+                  The engine re-checks liquidity, prices, and exposure around the clock.
                 </h2>
                 <p className="text-lg text-white/50 leading-relaxed">
-                  Bounds are re-evaluated as state moves. A vault that crosses
-                  them halts before the next trade is even submitted.
+                  Scheduled sweeps re-price every position between trades, and
+                  every trade is re-checked against the bounds at build time. A
+                  vault outside them cannot submit the next trade.
                 </p>
               </Reveal>
             </div>
@@ -35,7 +36,7 @@ export default function MonitoringSection() {
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
                   <div className="flex items-center justify-between py-3 font-mono text-[11px]">
                     <span className="text-white/50">
-                      <span className="text-[#adffd9]">MONITOR</span> vault 0x8f3a · every block
+                      <span className="text-[#adffd9]">MONITOR</span> vault 0x8f3a · scheduled sweep
                     </span>
                   </div>
                   <div className="py-5 border-t border-white/10 font-mono text-[12.5px] leading-[2.1] overflow-x-auto">
