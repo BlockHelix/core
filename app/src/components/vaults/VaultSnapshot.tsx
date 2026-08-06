@@ -58,6 +58,8 @@ interface NavResponse {
     bridgePp: number;
     note: string;
   } | null;
+  /** Accounting basis behind liveSharePrice and the on-chain rate. Risk stays oracle-based. */
+  markBasis?: 'conservative' | 'execution';
   asOf: string;
 }
 
@@ -308,16 +310,16 @@ export default function VaultSnapshot({ id }: { id: string }) {
               </div>
               <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-black/[0.06] bg-black/[0.06] sm:grid-cols-2">
                 <Tile
-                  label="Official (conservative)"
+                  label={data.markBasis === 'execution' ? 'Official (exit value)' : 'Official (conservative)'}
                   value={fmt(data.liveSharePrice ?? data.sharePrice, baseDec, 6)}
                   unit={baseSym}
-                  sub="collateral at the liquidation oracle"
+                  sub={data.markBasis === 'execution' ? 'what an orderly sale nets now' : 'collateral at the liquidation oracle'}
                 />
                 <Tile
                   label="Mark-to-market"
                   value={fmt(data.shadow.sharePrice, baseDec, 6)}
                   unit={baseSym}
-                  sub="every leg at its venue price"
+                  sub="every leg at its venue mid"
                 />
               </div>
               <p className="mt-3 text-xs leading-relaxed text-zinc-500">
