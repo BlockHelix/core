@@ -18,6 +18,7 @@ interface NavPosition {
   protocol: string;
   symbol: string;
   kind: string;
+  market?: string;
   amount: string; // SIGNED base units: collateral positive, debt negative
   decimals: number;
   usdValue: number | null;
@@ -35,26 +36,26 @@ interface NavResponse {
   positions?: NavPosition[];
   unvalued?: { protocol: string; reason: string }[];
   navIsLive?: boolean;
-  risk?: {
-    leverage: number; ltv: number; lltv: number; bufferPp: number;
+  /** Per market, worst buffer first. Markets liquidate independently; never blend them. */
+  risks?: {
+    market: string; leverage: number; ltv: number; lltv: number; bufferPp: number;
     collateralBase: number; debtBase: number; equityBase: number;
-  } | null;
+  }[];
   markCheck?: {
     verdict: 'ok' | 'flag' | 'block';
     worstNavImpactBps: number;
+    worstOverstatementBps?: number;
     netNavImpactBps: number;
     sharePriceAtVenue: string | null;
     disagreements: { symbol: string; feedRate: number; venueRate: number; venue: string; deviationBps: number; navImpactBps: number }[];
     unchecked: { symbol: string; exposureBase: number; reason: string }[];
   } | null;
-  /** MMF-style dual NAV: liveSharePrice restated with the PT leg at the Pendle AMM instead of
-   *  the deliberately-below-market liquidation oracle. Display-only; never feeds the rate. */
+  /** MMF-style dual NAV: liveSharePrice with EVERY leg at its venue price. Same restatement as
+   *  markCheck.sharePriceAtVenue, so the headline and the detail rows cannot disagree. */
   shadow?: {
     sharePrice: string;
     navUsd: number;
     bridgePp: number;
-    ptOracleUsd: number;
-    ptAmmUsd: number;
     note: string;
   } | null;
   asOf: string;
@@ -118,12 +119,19 @@ function MarkCheck({ data, baseSym, baseDec }: { data: NavResponse; baseSym: str
     );
   }
   const flagged = mc.verdict !== 'ok';
+  // Direction decides tone: marks that OVERSTATE NAV are the dangerous kind (amber). Marks below
+  // venue are the deliberate conservative basis and can be any size without being a warning.
+  const chip = flagged
+    ? `overstates ${(mc.worstOverstatementBps ?? mc.worstNavImpactBps).toFixed(0)}bps of NAV`
+    : mc.disagreements.length && mc.netNavImpactBps > 0
+      ? `conservative by ${mc.netNavImpactBps.toFixed(0)}bps`
+      : 'agrees with venue';
   return (
     <div className="border-t border-black/[0.06] bg-white px-5 py-4">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Mark check</p>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${flagged ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}`}>
-          {flagged ? `${mc.worstNavImpactBps.toFixed(0)}bps of NAV` : 'agrees with venue'}
+          {chip}
         </span>
       </div>
 
@@ -159,38 +167,46 @@ function MarkCheck({ data, baseSym, baseDec }: { data: NavResponse; baseSym: str
 }
 
 // NAV says what the position is worth. This says whether it survives, which is the only thing
-// that decides the outcome of a levered book. A page showing holdings but not leverage or
-// distance-to-liquidation is not showing the risk.
-function RiskLevels({ risk, baseSym }: { risk: NonNullable<NavResponse['risk']>; baseSym: string }) {
-  // A liquidation buffer is not a linear scale: 2pp is comfortable at 3x and thin at 10x, because
-  // the same LTV move is a much larger share of equity when equity is a smaller share of the book.
-  const tone = risk.bufferPp < 1 ? 'text-red-600' : risk.bufferPp < 2.5 ? 'text-amber-600' : 'text-zinc-950';
+// that decides the outcome of a levered book. One block PER market: markets liquidate
+// independently, and a blended average once showed an 8.2pp buffer while the hot leg sat 1.8pp
+// from its LLTV — wrong in exactly the direction a risk panel exists to prevent.
+function RiskLevels({ risks }: { risks: NonNullable<NavResponse['risks']> }) {
   return (
     <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
       <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Risk levels</p>
-      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-        <div>
-          <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">{risk.leverage.toFixed(2)}x</p>
-          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Leverage</p>
-        </div>
-        <div>
-          <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">{(risk.ltv * 100).toFixed(2)}%</p>
-          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">LTV</p>
-        </div>
-        <div>
-          <p className="font-data text-2xl font-semibold tracking-tight text-zinc-500">{(risk.lltv * 100).toFixed(2)}%</p>
-          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Liquidation at</p>
-        </div>
-        <div>
-          <p className={`font-data text-2xl font-semibold tracking-tight ${tone}`}>{risk.bufferPp.toFixed(2)}pp</p>
-          <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Buffer</p>
-        </div>
-      </div>
-      <p className="mt-4 text-[11px] text-zinc-400">
-        {usd(risk.collateralBase)} collateral against {usd(risk.debtBase)} debt ={' '}
-        <span className="text-zinc-950">{usd(risk.equityBase)}</span> equity. Collateral can fall{' '}
-        <span className="text-zinc-950">{((risk.lltv - risk.ltv) / risk.lltv * 100).toFixed(2)}%</span> before liquidation.
-      </p>
+      {risks.map((risk) => {
+        // A liquidation buffer is not a linear scale: 2pp is comfortable at 3x and thin at 10x,
+        // because the same LTV move is a larger share of equity when equity is a smaller share.
+        const tone = risk.bufferPp < 1 ? 'text-red-600' : risk.bufferPp < 2.5 ? 'text-amber-600' : 'text-zinc-950';
+        return (
+          <div key={risk.market} className="mt-4 border-t border-black/[0.05] pt-4 first:mt-2 first:border-t-0 first:pt-0">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">{risk.market}</p>
+            <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+              <div>
+                <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">{risk.leverage.toFixed(2)}x</p>
+                <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Leverage</p>
+              </div>
+              <div>
+                <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">{(risk.ltv * 100).toFixed(2)}%</p>
+                <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">LTV</p>
+              </div>
+              <div>
+                <p className="font-data text-2xl font-semibold tracking-tight text-zinc-500">{(risk.lltv * 100).toFixed(2)}%</p>
+                <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Liquidation at</p>
+              </div>
+              <div>
+                <p className={`font-data text-2xl font-semibold tracking-tight ${tone}`}>{risk.bufferPp.toFixed(2)}pp</p>
+                <p className="mt-1 text-[11px] uppercase tracking-wider-2 text-zinc-400">Buffer</p>
+              </div>
+            </div>
+            <p className="mt-4 text-[11px] text-zinc-400">
+              {usd(risk.collateralBase)} collateral against {usd(risk.debtBase)} debt ={' '}
+              <span className="text-zinc-950">{usd(risk.equityBase)}</span> equity. Collateral can fall{' '}
+              <span className="text-zinc-950">{(((risk.lltv - risk.ltv) / risk.lltv) * 100).toFixed(2)}%</span> before liquidation.
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -298,19 +314,17 @@ export default function VaultSnapshot({ id }: { id: string }) {
                   label="Mark-to-market"
                   value={fmt(data.shadow.sharePrice, baseDec, 6)}
                   unit={baseSym}
-                  sub="collateral at market (Pendle AMM)"
+                  sub="every leg at its venue price"
                 />
               </div>
               <p className="mt-3 text-xs leading-relaxed text-zinc-500">
-                The official basis marks PT collateral at the same oracle that governs liquidation
-                ({data.shadow.ptOracleUsd.toFixed(4)} vs the AMM&apos;s {data.shadow.ptAmmUsd.toFixed(4)}),
-                which its issuer sets below market by design. The{' '}
+                {data.shadow.note} The{' '}
                 <span className="font-data text-zinc-800">
                   {data.shadow.bridgePp >= 0 ? '+' : ''}{data.shadow.bridgePp.toFixed(2)}pp
                 </span>{' '}
-                gap is an accounting choice, not a loss: it amortises to zero by PT maturity
-                (Nov 5, 2026). The mark-to-market number is published for disclosure and never
-                feeds the official rate.
+                gap is an accounting choice, not a loss. The mark-to-market number is published for
+                disclosure and never feeds the official rate; the mark check below itemises it leg
+                by leg.
               </p>
             </div>
           )}
@@ -347,12 +361,6 @@ export default function VaultSnapshot({ id }: { id: string }) {
             </div>
           </div>
 
-          {data.risk && <RiskLevels risk={data.risk} baseSym={baseSym} />}
-
-          <div className="mt-4 overflow-hidden rounded-xl border border-black/[0.06] shadow-soft">
-            <MarkCheck data={data} baseSym={baseSym} baseDec={baseDec} />
-          </div>
-
           {(data.positions?.length ?? 0) > 0 && (
             <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
               <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">
@@ -369,7 +377,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
                       <span className="flex items-baseline gap-2">
                         <span className="font-data text-sm font-medium text-zinc-800">{p.symbol}</span>
                         <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">
-                          {p.protocol} · {p.kind}
+                          {p.protocol} · {p.kind}{p.market ? ` · ${p.market}` : ''}
                         </span>
                       </span>
                       <span className="flex items-baseline gap-3">
@@ -394,6 +402,12 @@ export default function VaultSnapshot({ id }: { id: string }) {
               )}
             </div>
           )}
+
+          {(data.risks?.length ?? 0) > 0 && <RiskLevels risks={data.risks!} />}
+
+          <div className="mt-4 overflow-hidden rounded-xl border border-black/[0.06] shadow-soft">
+            <MarkCheck data={data} baseSym={baseSym} baseDec={baseDec} />
+          </div>
 
           {(data.unvalued?.length ?? 0) > 0 && (
             <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-50/60 p-5">
