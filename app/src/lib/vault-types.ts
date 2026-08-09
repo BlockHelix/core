@@ -79,6 +79,12 @@ export interface CreateVaultRequest {
   pauserAddress: string;
   /** Owns the manager so the trade policy stays updatable. Omit to renounce (policy frozen). */
   managerOwner?: string;
+  /** Owns every other component and the roles authority. Omit to renounce everything at deploy. */
+  finalOwner?: string;
+  /** Deposits are private by default; true opens deposits to everyone. */
+  allowPublicDeposits?: boolean;
+  /** Deposit allowlist for a private vault. Max MAX_DEPOSITOR_ADDRESSES entries. */
+  depositorAddresses?: string[];
   payoutAddress: string;
   platformFeeBps: number;
   performanceFeeBps: number;
@@ -132,6 +138,7 @@ export const VAULT_NAME_RE = /^[a-zA-Z0-9 ._-]+$/;
 export const VAULT_SYMBOL_RE = /^[a-zA-Z0-9._-]+$/;
 export const MAX_PLATFORM_FEE_BPS = 2000;
 export const MAX_PERFORMANCE_FEE_BPS = 5000;
+export const MAX_DEPOSITOR_ADDRESSES = 32;
 
 export const COMPONENT_LABELS: Record<string, string> = {
   boringVault: 'Vault',

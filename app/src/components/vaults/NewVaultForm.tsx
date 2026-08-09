@@ -7,6 +7,7 @@ import { truncateAddress } from '@/lib/format';
 import {
   BASE_CHAIN_ID,
   DEPLOY_CHAINS,
+  MAX_DEPOSITOR_ADDRESSES,
   MAX_PERFORMANCE_FEE_BPS,
   MAX_PLATFORM_FEE_BPS,
   VAULT_NAME_RE,
@@ -41,6 +42,9 @@ export default function NewVaultForm() {
   const [vaultSymbol, setVaultSymbol] = useState('');
   const [pauserAddress, setPauserAddress] = useState('');
   const [managerOwner, setManagerOwner] = useState('');
+  const [finalOwner, setFinalOwner] = useState('');
+  const [allowPublicDeposits, setAllowPublicDeposits] = useState(false);
+  const [depositorAddresses, setDepositorAddresses] = useState('');
   const [payoutAddress, setPayoutAddress] = useState('');
   const [platformFeeBps, setPlatformFeeBps] = useState(100);
   const [performanceFeeBps, setPerformanceFeeBps] = useState(1000);
@@ -84,6 +88,9 @@ export default function NewVaultForm() {
           if (typeof d.vaultSymbol === 'string') setVaultSymbol(d.vaultSymbol);
           if (typeof d.pauserAddress === 'string') setPauserAddress(d.pauserAddress);
           if (typeof d.managerOwner === 'string') setManagerOwner(d.managerOwner);
+          if (typeof d.finalOwner === 'string') setFinalOwner(d.finalOwner);
+          if (typeof d.allowPublicDeposits === 'boolean') setAllowPublicDeposits(d.allowPublicDeposits);
+          if (typeof d.depositorAddresses === 'string') setDepositorAddresses(d.depositorAddresses);
           if (typeof d.payoutAddress === 'string') setPayoutAddress(d.payoutAddress);
           if (typeof d.platformFeeBps === 'number') setPlatformFeeBps(d.platformFeeBps);
           if (typeof d.performanceFeeBps === 'number') setPerformanceFeeBps(d.performanceFeeBps);
@@ -107,6 +114,9 @@ export default function NewVaultForm() {
             vaultSymbol,
             pauserAddress,
             managerOwner,
+            finalOwner,
+            allowPublicDeposits,
+            depositorAddresses,
             payoutAddress,
             platformFeeBps,
             performanceFeeBps,
@@ -117,7 +127,7 @@ export default function NewVaultForm() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [vaultName, vaultSymbol, pauserAddress, managerOwner, payoutAddress, platformFeeBps, performanceFeeBps]);
+  }, [vaultName, vaultSymbol, pauserAddress, managerOwner, finalOwner, allowPublicDeposits, depositorAddresses, payoutAddress, platformFeeBps, performanceFeeBps]);
 
   useEffect(() => {
     const addr = pauserAddress.trim();
@@ -145,12 +155,17 @@ export default function NewVaultForm() {
   const payoutValid = ADDRESS_RE.test(payoutAddress.trim());
   // Optional: blank renounces manager ownership, which freezes the trade policy permanently.
   const managerOwnerValid = managerOwner.trim() === '' || ADDRESS_RE.test(managerOwner.trim());
+  const finalOwnerValid = finalOwner.trim() === '' || ADDRESS_RE.test(finalOwner.trim());
+  const depositorList = depositorAddresses.split(/[\s,]+/).filter((a) => a.length > 0);
+  const depositorsValid =
+    allowPublicDeposits ||
+    (depositorList.length <= MAX_DEPOSITOR_ADDRESSES && depositorList.every((a) => ADDRESS_RE.test(a)));
   const platformValid = Number.isInteger(platformFeeBps) && platformFeeBps >= 0 && platformFeeBps <= MAX_PLATFORM_FEE_BPS;
   const performanceValid = Number.isInteger(performanceFeeBps) && performanceFeeBps >= 0 && performanceFeeBps <= MAX_PERFORMANCE_FEE_BPS;
   const safeOk = safeState.phase === 'done' && safeState.result.ok;
 
   const canSubmit =
-    nameValid && symbolValid && payoutValid && managerOwnerValid && platformValid && performanceValid && safeOk && !submitting;
+    nameValid && symbolValid && payoutValid && managerOwnerValid && finalOwnerValid && depositorsValid && platformValid && performanceValid && safeOk && !submitting;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -167,6 +182,9 @@ export default function NewVaultForm() {
           vaultSymbol: vaultSymbol.trim(),
           pauserAddress: pauserAddress.trim(),
           ...(managerOwner.trim() ? { managerOwner: managerOwner.trim() } : {}),
+          ...(finalOwner.trim() ? { finalOwner: finalOwner.trim() } : {}),
+          allowPublicDeposits,
+          ...(!allowPublicDeposits && depositorList.length > 0 ? { depositorAddresses: depositorList } : {}),
           payoutAddress: payoutAddress.trim(),
           platformFeeBps,
           performanceFeeBps,
@@ -324,6 +342,49 @@ export default function NewVaultForm() {
       </div>
 
       <div>
+        <label className={labelClass}>Deposit Access</label>
+        <label className="flex items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-white px-4 py-3">
+          <span>
+            <span className="block text-sm font-medium text-zinc-900">Public deposits</span>
+            <span className="block text-xs text-zinc-500">
+              Anyone can deposit. Leave off to keep deposits private: only whitelisted addresses can deposit.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={allowPublicDeposits}
+            onChange={(e) => setAllowPublicDeposits(e.target.checked)}
+            className="h-4 w-4 accent-[#10c689]"
+          />
+        </label>
+        {!allowPublicDeposits && (
+          <div className="mt-3">
+            <label className={labelClass} htmlFor="depositorAddresses">Depositor Whitelist</label>
+            <textarea
+              id="depositorAddresses"
+              className={inputClass}
+              rows={3}
+              value={depositorAddresses}
+              onChange={(e) => setDepositorAddresses(e.target.value)}
+              placeholder={'0x…\n0x…'}
+              spellCheck={false}
+            />
+            {depositorList.length > 0 && !depositorsValid && (
+              <p className="mt-2 text-xs text-[#b82214]">
+                {depositorList.length > MAX_DEPOSITOR_ADDRESSES
+                  ? `Max ${MAX_DEPOSITOR_ADDRESSES} addresses`
+                  : 'Every entry must be a valid 0x address'}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-zinc-400">
+              Addresses allowed to deposit, one per line, up to {MAX_DEPOSITOR_ADDRESSES}. Withdrawals stay
+              public. Set a final owner to edit the whitelist after deploy.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div>
         <label className={labelClass} htmlFor="pauserAddress">
           Pauser Safe (Gnosis Safe on {chainId === 1 ? 'Ethereum mainnet' : 'Base'})
         </label>
@@ -394,6 +455,25 @@ export default function NewVaultForm() {
           Owns the manager, so it can update the trade policy (the merkle root) in place instead of
           redeploying the vault. This address can authorise any call the vault can make, so use a Safe.
           Leave blank to renounce: the policy is then frozen forever and a change costs a new vault.
+        </p>
+      </div>
+
+      <div>
+        <label className={labelClass} htmlFor="finalOwner">Final Owner (optional)</label>
+        <input
+          id="finalOwner"
+          className={inputClass}
+          value={finalOwner}
+          onChange={(e) => setFinalOwner(e.target.value)}
+          placeholder="0x… leave empty to renounce everything at deploy"
+          spellCheck={false}
+        />
+        {finalOwner && !finalOwnerValid && (
+          <p className="mt-2 text-xs text-[#b82214]">Must be a valid 0x address</p>
+        )}
+        <p className="mt-2 text-xs text-zinc-400">
+          Owns every component and the roles authority after deploy, so roles, whitelists and params
+          stay editable. Leave empty to renounce everything at deploy: the vault is then immutable.
         </p>
       </div>
 
