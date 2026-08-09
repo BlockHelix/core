@@ -12,6 +12,7 @@ import { rateLimit } from '@/lib/server/rate-limit';
 import {
   BASE_CHAIN_ID,
   DEPLOY_CHAINS,
+  MAX_DEPOSITOR_ADDRESSES,
   MAX_PERFORMANCE_FEE_BPS,
   MAX_PLATFORM_FEE_BPS,
   VAULT_NAME_RE,
@@ -36,6 +37,9 @@ type Body = {
   vaultSymbol?: unknown;
   pauserAddress?: unknown;
   managerOwner?: unknown;
+  finalOwner?: unknown;
+  allowPublicDeposits?: unknown;
+  depositorAddresses?: unknown;
   payoutAddress?: unknown;
   platformFeeBps?: unknown;
   performanceFeeBps?: unknown;
@@ -49,6 +53,16 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
   const payoutAddress = typeof body.payoutAddress === 'string' ? body.payoutAddress.trim() : '';
   // Optional. Blank = renounce manager ownership = the trade policy is frozen permanently.
   const managerOwner = typeof body.managerOwner === 'string' ? body.managerOwner.trim() : '';
+  // Optional. Blank = renounce every other component and the roles authority at deploy.
+  const finalOwner = typeof body.finalOwner === 'string' ? body.finalOwner.trim() : '';
+  const allowPublicDeposits = body.allowPublicDeposits === true;
+  const depositorAddresses =
+    !allowPublicDeposits && Array.isArray(body.depositorAddresses)
+      ? body.depositorAddresses
+          .filter((a): a is string => typeof a === 'string')
+          .map((a) => a.trim())
+          .filter((a) => a.length > 0)
+      : [];
   const platformFeeBps = Number(body.platformFeeBps);
   const performanceFeeBps = Number(body.performanceFeeBps);
 
@@ -66,6 +80,15 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
   }
   if (managerOwner && !ADDRESS_RE.test(managerOwner)) {
     return { error: 'Manager owner must be a valid 0x address, or blank to freeze the policy' };
+  }
+  if (finalOwner && !ADDRESS_RE.test(finalOwner)) {
+    return { error: 'Final owner must be a valid 0x address, or blank to renounce everything' };
+  }
+  if (depositorAddresses.length > MAX_DEPOSITOR_ADDRESSES) {
+    return { error: `Depositor whitelist is capped at ${MAX_DEPOSITOR_ADDRESSES} addresses` };
+  }
+  if (depositorAddresses.some((a) => !ADDRESS_RE.test(a))) {
+    return { error: 'Every depositor address must be a valid 0x address' };
   }
   if (!Number.isInteger(platformFeeBps) || platformFeeBps < 0 || platformFeeBps > MAX_PLATFORM_FEE_BPS) {
     return { error: `Platform fee must be an integer between 0 and ${MAX_PLATFORM_FEE_BPS} bps` };
@@ -92,6 +115,9 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
       baseAssetAddress: chain.usdcAddress,
       pauserAddress,
       ...(managerOwner ? { managerOwner } : {}),
+      ...(finalOwner ? { finalOwner } : {}),
+      allowPublicDeposits,
+      ...(depositorAddresses.length > 0 ? { depositorAddresses } : {}),
       payoutAddress,
       platformFeeBps,
       performanceFeeBps,
