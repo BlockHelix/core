@@ -4,7 +4,8 @@ import useSWR from 'swr';
 import { clsx } from 'clsx';
 import { fetcher } from '@/lib/swr-fetcher';
 import { LastUpdated, RefreshButton, useFreshness } from '@/components/dashboard/Freshness';
-import type { PnlAttributionBook, PnlAttributionResponse } from '@/lib/vault-types';
+import BreakevenChart from '@/components/charts/BreakevenChart';
+import { driverUsd, type PnlAttributionBook, type PnlAttributionResponse } from '@/lib/vault-types';
 
 const GREEN = '#10c689';
 const RED = '#b82214';
@@ -26,19 +27,6 @@ const money = (v: number) =>
 const usdFull = (v: number) =>
   (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
 const colorFor = (v: number) => (v > 0 ? GREEN : v < 0 ? RED : GRAY);
-
-// A driver value is a USD number or a nested object carrying a total.
-function driverUsd(v: unknown): number | null {
-  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-  if (v && typeof v === 'object') {
-    const o = v as Record<string, unknown>;
-    for (const key of ['total', 'usd']) {
-      const n = o[key];
-      if (typeof n === 'number' && Number.isFinite(n)) return n;
-    }
-  }
-  return null;
-}
 
 function driverRows(drivers: Record<string, unknown>): { key: string; label: string; usd: number | null }[] {
   return Object.entries(drivers)
@@ -83,6 +71,8 @@ function Book({ book }: { book: PnlAttributionBook }) {
               <Stat label="equity" value={usdFull(st.equity_usd)} />
             </div>
           )}
+
+          {book.history && book.history.length > 0 && <BreakevenChart history={book.history} />}
 
           <div className="mt-4 space-y-2.5">
             {driverRows(iv.drivers).map((r) => (

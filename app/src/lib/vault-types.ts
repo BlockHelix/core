@@ -193,11 +193,33 @@ export interface PnlBookState {
   captured_at: number | string;
 }
 
+// Cumulative-from-genesis attribution rows, oldest first.
+export interface PnlBookHistoryRow {
+  to_time: number | string;
+  delta_nav: number;
+  drivers: Record<string, unknown>;
+  computed_at: number | string;
+}
+
 export interface PnlAttributionBook {
   subject: PnlBookSubject;
   interval: PnlBookInterval | null;
   state: PnlBookState | null;
   eventCount: number;
+  history?: PnlBookHistoryRow[];
+}
+
+// A driver value is a USD number or a nested object carrying a total.
+export function driverUsd(v: unknown): number | null {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    for (const key of ['total', 'usd']) {
+      const n = o[key];
+      if (typeof n === 'number' && Number.isFinite(n)) return n;
+    }
+  }
+  return null;
 }
 
 export interface PnlAttributionResponse {
