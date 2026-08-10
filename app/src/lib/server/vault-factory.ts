@@ -1,5 +1,5 @@
 import { clerkClient } from '@clerk/nextjs/server';
-import type { DeploymentRecord } from '@/lib/vault-types';
+import type { DeploymentRecord, RateAttributionResponse } from '@/lib/vault-types';
 
 const DEFAULT_API_URL = 'https://api.blockhelix.tech';
 
@@ -131,6 +131,18 @@ export interface VaultNavResponse {
 // same public API external consumers use — no on-chain reads in the browser.
 export async function getVaultNavUpstream(vault: string, userId: string): Promise<VaultNavResponse> {
   return (await upstream(`/vaults/${encodeURIComponent(vault)}/nav`, userId)) as VaultNavResponse;
+}
+
+// Per-push share price attribution: one interval per rate push, decomposed into
+// price/quantity effects per symbol plus shares, clamp and residual terms.
+export async function getVaultRateAttributionUpstream(
+  vault: string,
+  userId: string,
+): Promise<RateAttributionResponse> {
+  return (await upstream(
+    `/vaults/${encodeURIComponent(vault)}/rate-attribution`,
+    userId,
+  )) as RateAttributionResponse;
 }
 
 export async function createVaultUpstream(payload: unknown, userId: string): Promise<{ deploymentId: string; status: string }> {

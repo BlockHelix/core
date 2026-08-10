@@ -433,12 +433,6 @@ export default function VaultSnapshot({ id }: { id: string }) {
             </div>
           )}
 
-          <div className="mt-4 rounded-xl border border-dashed border-black/[0.12] bg-zinc-50/60 p-5">
-            <p className="text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">Attribution</p>
-            <p className="mt-1.5 text-sm text-zinc-500">
-              P&amp;L attribution and NAV history — <span className="text-[#10c689]">coming soon</span>.
-            </p>
-          </div>
         </>
       )}
     </div>
