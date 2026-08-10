@@ -134,6 +134,34 @@ export interface VaultListResponse {
   quota: { used: number; limit: number | null }; // limit null = unlimited (entitlement override)
 }
 
+export interface RateAttributionEffect {
+  symbol: string;
+  priceBps: number; // mark move on start-of-interval quantity
+  quantityBps: number; // position size change at start mark (debt legs: interest + restructuring)
+}
+
+export interface RateAttributionInterval {
+  fromCreatedAt: string;
+  toCreatedAt: string;
+  fromBlock: number;
+  toBlock: number;
+  txHash: string | null;
+  actualBps: number | null; // on-chain share price move; null across skipped runs
+  trueBps: number;
+  capClampBps: number; // nonzero = accountant band clamped the push, remainder spills forward
+  effects: RateAttributionEffect[];
+  sharesBps: number;
+  residualBps: number;
+  navBase: number;
+}
+
+export interface RateAttributionResponse {
+  vaultAddress: string;
+  snapshotCount: number;
+  asOf: string;
+  intervals: RateAttributionInterval[];
+}
+
 export const VAULT_NAME_RE = /^[a-zA-Z0-9 ._-]+$/;
 export const VAULT_SYMBOL_RE = /^[a-zA-Z0-9._-]+$/;
 export const MAX_PLATFORM_FEE_BPS = 2000;

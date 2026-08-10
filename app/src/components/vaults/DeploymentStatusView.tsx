@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 import StatusBadge from './StatusBadge';
 import TxTable from './TxTable';
 import VaultSnapshot from './VaultSnapshot';
+import RateAttribution from './RateAttribution';
 import VaultDeposit from './VaultDeposit';
 import VaultWithdraw from './VaultWithdraw';
 import WalletProvider from '@/components/wallet/WalletProvider';
@@ -319,6 +320,8 @@ export default function DeploymentStatusView({ id }: { id: string }) {
       )}
 
       {record.status === 'complete' && record.addresses?.boringVault && <VaultSnapshot id={id} />}
+
+      {record.status === 'complete' && record.addresses?.boringVault && <RateAttribution id={id} />}
 
       {record.status === 'complete' && record.addresses && (
         <div className="rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft md:p-8">
