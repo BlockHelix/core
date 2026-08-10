@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import useSWR from 'swr';
 import { clsx } from 'clsx';
 import { fetcher, FetchError } from '@/lib/swr-fetcher';
 import { timeAgo } from '@/lib/format';
 import { LastUpdated, RefreshButton, useFreshness } from '@/components/dashboard/Freshness';
+import AttributionStack from '@/components/charts/AttributionStack';
 import type { RateAttributionInterval, RateAttributionResponse } from '@/lib/vault-types';
 
 const GREEN = 'text-[#10c689]';
@@ -139,10 +141,12 @@ export default function RateAttribution({ id }: { id: string }) {
   );
   const updatedAt = useFreshness(isValidating, !!data);
   const notFound = error instanceof FetchError && error.status === 404;
+  const [showAll, setShowAll] = useState(false);
   const rows = (data?.intervals ?? [])
     .slice()
-    .sort((a, b) => new Date(b.toCreatedAt).getTime() - new Date(a.toCreatedAt).getTime())
-    .slice(0, 20);
+    .sort((a, b) => new Date(b.toCreatedAt).getTime() - new Date(a.toCreatedAt).getTime());
+  const visible = showAll ? rows : rows.slice(0, 8);
+  const chartIntervals = rows.slice(0, 40).slice().reverse();
 
   return (
     <div>
@@ -175,14 +179,26 @@ export default function RateAttribution({ id }: { id: string }) {
       ) : (
         <Card>
           <Summary intervals={data!.intervals} />
+          <AttributionStack intervals={chartIntervals} />
           <div className="mt-3 divide-y divide-black/[0.05] border-t border-black/[0.05]">
-            {rows.map((iv) => (
+            {visible.map((iv) => (
               <Row key={`${iv.toBlock}-${iv.toCreatedAt}`} iv={iv} />
             ))}
           </div>
+          {rows.length > 8 && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-2 text-[11px] font-medium text-zinc-500 transition-colors hover:text-zinc-800"
+            >
+              {showAll ? 'Show fewer' : `Show all ${rows.length}`}
+            </button>
+          )}
           <p className="mt-3 text-[10px] leading-relaxed text-zinc-400">
-            Each row is one rate push. Chips show the three largest effects in bps of share
-            price. A computed row had no on-chain push recorded, so the move is the model value.
+            Each column stacks the driver contributions of one push. The diamond is the net
+            move. A triangle marks a push the accountant band clamped. Each row is one rate
+            push. Chips show the three largest effects in bps of share price. A computed row
+            had no on-chain push recorded, so the move is the model value.
           </p>
         </Card>
       )}
