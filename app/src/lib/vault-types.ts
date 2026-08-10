@@ -162,6 +162,51 @@ export interface RateAttributionResponse {
   intervals: RateAttributionInterval[];
 }
 
+export interface PnlBookSubject {
+  id: string;
+  label: string;
+  chain_id: number;
+  market_key: string | null;
+  collateral_asset: string | null;
+  loan_asset: string | null;
+}
+
+export interface PnlBookInterval {
+  from_time: number | string;
+  to_time: number | string;
+  nav_start: number;
+  nav_end: number;
+  delta_nav: number;
+  // USD number per driver, or a nested object carrying a total; parsed defensively.
+  drivers: Record<string, unknown>;
+  residual: number;
+  residual_pct: number | null;
+  engine_version: string;
+  computed_at: number | string;
+}
+
+export interface PnlBookState {
+  block_number: number;
+  collateral_usd: number;
+  debt_usd: number;
+  equity_usd: number;
+  captured_at: number | string;
+}
+
+export interface PnlAttributionBook {
+  subject: PnlBookSubject;
+  interval: PnlBookInterval | null;
+  state: PnlBookState | null;
+  eventCount: number;
+}
+
+export interface PnlAttributionResponse {
+  vaultAddress: string;
+  loaded: boolean;
+  asOf: string;
+  books: PnlAttributionBook[];
+}
+
 export const VAULT_NAME_RE = /^[a-zA-Z0-9 ._-]+$/;
 export const VAULT_SYMBOL_RE = /^[a-zA-Z0-9._-]+$/;
 export const MAX_PLATFORM_FEE_BPS = 2000;
