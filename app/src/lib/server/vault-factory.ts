@@ -1,5 +1,5 @@
 import { clerkClient } from '@clerk/nextjs/server';
-import type { DeploymentRecord, RateAttributionResponse } from '@/lib/vault-types';
+import type { DeploymentRecord, PnlAttributionResponse, RateAttributionResponse } from '@/lib/vault-types';
 
 const DEFAULT_API_URL = 'https://api.blockhelix.tech';
 
@@ -143,6 +143,18 @@ export async function getVaultRateAttributionUpstream(
     `/vaults/${encodeURIComponent(vault)}/rate-attribution`,
     userId,
   )) as RateAttributionResponse;
+}
+
+// Attribution engine per-book P&L decomposition: named USD drivers per book plus
+// a residual, with the latest captured position state.
+export async function getVaultPnlAttributionUpstream(
+  vault: string,
+  userId: string,
+): Promise<PnlAttributionResponse> {
+  return (await upstream(
+    `/vaults/${encodeURIComponent(vault)}/pnl-attribution`,
+    userId,
+  )) as PnlAttributionResponse;
 }
 
 export async function createVaultUpstream(payload: unknown, userId: string): Promise<{ deploymentId: string; status: string }> {
