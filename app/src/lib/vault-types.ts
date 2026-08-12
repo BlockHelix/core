@@ -193,8 +193,9 @@ export interface PnlBookState {
   captured_at: number | string;
 }
 
-// Cumulative-from-genesis attribution rows, oldest first.
-export interface PnlBookHistoryRow {
+// One engine run's cumulative-from-genesis computation — a point on the breakeven series.
+// Served by GET /vaults/:vault/pnl-attribution/series, oldest first.
+export interface PnlSeriesPoint {
   to_time: number | string;
   delta_nav: number;
   drivers: Record<string, unknown>;
@@ -206,7 +207,18 @@ export interface PnlAttributionBook {
   interval: PnlBookInterval | null;
   state: PnlBookState | null;
   eventCount: number;
-  history?: PnlBookHistoryRow[];
+}
+
+export interface PnlSeriesBook {
+  subject: PnlBookSubject;
+  points: PnlSeriesPoint[];
+}
+
+export interface PnlSeriesResponse {
+  vaultAddress: string;
+  loaded: boolean;
+  asOf: string;
+  books: PnlSeriesBook[];
 }
 
 // A driver value is a USD number or a nested object carrying a total.

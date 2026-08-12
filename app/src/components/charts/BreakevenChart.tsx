@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { scaleLinear } from 'd3-scale';
-import { driverUsd, type PnlBookHistoryRow } from '@/lib/vault-types';
+import { driverUsd, type PnlSeriesPoint } from '@/lib/vault-types';
 
 const GRID = '#f0f1f3';
 const ZERO = '#cbd5e1';
@@ -60,11 +60,11 @@ function niceTicks(lo: number, hi: number): number[] {
 type Pt = { i: number; v: number };
 
 // Cumulative economics of one book: lending yield earned vs debt interest paid,
-// against the fixed cost of entering the position.
-export default function BreakevenChart({ history }: { history: PnlBookHistoryRow[] }) {
+// against the fixed cost of entering the position. One point per attribution engine run.
+export default function BreakevenChart({ points }: { points: PnlSeriesPoint[] }) {
   const [hover, setHover] = useState<number | null>(null);
 
-  const rows = history
+  const rows = points
     .map((r) => ({ t: toMs(r.computed_at), r }))
     .filter((x) => Number.isFinite(x.t))
     .sort((a, b) => a.t - b.t);

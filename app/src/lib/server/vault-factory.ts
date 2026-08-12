@@ -1,5 +1,5 @@
 import { clerkClient } from '@clerk/nextjs/server';
-import type { DeploymentRecord, PnlAttributionResponse, RateAttributionResponse } from '@/lib/vault-types';
+import type { DeploymentRecord, PnlAttributionResponse, PnlSeriesResponse, RateAttributionResponse } from '@/lib/vault-types';
 
 const DEFAULT_API_URL = 'https://api.blockhelix.tech';
 
@@ -155,6 +155,19 @@ export async function getVaultPnlAttributionUpstream(
     `/vaults/${encodeURIComponent(vault)}/pnl-attribution`,
     userId,
   )) as PnlAttributionResponse;
+}
+
+// The whole per-run attribution trail for every book of the vault in one call — the series
+// behind the breakeven chart. Split from the snapshot above so the (growing) series doesn't
+// ride along on the snapshot's frequent refresh.
+export async function getVaultPnlAttributionSeriesUpstream(
+  vault: string,
+  userId: string,
+): Promise<PnlSeriesResponse> {
+  return (await upstream(
+    `/vaults/${encodeURIComponent(vault)}/pnl-attribution/series`,
+    userId,
+  )) as PnlSeriesResponse;
 }
 
 export async function createVaultUpstream(payload: unknown, userId: string): Promise<{ deploymentId: string; status: string }> {

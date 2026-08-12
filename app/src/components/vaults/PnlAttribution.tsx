@@ -5,7 +5,7 @@ import { clsx } from 'clsx';
 import { fetcher } from '@/lib/swr-fetcher';
 import { LastUpdated, RefreshButton, useFreshness } from '@/components/dashboard/Freshness';
 import BreakevenChart from '@/components/charts/BreakevenChart';
-import { driverUsd, type PnlAttributionBook, type PnlAttributionResponse } from '@/lib/vault-types';
+import { driverUsd, type PnlAttributionBook, type PnlAttributionResponse, type PnlSeriesPoint, type PnlSeriesResponse } from '@/lib/vault-types';
 
 const GREEN = '#10c689';
 const RED = '#b82214';
@@ -47,7 +47,7 @@ function Leader() {
   return <span aria-hidden className="h-px flex-1 -translate-y-[3px] border-b border-dotted border-zinc-300" />;
 }
 
-function Book({ book }: { book: PnlAttributionBook }) {
+function Book({ book, points }: { book: PnlAttributionBook; points: PnlSeriesPoint[] | undefined }) {
   const iv = book.interval;
   const st = book.state;
   return (
@@ -72,7 +72,7 @@ function Book({ book }: { book: PnlAttributionBook }) {
             </div>
           )}
 
-          {book.history && book.history.length > 0 && <BreakevenChart history={book.history} />}
+          {points && points.length > 0 && <BreakevenChart points={points} />}
 
           <div className="mt-4 space-y-2.5">
             {driverRows(iv.drivers).map((r) => (
@@ -148,6 +148,15 @@ export default function PnlAttribution({ id }: { id: string }) {
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 30_000, refreshInterval: 300_000 },
   );
+  // The breakeven series changes only when the attribution engine runs (a few times a day),
+  // and it grows unboundedly — so it ships in its own endpoint, fetched once per book set
+  // instead of riding along on the snapshot's 5-minute refresh.
+  const { data: seriesData } = useSWR<PnlSeriesResponse>(
+    `/api/vaults/${encodeURIComponent(id)}/pnl-attribution/series`,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000, refreshInterval: 900_000 },
+  );
+  const seriesByBook = new Map((seriesData?.books ?? []).map((b) => [b.subject.id, b.points]));
   const updatedAt = useFreshness(isValidating, !!data);
   const books = data?.books ?? [];
 
@@ -180,7 +189,7 @@ export default function PnlAttribution({ id }: { id: string }) {
         <Card>
           <div className="divide-y divide-black/[0.05]">
             {books.map((b) => (
-              <Book key={b.subject.id} book={b} />
+              <Book key={b.subject.id} book={b} points={seriesByBook.get(b.subject.id)} />
             ))}
           </div>
         </Card>
