@@ -120,6 +120,12 @@ function Book({ book, points }: { book: PnlAttributionBook; points: PnlSeriesPoi
           <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-zinc-400">
             drivers sum to dNAV. the gap is the residual.
           </p>
+          {(iv.unmodelled_txs ?? 0) > 0 && (
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-amber-700">
+              impact &amp; fees exclude {iv.unmodelled_txs} transaction{(iv.unmodelled_txs ?? 0) === 1 ? '' : 's'} the
+              cost model refused to price (unknown counterparty) — $0.00 there means not measured, not free.
+            </p>
+          )}
         </>
       )}
     </div>

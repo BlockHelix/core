@@ -183,6 +183,9 @@ export interface PnlBookInterval {
   residual_pct: number | null;
   engine_version: string;
   computed_at: number | string;
+  /** Transactions the TCA refused to price (unknown counterparty/token). Their cost falls
+   *  back to 0 in the execution/fees drivers — display as not-measured, never as free. */
+  unmodelled_txs?: number | null;
 }
 
 export interface PnlBookState {
