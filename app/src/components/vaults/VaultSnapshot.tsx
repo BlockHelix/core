@@ -234,14 +234,10 @@ function yieldSub(y: NavResponse['yield']): string | undefined {
   if (!y) return undefined;
   const unmodelled = y.unmodelled ?? [];
   if (y.blendedApy === 0 && unmodelled.length > 0) return `not modelled · ${unmodelled.join(', ')}`;
-  // Deployed capital over NAV. A levered market puts this above 1 because collateral exceeds
-  // equity, so say "levered" rather than reporting 275% deployed and looking like a bug.
-  const scale =
-    y.deployedRatio > 1
-      ? `${y.deployedRatio.toFixed(2)}x levered`
-      : y.deployedRatio > 0
-        ? `${(y.deployedRatio * 100).toFixed(0)}% deployed`
-        : 'nothing deployed';
+  // The vault's OWN capital at work over NAV, so it reconciles with the blend beside it: this
+  // ratio times the deployed rate has to land on the headline. Borrowed collateral is not the
+  // vault's capital, and counting it read 90% deployed next to a 4.9% blend on a 79% idle book.
+  const scale = y.deployedRatio > 0 ? `${(y.deployedRatio * 100).toFixed(0)}% deployed` : 'nothing deployed';
   return unmodelled.length > 0 ? `blended · ${scale} · partial` : `blended · ${scale}`;
 }
 
