@@ -31,7 +31,7 @@ interface NavResponse {
   totalShares: string;
   shareDecimals: number;
   nav: string; // live NAV/TVL
-  yield?: { blendedApy: number; deployedRatio: number };
+  yield?: { blendedApy: number; deployedRatio: number; unmodelled?: string[] };
   balances: NavBalance[];
   positions?: NavPosition[];
   unvalued?: { protocol: string; reason: string }[];
@@ -216,6 +216,35 @@ function RiskLevels({ risks }: { risks: NonNullable<NavResponse['risks']> }) {
   );
 }
 
+// "nothing deployed" is only true when the vault holds nothing that earns. It used to render
+// whenever the blend summed to zero, which swallowed the case that matters most: a book that IS
+// deployed, into something the API has no rate model for. The yield field only ever summed Aave's
+// supplyApy, so a vault whose whole position was a levered Pendle PT loop summed to zero and the
+// tile printed "nothing deployed" over a live 2.8x book, directly above a Deposit button.
+// An unmodelled leg now says it is unmodelled and names itself.
+
+function yieldValue(y: NavResponse['yield']): { value: string; unit?: string } {
+  if (!y) return { value: '—' };
+  // A blend over nothing modelled is an unknown, not a zero. Never print 0.00% over a live book.
+  if (y.blendedApy === 0 && (y.unmodelled?.length ?? 0) > 0) return { value: '—' };
+  return { value: pct(y.blendedApy), unit: y.blendedApy > 0 ? '% APY' : undefined };
+}
+
+function yieldSub(y: NavResponse['yield']): string | undefined {
+  if (!y) return undefined;
+  const unmodelled = y.unmodelled ?? [];
+  if (y.blendedApy === 0 && unmodelled.length > 0) return `not modelled · ${unmodelled.join(', ')}`;
+  // Deployed capital over NAV. A levered market puts this above 1 because collateral exceeds
+  // equity, so say "levered" rather than reporting 275% deployed and looking like a bug.
+  const scale =
+    y.deployedRatio > 1
+      ? `${y.deployedRatio.toFixed(2)}x levered`
+      : y.deployedRatio > 0
+        ? `${(y.deployedRatio * 100).toFixed(0)}% deployed`
+        : 'nothing deployed';
+  return unmodelled.length > 0 ? `blended · ${scale} · partial` : `blended · ${scale}`;
+}
+
 export default function VaultSnapshot({ id }: { id: string }) {
   const { data, error, isLoading, isValidating, mutate } = useSWR<NavResponse>(
     `/api/vaults/${encodeURIComponent(id)}/nav`,
@@ -270,18 +299,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
             />
             <Tile label="Share price" value={fmt(data.sharePrice, baseDec, 6)} unit={baseSym} sub="official · ~6h" />
             <Tile label="Shares outstanding" value={fmt(data.totalShares, data.shareDecimals, 2)} />
-            <Tile
-              label="Current yield"
-              value={yieldInfo ? pct(yieldInfo.blendedApy) : '—'}
-              unit={yieldInfo && yieldInfo.blendedApy > 0 ? '% APY' : undefined}
-              sub={
-                yieldInfo
-                  ? yieldInfo.deployedRatio > 0
-                    ? `blended · ${(yieldInfo.deployedRatio * 100).toFixed(0)}% deployed`
-                    : 'nothing deployed'
-                  : undefined
-              }
-            />
+            <Tile label="Current yield" {...yieldValue(yieldInfo)} sub={yieldSub(yieldInfo)} />
           </div>
           {data.liveSharePrice && data.liveSharePrice !== data.sharePrice && (
             <p className="mt-3 text-xs text-zinc-500">
