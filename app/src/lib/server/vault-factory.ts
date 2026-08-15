@@ -265,3 +265,30 @@ export async function appendUserDeploymentId(userId: string, deploymentId: strin
     privateMetadata: { vaultDeployments: [...existing, deploymentId] },
   });
 }
+
+export interface VenueRiskResponse {
+  venue: string;
+  scannedAt: string;
+  guard: string;
+  utilization: number | null;
+  borrowApy: number | null;
+  impliedPtApy: number | null;
+  peg: {
+    collateralization: number | null;
+    redemptionValue: number | null;
+    netParDeficitUsd: number | null;
+    feedTs: string | null;
+    poolUsdc: number | null;
+    poolApx: number | null;
+    spotUsdcPerApx: number | null;
+    spotVsRvBps: number | null;
+    tripwires: Record<string, boolean | null>;
+  } | null;
+}
+
+// The fund summary's venue-risk block: the worker's latest peg-health scan. Served off the
+// public summary so the panel and the splash page can never disagree about the same number.
+export async function getVenueRiskUpstream(userId: string): Promise<VenueRiskResponse | null> {
+  const summary = (await upstream('/public/fund/summary', userId)) as { venueRisk?: VenueRiskResponse | null };
+  return summary.venueRisk ?? null;
+}

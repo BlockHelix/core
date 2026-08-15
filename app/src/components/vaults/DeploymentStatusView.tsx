@@ -9,6 +9,7 @@ import TxTable from './TxTable';
 import VaultSnapshot from './VaultSnapshot';
 import RateAttribution from './RateAttribution';
 import PnlAttribution from './PnlAttribution';
+import PegHealthCard from './PegHealthCard';
 import VaultDeposit from './VaultDeposit';
 import VaultWithdraw from './VaultWithdraw';
 import WalletProvider from '@/components/wallet/WalletProvider';
@@ -320,7 +321,12 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         </WalletProvider>
       )}
 
-      {record.status === 'complete' && record.addresses?.boringVault && <VaultSnapshot id={id} />}
+      {record.status === 'complete' && record.addresses?.boringVault && (
+        <>
+          <VaultSnapshot id={id} />
+          <PegHealthCard />
+        </>
+      )}
 
       {record.status === 'complete' && record.addresses?.boringVault && <RateAttribution id={id} />}
 
