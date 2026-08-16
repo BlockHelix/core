@@ -12,6 +12,9 @@ const TRIPWIRE_LABELS: Record<string, string> = {
   poolUsdcBelowMin: 'Pool USDC < $500k',
   borrowApyAboveMax: 'Borrow APY > 20%',
   collateralizationBelowMin: 'Collateralization < 90%',
+  spotBelowFloor: 'Spot < $0.90',
+  largePoolSell: 'Pool sell ≥ $100k',
+  whaleUnwinding: 'Whale unwinding',
 };
 
 function pct(v: number | null | undefined, digits = 2): string {
@@ -110,6 +113,22 @@ export default function PegHealthCard() {
         <Stat label="Pool apxUSD side" value={usd0(peg?.poolApx)} />
         <Stat label="Borrow APY" value={pct(data.borrowApy)} tone={borrowTone} />
         <Stat label="Utilization" value={pct(data.utilization, 1)} />
+        <Stat
+          label="Largest pool sell (72min)"
+          value={usd0(peg?.largestPoolSellUsdc)}
+          tone={peg?.largestPoolSellUsdc != null && peg.largestPoolSellUsdc >= 100_000 ? 'text-red-600' : 'text-zinc-950'}
+        />
+        <Stat
+          label="Whale collateral (PT)"
+          value={peg?.whaleCollateralPt == null ? '—' : Math.round(peg.whaleCollateralPt).toLocaleString('en-US')}
+          tone={
+            peg?.whaleCollateralPt != null &&
+            peg?.prevWhaleCollateralPt != null &&
+            peg.whaleCollateralPt < peg.prevWhaleCollateralPt * 0.98
+              ? 'text-red-600'
+              : 'text-zinc-950'
+          }
+        />
       </div>
 
       <p className="mt-4 text-[11px] text-zinc-400">

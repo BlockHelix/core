@@ -282,6 +282,9 @@ export interface VenueRiskResponse {
     poolApx: number | null;
     spotUsdcPerApx: number | null;
     spotVsRvBps: number | null;
+    largestPoolSellUsdc?: number | null;
+    whaleCollateralPt?: number | null;
+    prevWhaleCollateralPt?: number | null;
     tripwires: Record<string, boolean | null>;
   } | null;
 }
