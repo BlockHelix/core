@@ -295,3 +295,32 @@ export async function getVenueRiskUpstream(userId: string): Promise<VenueRiskRes
   const summary = (await upstream('/public/fund/summary', userId)) as { venueRisk?: VenueRiskResponse | null };
   return summary.venueRisk ?? null;
 }
+
+export interface VenueAuditRow {
+  chain: 'ethereum' | 'solana';
+  kind: 'pt-loop' | 'lend-loop' | 'yield';
+  pair: string;
+  project: string;
+  collateralApy: number | null;
+  borrowApy: number | null;
+  lltv: number | null;
+  leverage: number | null;
+  netCarryApy: number | null;
+  utilization: number | null;
+  liquidityUsd: number | null;
+  expiry: string | null;
+  status: 'measured' | 'screened' | 'screened-unexecutable';
+}
+
+export interface VenueAuditResponse {
+  scannedAt: string;
+  guard: string;
+  asOf: string;
+  rows: VenueAuditRow[];
+  sources: Record<string, boolean>;
+}
+
+// Latest cross-chain venue audit (rates-only screen, ranked by net carry). null = no sweep yet.
+export async function getVenueAuditUpstream(userId: string): Promise<VenueAuditResponse | null> {
+  return (await upstream('/public/fund/venues', userId)) as VenueAuditResponse | null;
+}

@@ -45,9 +45,16 @@ const AdminIcon = (
   </svg>
 );
 
+const VenuesIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path d="M4 19V10M10 19V5M16 19v-7M21 19H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'API Keys', icon: KeyIcon },
   { href: '/dashboard/vaults', label: 'Vaults', icon: VaultIcon, match: ['/dashboard/new-vault'] },
+  { href: '/dashboard/venues', label: 'Venues', icon: VenuesIcon },
 ];
 
 export default function DashboardNav() {
