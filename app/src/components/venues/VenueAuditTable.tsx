@@ -28,7 +28,7 @@ const STATUS_STYLES: Record<VenueAuditRow['status'], string> = {
 const STATUS_LABELS: Record<VenueAuditRow['status'], string> = {
   measured: 'measured',
   screened: 'screened',
-  'screened-unexecutable': 'screened · no execution',
+  'screened-unexecutable': 'no exec',
 };
 
 export default function VenueAuditTable() {
@@ -71,7 +71,7 @@ export default function VenueAuditTable() {
       </div>
 
       <div className="mt-3 overflow-x-auto rounded-xl border border-black/[0.06] bg-white shadow-soft">
-        <table className="w-full min-w-[860px] text-left text-sm">
+        <table className="w-full min-w-[960px] text-left text-sm">
           <thead>
             <tr className="border-b border-black/[0.06] text-[11px] uppercase tracking-wider-2 text-zinc-400">
               <th className="px-4 py-3 font-medium">Venue</th>
@@ -82,7 +82,7 @@ export default function VenueAuditTable() {
               <th className="px-2 py-3 text-right font-medium">Net carry</th>
               <th className="px-2 py-3 text-right font-medium">Liquidity</th>
               <th className="px-2 py-3 text-right font-medium">Expiry</th>
-              <th className="px-4 py-3 text-right font-medium">Status</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -108,8 +108,8 @@ export default function VenueAuditTable() {
                 <td className="px-2 py-2.5 text-right text-xs text-zinc-500">
                   {r.expiry ? new Date(r.expiry).toISOString().slice(0, 10) : '—'}
                 </td>
-                <td className="px-4 py-2.5 text-right">
-                  <span className={clsx('rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider-2', STATUS_STYLES[r.status])}>
+                <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                  <span className={clsx('inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider-2', STATUS_STYLES[r.status])}>
                     {STATUS_LABELS[r.status]}
                   </span>
                 </td>
