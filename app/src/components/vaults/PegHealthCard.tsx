@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { fetcher } from '@/lib/swr-fetcher';
 import type { VenueRiskResponse } from '@/lib/server/vault-factory';
+import { vaultHoldsPegVenue } from '@/lib/peg-health-exposure';
 
 // Position-health tripwires for the apxUSD complex behind the PT loop: the issuer's attested
 // solvency, the only deep exit venue's depth, and the borrow leg. Every number carries its
@@ -34,13 +35,29 @@ function Stat({ label, value, tone = 'text-zinc-950' }: { label: string; value: 
   );
 }
 
-export default function PegHealthCard() {
-  const { data, error, isLoading } = useSWR<VenueRiskResponse | null>('/api/fund/risk', fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 15_000,
-    refreshInterval: 60_000,
-  });
+interface NavExposure {
+  positions?: { symbol?: string; market?: string }[];
+  risks?: { market?: string }[];
+}
 
+export default function PegHealthCard({ id, chainId }: { id: string; chainId: number }) {
+  const { data: nav } = useSWR<NavExposure>(
+    `/api/vaults/${encodeURIComponent(id)}/nav`,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 15_000, refreshInterval: 30_000 },
+  );
+  const exposed = vaultHoldsPegVenue({ chainId, positions: nav?.positions, risks: nav?.risks });
+  const { data, error, isLoading } = useSWR<VenueRiskResponse | null>(
+    exposed ? `/api/fund/risk` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 15_000,
+      refreshInterval: 60_000,
+    },
+  );
+
+  if (!exposed) return null;
   if (isLoading) return null;
   if (error || data === undefined) return null;
 
