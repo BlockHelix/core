@@ -324,7 +324,7 @@ export default function DeploymentStatusView({ id }: { id: string }) {
       {record.status === 'complete' && record.addresses?.boringVault && (
         <>
           <VaultSnapshot id={id} />
-          <PegHealthCard />
+          <PegHealthCard id={id} chainId={record.chainId} />
         </>
       )}
 

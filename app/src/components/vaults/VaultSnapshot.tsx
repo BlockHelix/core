@@ -237,7 +237,7 @@ function yieldSub(y: NavResponse['yield']): string | undefined {
   // The vault's OWN capital at work over NAV, so it reconciles with the blend beside it: this
   // ratio times the deployed rate has to land on the headline. Borrowed collateral is not the
   // vault's capital, and counting it read 90% deployed next to a 4.9% blend on a 79% idle book.
-  const scale = y.deployedRatio > 0 ? `${(y.deployedRatio * 100).toFixed(0)}% deployed` : 'nothing deployed';
+  const scale = y.deployedRatio > 0 ? `${(y.deployedRatio * 100).toFixed(0)}% deployed` : 'not modelled';
   return unmodelled.length > 0 ? `blended · ${scale} · partial` : `blended · ${scale}`;
 }
 
