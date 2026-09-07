@@ -88,11 +88,20 @@ export interface RiskProfileSummary {
 
 // Curated trade-policy profiles from the backend (source of truth for the merkle
 // templates). Shown in the deploy dropdown so the list can't drift from what's enforced.
-export async function listRiskProfilesUpstream(userId: string, chainId?: number): Promise<RiskProfileSummary[]> {
+export async function listRiskProfilesUpstream(
+  userId: string,
+  chainId?: number,
+  baseAsset?: string,
+): Promise<RiskProfileSummary[]> {
   // Scoped by chain: a profile referencing a venue (Morpho market, Curve pool, 4626) only
   // exists where that venue is registered, so an unscoped list offers profiles the selected
-  // chain will reject at POST time.
-  const path = chainId ? `/vaults/risk-profiles?chainId=${chainId}` : '/vaults/risk-profiles';
+  // chain will reject at POST time. Scoped by base asset for the same reason one step in: a
+  // profile's grants start from a denomination, so a USDC policy on a WBTC vault deploys an
+  // inert vault rather than failing loudly.
+  const qs = new URLSearchParams();
+  if (chainId) qs.set('chainId', String(chainId));
+  if (baseAsset) qs.set('baseAsset', baseAsset);
+  const path = qs.size ? `/vaults/risk-profiles?${qs}` : '/vaults/risk-profiles';
   const body = (await upstream(path, userId, { method: 'GET' })) as { profiles?: RiskProfileSummary[] };
   return Array.isArray(body.profiles) ? body.profiles : [];
 }

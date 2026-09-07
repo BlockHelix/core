@@ -19,14 +19,23 @@ export const explorerTx = (chainId: number, hash: string) => `${explorerUrl(chai
 
 export const MAINNET_CHAIN_ID = 1;
 export const MAINNET_USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+export const MAINNET_WBTC_ADDRESS = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
 
 // Chains offered in the deploy form. `live: false` renders the option but blocks
 // selection: the chain goes live when the factory contracts exist there (the backend
 // DTO is the real gate; this flag only drives the UI state).
+export interface BaseAssetOption {
+  symbol: string;
+  address: string;
+  decimals: number;
+  note: string;
+}
+
 export interface DeployChainOption {
   chainId: number;
   name: string;
   usdcAddress: string;
+  baseAssets: BaseAssetOption[];
   live: boolean;
   tagline: string;
 }
@@ -36,6 +45,9 @@ export const DEPLOY_CHAINS: DeployChainOption[] = [
     chainId: BASE_CHAIN_ID,
     name: 'Base',
     usdcAddress: BASE_USDC_ADDRESS,
+    baseAssets: [
+      { symbol: 'USDC', address: BASE_USDC_ADDRESS, decimals: 6, note: 'Lend-side profiles' },
+    ],
     live: true,
     tagline: 'Lend-side profiles · ~4% class',
   },
@@ -43,6 +55,16 @@ export const DEPLOY_CHAINS: DeployChainOption[] = [
     chainId: MAINNET_CHAIN_ID,
     name: 'Ethereum mainnet',
     usdcAddress: MAINNET_USDC_ADDRESS,
+    baseAssets: [
+      { symbol: 'USDC', address: MAINNET_USDC_ADDRESS, decimals: 6, note: 'Levered carry profiles' },
+      // BTC-denominated: the collateral leg borrows dollars and the carry runs on the borrowed
+      // side, so NAV stays flat against BTC price. WBTC only — it is the one BTC the
+      // btc-collateral-stable-carry policy can actually trade. Offering a base asset with no
+      // compatible profile deploys a vault that can hold the asset and do nothing with it.
+      // kBTC is reachable as a POSITION inside a WBTC vault (its market is in the tree), never
+      // as the base asset.
+      { symbol: 'WBTC', address: MAINNET_WBTC_ADDRESS, decimals: 8, note: 'Morpho WBTC/USDT · $15.4M liquid · 3.75% 30d borrow' },
+    ],
     live: true,
     tagline: 'Levered carry profiles run here',
   },

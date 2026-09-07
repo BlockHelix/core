@@ -11,10 +11,12 @@ export async function GET(req: Request) {
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const raw = new URL(req.url).searchParams.get('chainId');
+  const params = new URL(req.url).searchParams;
+  const raw = params.get('chainId');
   const chainId = raw && Number.isFinite(Number(raw)) ? Number(raw) : undefined;
+  const baseAsset = params.get('baseAsset') ?? undefined;
   try {
-    return NextResponse.json({ profiles: await listRiskProfilesUpstream(userId, chainId) });
+    return NextResponse.json({ profiles: await listRiskProfilesUpstream(userId, chainId, baseAsset) });
   } catch (err) {
     if (err instanceof UpstreamError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

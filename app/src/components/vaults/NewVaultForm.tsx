@@ -54,16 +54,29 @@ export default function NewVaultForm() {
   const [profiles, setProfiles] = useState<RiskProfileSummary[]>([]);
   const [riskProfileId, setRiskProfileId] = useState('');
   const [chainId, setChainId] = useState(BASE_CHAIN_ID);
+  const [baseAssetAddress, setBaseAssetAddress] = useState(
+    DEPLOY_CHAINS.find((c) => c.chainId === BASE_CHAIN_ID)!.baseAssets[0].address,
+  );
   const checkSeq = useRef(0);
   const hydrated = useRef(false);
 
   // Load curated risk profiles (backend is source of truth) and default to the first.
   useEffect(() => {
     let active = true;
-    fetch(`/api/risk-profiles?chainId=${chainId}`)
+    const sym = (DEPLOY_CHAINS.find((c) => c.chainId === chainId) ?? DEPLOY_CHAINS[0]).baseAssets.find(
+      (a) => a.address === baseAssetAddress,
+    )?.symbol;
+    fetch(`/api/risk-profiles?chainId=${chainId}${sym ? `&baseAsset=${sym}` : ''}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { profiles?: RiskProfileSummary[] } | null) => {
-        if (!active || !body?.profiles?.length) return;
+        if (!active) return;
+        // An empty list is INFORMATION, not a failed fetch: it means this base asset has no
+        // policy that can trade it. Clear the selection so the form cannot POST a stale one.
+        if (!body?.profiles?.length) {
+          setProfiles([]);
+          setRiskProfileId('');
+          return;
+        }
         setProfiles(body.profiles);
         // Drop a selection the newly-chosen chain does not offer, rather than carrying it over
         // and failing at POST — profiles are chain-scoped, so switching chains can invalidate it.
@@ -75,7 +88,17 @@ export default function NewVaultForm() {
     return () => {
       active = false;
     };
-  }, [chainId]);
+  }, [chainId, baseAssetAddress]);
+
+  // A chain switch can strand a base asset the new chain does not offer; fall back to its
+  // first (USDC) rather than POSTing something the route will reject.
+  useEffect(() => {
+    const chain = DEPLOY_CHAINS.find((c) => c.chainId === chainId);
+    if (!chain) return;
+    if (!chain.baseAssets.some((a) => a.address === baseAssetAddress)) {
+      setBaseAssetAddress(chain.baseAssets[0].address);
+    }
+  }, [chainId, baseAssetAddress]);
 
   // Restore a saved draft on mount so navigating back after a failure keeps input.
   useEffect(() => {
@@ -178,6 +201,7 @@ export default function NewVaultForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chainId,
+          baseAssetAddress,
           vaultName: vaultName.trim(),
           vaultSymbol: vaultSymbol.trim(),
           pauserAddress: pauserAddress.trim(),
@@ -288,21 +312,34 @@ export default function NewVaultForm() {
 
       <div>
         <label className={labelClass}>Base Asset</label>
-        {(() => {
-          const chain = DEPLOY_CHAINS.find((c) => c.chainId === chainId) ?? DEPLOY_CHAINS[0];
-          return (
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/[0.06] bg-[#f7f7f8] px-4 py-3">
-              <div>
-                <span className="text-sm font-medium text-zinc-900">USDC</span>
-                <span className="ml-3 text-xs text-zinc-500">
-                  {chain.name} · chain {chain.chainId}
-                </span>
-              </div>
-              <span className="break-all font-data text-xs text-zinc-400">{chain.usdcAddress}</span>
-            </div>
-          );
-        })()}
-        <p className="mt-2 text-xs text-zinc-400">Vaults are USDC-denominated on every chain for v1.</p>
+        <div className="space-y-2">
+          {(DEPLOY_CHAINS.find((c) => c.chainId === chainId) ?? DEPLOY_CHAINS[0]).baseAssets.map((a) => {
+            const selected = baseAssetAddress === a.address;
+            return (
+              <button
+                key={a.address}
+                type="button"
+                onClick={() => setBaseAssetAddress(a.address)}
+                aria-pressed={selected}
+                className={`flex w-full flex-wrap items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left transition-colors ${
+                  selected
+                    ? 'border-[#10c689]/40 bg-[#f7f7f8]'
+                    : 'border-black/[0.06] bg-white hover:border-black/20'
+                }`}
+              >
+                <div>
+                  <span className="text-sm font-medium text-zinc-900">{a.symbol}</span>
+                  <span className="ml-3 text-xs text-zinc-500">{a.note}</span>
+                </div>
+                <span className="break-all font-data text-xs text-zinc-400">{a.address}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-zinc-400">
+          Deposits, withdrawals and the share price are denominated in this asset. A BTC-denominated
+          vault reports NAV in BTC, so BTC price moves do not show up as share-price moves.
+        </p>
       </div>
 
       <div>
