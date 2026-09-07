@@ -36,6 +36,9 @@ interface NavResponse {
   positions?: NavPosition[];
   unvalued?: { protocol: string; reason: string }[];
   navIsLive?: boolean;
+  /** USD mark for ONE unit of the base asset. null when the base asset could not be priced —
+   *  omit USD in that case rather than defaulting, or a BTC vault reads as $1 per bitcoin. */
+  basePriceUsd?: number | null;
   /** Per market, worst buffer first. Markets liquidate independently; never blend them. */
   risks?: {
     market: string; leverage: number; ltv: number; lltv: number; bufferPp: number;
@@ -91,13 +94,30 @@ function pct(fraction: number | null | undefined): string {
   return (fraction * 100).toFixed(2);
 }
 
-function Tile({ label, value, unit, sub }: { label: string; value: string; unit?: string; sub?: string }) {
+/** A base-asset amount restated in USD, or null when the base asset was not priced. Returning
+ *  null rather than falling back keeps "we could not price it" distinct from "$1". */
+function usdOf(raw: string | undefined, decimals: number, basePriceUsd?: number | null): string | null {
+  if (!raw || basePriceUsd == null || !(basePriceUsd > 0)) return null;
+  const amount = Number(raw) / 10 ** decimals;
+  if (!Number.isFinite(amount)) return null;
+  return `$${(amount * basePriceUsd).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function Tile({
+  label, value, unit, sub, usd,
+}: { label: string; value: string; unit?: string; sub?: string; usd?: string | null }) {
   return (
     <div className="bg-white px-5 py-6">
       <p className="font-data text-2xl font-semibold tracking-tight text-zinc-950">
         {value}
         {unit && <span className="ml-1 text-sm font-normal text-zinc-400">{unit}</span>}
       </p>
+      {/* Secondary by design: the vault is denominated in its base asset and that stays the
+          headline. USD is the readable gloss, not the unit of account. */}
+      {usd && <p className="mt-1 font-data text-sm text-zinc-500">{usd}</p>}
       <p className="mt-2 text-[11px] font-medium uppercase tracking-wider-2 text-zinc-400">{label}</p>
       {sub && <p className="mt-0.5 text-[10px] text-zinc-400">{sub}</p>}
     </div>
@@ -317,8 +337,18 @@ export default function VaultSnapshot({ id }: { id: string }) {
               // Never label a fallback as a measurement: when anything is unvalued the figure is
               // the stale on-chain rate, not a reading of what the vault holds.
               sub={data.navIsLive === false ? 'incomplete · see below' : 'live · on-chain'}
+              // A BTC-denominated vault reading "0.01 WBTC" is not a number anyone can act on.
+              // Shown only when the base asset was actually priced, so a pricing failure omits
+              // USD rather than valuing a bitcoin at a dollar.
+              usd={usdOf(data.nav, baseDec, data.basePriceUsd)}
             />
-            <Tile label="Share price" value={fmt(data.sharePrice, baseDec, 6)} unit={baseSym} sub="official · ~6h" />
+            <Tile
+              label="Share price"
+              value={fmt(data.sharePrice, baseDec, 6)}
+              unit={baseSym}
+              sub="official · ~6h"
+              usd={usdOf(data.sharePrice, baseDec, data.basePriceUsd)}
+            />
             <Tile label="Shares outstanding" value={fmt(data.totalShares, data.shareDecimals, 2)} />
             <Tile label="Current yield" {...yieldValue(yieldInfo)} sub={yieldSub(yieldInfo)} />
           </div>
