@@ -33,6 +33,7 @@ function errorJson(err: unknown): NextResponse {
 
 type Body = {
   chainId?: unknown;
+  baseAssetAddress?: unknown;
   vaultName?: unknown;
   vaultSymbol?: unknown;
   pauserAddress?: unknown;
@@ -101,18 +102,28 @@ function validate(body: Body): { error: string } | { payload: Record<string, unk
   // derives the trade policy from it — we just forward the choice.
   const riskProfileId = typeof body.riskProfileId === 'string' ? body.riskProfileId : undefined;
 
-  // Chain: only chains marked live in DEPLOY_CHAINS; base asset is that chain's USDC.
-  // The backend's DEPLOYABLE_CHAIN_IDS is the final gate.
+  // Chain: only chains marked live in DEPLOY_CHAINS. The backend's DEPLOYABLE_CHAIN_IDS is
+  // the final gate.
   const requestedChainId = body.chainId == null ? BASE_CHAIN_ID : Number(body.chainId);
   const chain = DEPLOY_CHAINS.find((c) => c.chainId === requestedChainId && c.live);
   if (!chain) {
     return { error: 'Vault deploys are not open on that network yet' };
   }
 
+  // Base asset must be one this chain offers. Resolved against the allowlist rather than
+  // taken from the body, so a caller cannot denominate a vault in an arbitrary token.
+  const requestedBase = typeof body.baseAssetAddress === 'string' ? body.baseAssetAddress : chain.usdcAddress;
+  const baseAsset = chain.baseAssets.find(
+    (a) => a.address.toLowerCase() === requestedBase.toLowerCase(),
+  );
+  if (!baseAsset) {
+    return { error: 'That base asset is not offered on this network' };
+  }
+
   return {
     payload: {
       chainId: chain.chainId,
-      baseAssetAddress: chain.usdcAddress,
+      baseAssetAddress: baseAsset.address,
       pauserAddress,
       ...(managerOwner ? { managerOwner } : {}),
       ...(finalOwner ? { finalOwner } : {}),

@@ -40,6 +40,8 @@ interface NavResponse {
   risks?: {
     market: string; leverage: number; ltv: number; lltv: number; bufferPp: number;
     collateralBase: number; debtBase: number; equityBase: number;
+    /** BTC-collateral books only: what the rebalance band says to do right now. */
+    rebalance?: { action: 'hold' | 'compound' | 'deleverage'; reason: string; amountBase: number };
   }[];
   markCheck?: {
     verdict: 'ok' | 'flag' | 'block';
@@ -209,6 +211,29 @@ function RiskLevels({ risks }: { risks: NonNullable<NavResponse['risks']> }) {
               <span className="text-zinc-950">{usd(risk.equityBase)}</span> equity. Collateral can fall{' '}
               <span className="text-zinc-950">{(((risk.lltv - risk.ltv) / risk.lltv) * 100).toFixed(2)}%</span> before liquidation.
             </p>
+            {risk.rebalance && (
+              // Compound headroom is deliberately NOT alerted — it keeps until someone looks —
+              // so this row is the only place it is visible. Without it the band would be a
+              // check that only ever speaks when something is wrong.
+              <div
+                className={`mt-3 flex flex-wrap items-baseline justify-between gap-2 rounded-lg border px-3 py-2 ${
+                  risk.rebalance.action === 'deleverage'
+                    ? 'border-amber-500/30 bg-amber-50'
+                    : risk.rebalance.action === 'compound'
+                      ? 'border-[#10c689]/30 bg-[#f2fbf7]'
+                      : 'border-black/[0.06] bg-[#f7f7f8]'
+                }`}
+              >
+                <span className="text-[11px] uppercase tracking-wider-2 text-zinc-500">
+                  Rebalance band · {risk.rebalance.action}
+                </span>
+                <span className="text-[11px] text-zinc-600">
+                  {risk.rebalance.action === 'hold'
+                    ? risk.rebalance.reason
+                    : `${risk.rebalance.action === 'compound' ? 'Borrowable' : 'Repay'} ${usd(risk.rebalance.amountBase)} — ${risk.rebalance.reason}`}
+                </span>
+              </div>
+            )}
           </div>
         );
       })}
