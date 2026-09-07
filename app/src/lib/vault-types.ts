@@ -40,6 +40,21 @@ export interface DeployChainOption {
   tagline: string;
 }
 
+/**
+ * Resolve a deployed vault's base asset from its ADDRESS. Returns undefined when the chain does
+ * not offer it, and callers must handle that rather than substitute a default.
+ *
+ * Why undefined and not a fallback: the deposit and withdraw widgets used to hardcode
+ * symbol="USDC" and decimals={6}. On the first WBTC vault that mislabelled the asset AND sized
+ * every amount 100x wrong, because WBTC is 8 decimals. A wrong default is worse than no widget.
+ */
+export function baseAssetFor(chainId: number, address?: string | null): BaseAssetOption | undefined {
+  if (!address) return undefined;
+  return DEPLOY_CHAINS.find((c) => c.chainId === chainId)?.baseAssets.find(
+    (a) => a.address.toLowerCase() === address.toLowerCase(),
+  );
+}
+
 export const DEPLOY_CHAINS: DeployChainOption[] = [
   {
     chainId: BASE_CHAIN_ID,
@@ -284,7 +299,17 @@ export const COMPONENT_LABELS: Record<string, string> = {
   pauser: 'Pauser',
   timelock: 'Timelock',
   drone: 'Drone',
+  decoder: 'Decoder',
+  delayedWithdrawer: 'Delayed Withdrawer',
 };
+
+/**
+ * Components the deployment REUSES rather than deploys. The master decoder is a CREATE3
+ * singleton shared by every vault, so this deployment's verification report has no entry for
+ * it and the row would otherwise read as an unverified contract. It is verified once, on its
+ * own deployment, not per vault.
+ */
+export const SHARED_COMPONENTS = new Set(['decoder']);
 
 export function statusLabel(status: DeploymentStatus): string {
   return status.charAt(0).toUpperCase() + status.slice(1);

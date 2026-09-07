@@ -26,7 +26,8 @@ import {
   sourceVerified,
   statusLabel,
   TERMINAL_STATUSES,
-  type DeploymentRecord, chainLabel, explorerAddress } from '@/lib/vault-types';
+  SHARED_COMPONENTS,
+  type DeploymentRecord, chainLabel, explorerAddress, baseAssetFor } from '@/lib/vault-types';
 
 // Slow safety net only — the SSE stream drives the real-time updates now.
 const POLL_MS = 30_000;
@@ -293,33 +294,49 @@ export default function DeploymentStatusView({ id }: { id: string }) {
         </div>
       )}
 
-      {record.status === 'complete' && record.addresses?.boringVault && record.addresses?.teller && (
-        <WalletProvider>
-          <div className="space-y-8">
-            <VaultDeposit
-              chainId={record.chainId}
-              vault={record.addresses.boringVault}
-              teller={record.addresses.teller}
-              asset={record.baseAsset}
-              symbol="USDC"
-              decimals={6}
-              onDeposited={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
-            />
-            {record.addresses.delayedWithdrawer && (
-              <VaultWithdraw
+      {record.status === 'complete' && record.addresses?.boringVault && record.addresses?.teller && (() => {
+        // Symbol and decimals come from the vault's OWN base asset, never a constant. Shares are
+        // minted at the base asset's decimals, so this drives the withdraw side too.
+        const base = baseAssetFor(record.chainId, record.baseAsset);
+        if (!base) {
+          // Refuse rather than guess. Rendering with a default would mislabel the asset and size
+          // every amount by the decimals gap, which is silent and only visible after signing.
+          return (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-zinc-700">
+              Deposit and withdraw are hidden: this vault&apos;s base asset{' '}
+              <span className="font-data text-xs">{record.baseAsset}</span> is not one this UI knows
+              on chain {record.chainId}, so its decimals cannot be resolved safely.
+            </div>
+          );
+        }
+        return (
+          <WalletProvider>
+            <div className="space-y-8">
+              <VaultDeposit
                 chainId={record.chainId}
                 vault={record.addresses.boringVault}
-                delayedWithdrawer={record.addresses.delayedWithdrawer}
+                teller={record.addresses.teller}
                 asset={record.baseAsset}
-                accountant={record.addresses.accountant}
-                symbol="USDC"
-                shareDecimals={6}
-                onChanged={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
+                symbol={base.symbol}
+                decimals={base.decimals}
+                onDeposited={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
               />
-            )}
-          </div>
-        </WalletProvider>
-      )}
+              {record.addresses.delayedWithdrawer && (
+                <VaultWithdraw
+                  chainId={record.chainId}
+                  vault={record.addresses.boringVault}
+                  delayedWithdrawer={record.addresses.delayedWithdrawer}
+                  asset={record.baseAsset}
+                  accountant={record.addresses.accountant}
+                  symbol={base.symbol}
+                  shareDecimals={base.decimals}
+                  onChanged={() => void globalMutate(`/api/vaults/${encodeURIComponent(id)}/nav`)}
+                />
+              )}
+            </div>
+          </WalletProvider>
+        );
+      })()}
 
       {record.status === 'complete' && record.addresses?.boringVault && (
         <>
@@ -346,6 +363,16 @@ export default function DeploymentStatusView({ id }: { id: string }) {
                       className="rounded bg-[#eafaf3] px-1.5 py-0.5 font-data text-[10px] uppercase tracking-wider text-[#10c689]"
                     >
                       source
+                    </span>
+                  )}
+                  {/* A shared singleton has no entry in THIS deployment's report, so without
+                      this it renders as a bare address and reads like a failed verification. */}
+                  {SHARED_COMPONENTS.has(key) && !sourceVerified(record.sourceVerification, key) && (
+                    <span
+                      title="Reused CREATE3 singleton — deployed and verified once, not per vault"
+                      className="rounded bg-[#f7f7f8] px-1.5 py-0.5 font-data text-[10px] uppercase tracking-wider text-zinc-500"
+                    >
+                      shared
                     </span>
                   )}
                   <a
