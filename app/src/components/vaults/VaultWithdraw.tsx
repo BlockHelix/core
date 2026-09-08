@@ -56,13 +56,20 @@ export default function VaultWithdraw({
   });
   const shareBal = typeof balData === 'bigint' ? balData : 0n;
 
-  const { data: reqData, refetch: refetchReq } = useReadContract({
+  const {
+    data: reqData,
+    refetch: refetchReq,
+    error: reqError,
+    isLoading: reqLoading,
+  } = useReadContract({
     address: delayedWithdrawer as Address,
     abi: DELAYED_WITHDRAW_ABI,
     functionName: 'withdrawRequests',
     args: address ? [address as Address, asset as Address] : undefined,
     chainId,
-    query: { enabled: !!address },
+    // A pending request is money in escrow. Poll it rather than reading once on mount, or the
+    // panel goes stale the moment a request lands and the user concludes it was lost.
+    query: { enabled: !!address, refetchInterval: 30_000, retry: 2 },
   });
   // Public mapping getter returns the struct fields as a tuple:
   // [allowThirdPartyToComplete, maxLoss, maturity, shares, exchangeRateAtTimeOfRequest]
@@ -180,6 +187,30 @@ export default function VaultWithdraw({
 
       {!isConnected ? (
         <p className="mt-3 text-sm text-zinc-500">Connect your wallet to withdraw from this vault.</p>
+      ) : reqError ? (
+        // A failed read used to fall through to the request form, which renders EXACTLY like
+        // having no pending request. That is how a live 45-share request read as "lost" twice:
+        // the escrowed shares were on-chain the whole time and the panel said nothing.
+        // Never let an unread state look like a known-empty one.
+        <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-50 p-4">
+          <p className="text-sm text-zinc-800">Could not read your withdrawal request.</p>
+          <p className="mt-1 text-xs text-zinc-600">
+            This does NOT mean you have none. Any shares you have already requested stay escrowed
+            in the withdrawer contract and are unaffected by this error.
+          </p>
+          <p className="mt-2 break-all font-data text-[11px] text-zinc-500">
+            {(reqError as Error).message.slice(0, 200)}
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetchReq()}
+            className="mt-3 rounded-lg border border-black/[0.08] px-3 py-1.5 text-xs text-zinc-700 hover:border-black/20"
+          >
+            Retry
+          </button>
+        </div>
+      ) : reqLoading ? (
+        <p className="mt-3 text-sm text-zinc-500">Reading your withdrawal request…</p>
       ) : hasPending ? (
         <>
           <div className="mt-4 rounded-lg border border-black/[0.06] bg-zinc-50/60 p-4">
