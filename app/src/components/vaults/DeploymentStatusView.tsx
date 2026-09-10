@@ -10,6 +10,7 @@ import VaultSnapshot from './VaultSnapshot';
 import RateAttribution from './RateAttribution';
 import PnlAttribution from './PnlAttribution';
 import PegHealthCard from './PegHealthCard';
+import TradeReconciliation from './TradeReconciliation';
 import VaultDeposit from './VaultDeposit';
 import VaultWithdraw from './VaultWithdraw';
 import WalletProvider from '@/components/wallet/WalletProvider';
@@ -343,6 +344,10 @@ export default function DeploymentStatusView({ id }: { id: string }) {
           <VaultSnapshot id={id} />
           <PegHealthCard id={id} chainId={record.chainId} />
         </>
+      )}
+
+      {record.status === 'complete' && record.addresses?.boringVault && (
+        <TradeReconciliation id={id} chainId={record.chainId} />
       )}
 
       {record.status === 'complete' && record.addresses?.boringVault && <RateAttribution id={id} />}

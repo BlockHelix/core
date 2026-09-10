@@ -31,7 +31,18 @@ interface NavResponse {
   totalShares: string;
   shareDecimals: number;
   nav: string; // live NAV/TVL
-  yield?: { blendedApy: number; deployedRatio: number; unmodelled?: string[] };
+  /** grossBlendedApy is a RATE SPREAD: collateral rate less borrow rate, weighted on NAV. It
+   *  carries no term for the collateral mark, which on a levered PT book is the bigger one.
+   *  netOfMarkApy applies the drift the attribution engine measured on this vault's own books;
+   *  null when nothing measured one, and null is not an excuse to show gross as a yield. */
+  yield?: {
+    grossBlendedApy: number;
+    markDriftApy?: number | null;
+    netOfMarkApy?: number | null;
+    deployedRatio: number;
+    unmodelled?: string[];
+    markDriftUnmeasured?: string[];
+  };
   balances: NavBalance[];
   positions?: NavPosition[];
   unvalued?: { protocol: string; reason: string }[];
@@ -268,22 +279,47 @@ function RiskLevels({ risks }: { risks: NonNullable<NavResponse['risks']> }) {
 // tile printed "nothing deployed" over a live 2.8x book, directly above a Deposit button.
 // An unmodelled leg now says it is unmodelled and names itself.
 
+// A rate spread wearing the word "yield" is the defect this tile shipped. On the PT-USD3/USDC
+// book the spread read 98.2% while the book returned 33.2%, because the collateral mark, worth
+// 64% of carry, had no term. Only a mark-adjusted number may be labelled a yield; the spread
+// alone is labelled a spread and coloured like one.
+function yieldLabel(y: NavResponse['yield']): string {
+  return y && y.netOfMarkApy != null ? 'Current yield' : 'Gross spread';
+}
+
+// Signed, unlike pct: a book losing money to its mark must be able to say so.
+function signedPct(fraction: number | null | undefined): string {
+  if (fraction == null || !Number.isFinite(fraction) || fraction === 0) return '—';
+  return `${fraction > 0 ? '' : '-'}${(Math.abs(fraction) * 100).toFixed(2)}`;
+}
+
+function yieldHeadline(y: NonNullable<NavResponse['yield']>): number {
+  return y.netOfMarkApy ?? y.grossBlendedApy;
+}
+
 function yieldValue(y: NavResponse['yield']): { value: string; unit?: string } {
   if (!y) return { value: '—' };
+  const headline = yieldHeadline(y);
   // A blend over nothing modelled is an unknown, not a zero. Never print 0.00% over a live book.
-  if (y.blendedApy === 0 && (y.unmodelled?.length ?? 0) > 0) return { value: '—' };
-  return { value: pct(y.blendedApy), unit: y.blendedApy > 0 ? '% APY' : undefined };
+  if (headline === 0 && (y.unmodelled?.length ?? 0) > 0) return { value: '—' };
+  return { value: signedPct(headline), unit: headline === 0 ? undefined : '% APY' };
 }
 
 function yieldSub(y: NavResponse['yield']): string | undefined {
   if (!y) return undefined;
   const unmodelled = y.unmodelled ?? [];
-  if (y.blendedApy === 0 && unmodelled.length > 0) return `not modelled · ${unmodelled.join(', ')}`;
+  if (yieldHeadline(y) === 0 && unmodelled.length > 0) return `not modelled · ${unmodelled.join(', ')}`;
   // The vault's OWN capital at work over NAV, so it reconciles with the blend beside it: this
   // ratio times the deployed rate has to land on the headline. Borrowed collateral is not the
   // vault's capital, and counting it read 90% deployed next to a 4.9% blend on a 79% idle book.
   const scale = y.deployedRatio > 0 ? `${(y.deployedRatio * 100).toFixed(0)}% deployed` : 'not modelled';
-  return unmodelled.length > 0 ? `blended · ${scale} · partial` : `blended · ${scale}`;
+  const parts =
+    y.netOfMarkApy != null
+      ? [`net of measured mark · gross ${signedPct(y.grossBlendedApy)}%`, scale]
+      : ['rate spread · mark not measured', scale];
+  // Partial in either direction: an unpriced rate leg, or a levered market with no measured drift.
+  if (unmodelled.length > 0 || (y.markDriftUnmeasured?.length ?? 0) > 0) parts.push('partial');
+  return parts.join(' · ');
 }
 
 export default function VaultSnapshot({ id }: { id: string }) {
@@ -350,7 +386,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
               usd={usdOf(data.sharePrice, baseDec, data.basePriceUsd)}
             />
             <Tile label="Shares outstanding" value={fmt(data.totalShares, data.shareDecimals, 2)} />
-            <Tile label="Current yield" {...yieldValue(yieldInfo)} sub={yieldSub(yieldInfo)} />
+            <Tile label={yieldLabel(yieldInfo)} {...yieldValue(yieldInfo)} sub={yieldSub(yieldInfo)} />
           </div>
           {data.liveSharePrice && data.liveSharePrice !== data.sharePrice && (
             <p className="mt-3 text-xs text-zinc-500">
