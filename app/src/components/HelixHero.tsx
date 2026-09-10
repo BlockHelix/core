@@ -47,14 +47,15 @@ export default function HelixHero() {
             </p>
 
             <p className="text-sm text-gray-500 mb-4">
-              For licensed and structured fund operators. We onboard in small batches.
+              We run it on our own capital first. Every position, every cost and every bad trade is
+              published as it happens.
             </p>
             <div className="flex items-center justify-start gap-4">
               <Link
-                href="#waitlist"
+                href="/agents"
                 className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium bg-[#adffd9] text-gray-900 hover:bg-[#8ceec8] transition-all duration-300 whitespace-nowrap"
               >
-                Talk to sales
+                See the live record
                 <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
               </Link>
               <Link
