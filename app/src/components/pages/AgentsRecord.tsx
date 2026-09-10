@@ -152,6 +152,16 @@ function AgentCard({ a }: { a: PublicAgent }) {
         </div>
       ) : null}
 
+      {a.pendingRecovery ? (
+        <p className="mt-4 text-[12px] leading-relaxed text-gray-500">
+          NAV above carries{' '}
+          <span className="font-mono text-gray-900">${a.pendingRecovery.usd.toFixed(2)}</span> of
+          markdown on an escrowed redemption. It returns in full on{' '}
+          <span className="font-mono text-gray-900">{a.pendingRecovery.byIso.slice(0, 10)}</span> if
+          the claim waits, so it is not counted as a trading loss.
+        </p>
+      ) : null}
+
       {a.unmodelled.length ? (
         <p className="mt-4 text-[12px] leading-relaxed text-gray-500">
           Not modelled: {a.unmodelled.join('; ')}. These are named rather than scored at zero.

@@ -30,6 +30,8 @@ export interface PublicAgent {
   driversAgeHours?: number | null;
   driversStale?: boolean;
   driversNote?: string;
+  /** Markdown inside navUsd that reverses on a known date, not a trading loss. */
+  pendingRecovery?: { usd: number; byIso: string; note: string } | null;
   deposits: 'closed';
 }
 
