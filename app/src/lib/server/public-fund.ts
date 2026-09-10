@@ -21,6 +21,8 @@ export interface PublicAgent {
     lltv: number;
     bufferPp: number;
     oracleKind: 'linear-discount' | 'market' | null;
+    /** How far the collateral price can fall before liquidation. */
+    priceFallToLiqPct?: number | null;
     reversalHeadroomPp: number | null;
     verdict: 'ok' | 'warn' | 'reversing' | null;
   }>;

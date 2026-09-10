@@ -127,7 +127,7 @@ function AgentCard({ a }: { a: PublicAgent }) {
           <table className="w-full border-collapse font-mono text-[12.5px] tabular-nums">
             <thead>
               <tr className="border-b border-black/[0.08] text-left">
-                {['Book', 'Lev', 'LTV', 'Buffer', 'Oracle', 'Headroom', ''].map((h) => (
+                {['Book', 'Lev', 'LTV', 'Buffer', 'Oracle', 'Fall to liq', 'Headroom', ''].map((h) => (
                   <th key={h} className="pb-2 pr-6 font-normal text-[10px] uppercase tracking-widest text-gray-400">
                     {h}
                   </th>
@@ -142,6 +142,11 @@ function AgentCard({ a }: { a: PublicAgent }) {
                   <td className="py-2 pr-6 text-gray-500">{(b.ltv * 100).toFixed(2)}%</td>
                   <td className="py-2 pr-6 text-gray-500">{b.bufferPp.toFixed(2)}pp</td>
                   <td className="py-2 pr-6 text-gray-500">{b.oracleKind ?? '—'}</td>
+                  {/* A ratchet oracle walks to par and cannot fall, so the figure is only the
+                      operative risk on a market oracle. Shown everywhere, dimmed where moot. */}
+                  <td className={`py-2 pr-6 ${b.oracleKind === 'market' ? 'text-gray-800' : 'text-gray-400'}`}>
+                    {b.priceFallToLiqPct == null ? '—' : `${(b.priceFallToLiqPct * 100).toFixed(1)}%`}
+                  </td>
                   <td className={`py-2 pr-6 ${b.verdict === 'warn' ? 'text-amber-700' : 'text-gray-500'}`}>
                     {b.reversalHeadroomPp == null ? '—' : `${b.reversalHeadroomPp.toFixed(2)}pp`}
                   </td>
