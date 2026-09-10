@@ -305,7 +305,7 @@ function RiskLevels({ risks }: { risks: NonNullable<NavResponse['risks']> }) {
                 <span className="text-[11px] text-zinc-600">
                   {risk.rebalance.action === 'hold'
                     ? risk.rebalance.reason
-                    : `${risk.rebalance.action === 'compound' ? 'Borrowable' : 'Repay'} ${usd(risk.rebalance.amountBase)} — ${risk.rebalance.reason}`}
+                    : `${risk.rebalance.action === 'compound' ? 'Borrowable' : 'Repay'} ${usd(risk.rebalance.amountBase)}: ${risk.rebalance.reason}`}
                 </span>
               </div>
             )}
@@ -400,7 +400,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
         <div className="mt-4 rounded-xl border border-black/[0.06] bg-white p-6 shadow-soft">
           <p className="text-sm text-zinc-500">
             {(error as { message?: string })?.message ?? 'Could not load the vault snapshot.'} It may still be
-            indexing — this refreshes automatically.
+            indexing. This refreshes automatically.
           </p>
         </div>
       ) : isLoading || !data ? (
@@ -523,7 +523,7 @@ export default function VaultSnapshot({ id }: { id: string }) {
                 Protocol positions
               </p>
               <p className="mt-1 text-[11px] text-zinc-400">
-                Held by the protocol, not the vault — these never appear in a wallet or on a block explorer.
+                Held by the protocol, not the vault. These never appear in a wallet or on a block explorer.
               </p>
               <div className="mt-3 divide-y divide-black/[0.05]">
                 {data.positions!.map((p) => {
