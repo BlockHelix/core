@@ -25,6 +25,11 @@ export interface PublicAgent {
     verdict: 'ok' | 'warn' | 'reversing' | null;
   }>;
   drivers: { carry: number; mark: number; borrow: number; execution: number; net: number } | null;
+  /** When the drivers were COMPUTED, which is not when the page was read. */
+  driversComputedAt?: string | null;
+  driversAgeHours?: number | null;
+  driversStale?: boolean;
+  driversNote?: string;
   deposits: 'closed';
 }
 

@@ -84,7 +84,19 @@ function AgentCard({ a }: { a: PublicAgent }) {
       ) : null}
 
       {d ? (
-        <div className="mt-6 overflow-x-auto">
+        <div className="mt-6">
+          <p className={`text-[11px] leading-relaxed ${a.driversStale ? 'text-[#b82214]' : 'text-gray-400'}`}>
+            {a.driversStale ? 'Stale. ' : ''}
+            {a.driversNote ??
+              (a.driversAgeHours == null
+                ? 'Driver breakdown age unknown.'
+                : `Driver breakdown computed ${a.driversAgeHours.toFixed(1)}h ago.`)}
+          </p>
+        </div>
+      ) : null}
+
+      {d ? (
+        <div className="mt-3 overflow-x-auto">
           <table className="w-full border-collapse font-mono text-[12.5px] tabular-nums">
             <thead>
               <tr className="border-b border-black/[0.08] text-left">
