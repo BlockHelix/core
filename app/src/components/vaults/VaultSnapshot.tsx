@@ -54,6 +54,14 @@ interface NavResponse {
   risks?: {
     market: string; leverage: number; ltv: number; lltv: number; bufferPp: number;
     collateralBase: number; debtBase: number; equityBase: number;
+    /** A linear-discount oracle walks toward par and cannot fall, so a fall to liquidation is
+     *  not the risk on that market. null when the oracle could not be classified. */
+    oracleKind?: 'linear-discount' | 'market' | null;
+    bufferTrend?: {
+      ltvDriftBpsDay: number;
+      borrowApyThatReverses: number;
+      daysToLtv80: number | null;
+    } | null;
     /** BTC-collateral books only: what the rebalance band says to do right now. */
     rebalance?: { action: 'hold' | 'compound' | 'deleverage'; reason: string; amountBase: number };
   }[];
@@ -239,9 +247,34 @@ function RiskLevels({ risks }: { risks: NonNullable<NavResponse['risks']> }) {
             </div>
             <p className="mt-4 text-[11px] text-zinc-400">
               {usd(risk.collateralBase)} collateral against {usd(risk.debtBase)} debt ={' '}
-              <span className="text-zinc-950">{usd(risk.equityBase)}</span> equity. Collateral can fall{' '}
-              <span className="text-zinc-950">{(((risk.lltv - risk.ltv) / risk.lltv) * 100).toFixed(2)}%</span> before liquidation.
+              <span className="text-zinc-950">{usd(risk.equityBase)}</span> equity.{' '}
+              {risk.oracleKind === 'linear-discount' && risk.bufferTrend ? (
+                <>
+                  This market prices collateral with an oracle that walks toward par and{' '}
+                  <span className="text-zinc-950">cannot fall</span>, so a fall to liquidation is not
+                  the risk here.
+                </>
+              ) : (
+                <>
+                  Collateral can fall{' '}
+                  <span className="text-zinc-950">{(((risk.lltv - risk.ltv) / risk.lltv) * 100).toFixed(2)}%</span>{' '}
+                  before liquidation.
+                </>
+              )}
             </p>
+            {risk.oracleKind === 'linear-discount' && risk.bufferTrend ? (
+              <p className="mt-2 text-[11px] text-zinc-400">
+                LTV is{' '}
+                <span className={risk.bufferTrend.ltvDriftBpsDay < 0 ? 'text-[#10c689]' : 'text-[#b82214]'}>
+                  {risk.bufferTrend.ltvDriftBpsDay < 0 ? 'falling' : 'rising'}{' '}
+                  {Math.abs(risk.bufferTrend.ltvDriftBpsDay).toFixed(1)}bps a day
+                </span>
+                {risk.bufferTrend.daysToLtv80 != null ? <>, reaching 80% in about {Math.round(risk.bufferTrend.daysToLtv80)} days</> : null}
+                . Borrow would have to reach{' '}
+                <span className="text-zinc-950">{(risk.bufferTrend.borrowApyThatReverses * 100).toFixed(1)}%</span>{' '}
+                to reverse it. The risk here is credit at redemption, not liquidation.
+              </p>
+            ) : null}
             {risk.rebalance && (
               // Compound headroom is deliberately NOT alerted — it keeps until someone looks —
               // so this row is the only place it is visible. Without it the band would be a
