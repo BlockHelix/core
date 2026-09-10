@@ -80,7 +80,7 @@ function AgentCard({ a }: { a: PublicAgent }) {
             {(((a.sharePriceOfficial - a.sharePriceLive) / a.sharePriceLive) * 10000).toFixed(0)}bps
           </span>{' '}
           right now. Deposits and redemptions transact at the official one.
-          {a.rateWalk ? ` ${a.rateWalk.note}` : null}
+          {a.rateWalk?.note ? ` ${a.rateWalk.note}` : null}
         </p>
       ) : null}
 

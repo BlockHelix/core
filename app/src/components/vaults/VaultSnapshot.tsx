@@ -439,9 +439,8 @@ export default function VaultSnapshot({ id }: { id: string }) {
                 {fmt(data.liveSharePrice, baseDec, 6)} {baseSym}
               </span>{' '}
               marks current holdings.{' '}
-              {data.rateWalk
-                ? data.rateWalk.note
-                : 'The official rate is pushed on a delay and moves at most one band per push.'}
+              {data.rateWalk?.note ??
+                'The official rate is pushed on a delay and moves at most one band per push.'}
             </p>
           )}
 
