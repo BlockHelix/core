@@ -80,6 +80,18 @@ function AgentCard({ a }: { a: PublicAgent }) {
             {(((a.sharePriceOfficial - a.sharePriceLive) / a.sharePriceLive) * 10000).toFixed(0)}bps
           </span>{' '}
           right now. Deposits and redemptions transact at the official one.
+          {a.rateWalk ? (
+            <>
+              {' '}
+              It moves at most one band per push, so it needs{' '}
+              <span className="font-mono text-gray-900">{a.rateWalk.pushesRemaining}</span> more
+              push{a.rateWalk.pushesRemaining === 1 ? '' : 'es'} to get there, landing about{' '}
+              <span className="font-mono text-gray-900">
+                {new Date(a.rateWalk.convergedAtIso).toISOString().slice(0, 16).replace('T', ' ')}
+              </span>{' '}
+              UTC.
+            </>
+          ) : null}
         </p>
       ) : null}
 
