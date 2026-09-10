@@ -22,6 +22,15 @@ interface NavPosition {
   amount: string; // SIGNED base units: collateral positive, debt negative
   decimals: number;
   usdValue: number | null;
+  /** Escrowed claims only. The mark is what a claim pays TODAY, so without this the decaying
+   *  early-exit fee reads as a realised loss. */
+  vesting?: {
+    recoverableUsd: number | null;
+    feePct: number;
+    claimableAt: number;
+    feeZeroAt: number;
+    note: string;
+  };
 }
 
 interface NavResponse {
@@ -531,6 +540,16 @@ export default function VaultSnapshot({ id }: { id: string }) {
                           {p.usdValue == null ? '—' : usd(p.usdValue)}
                         </span>
                       </span>
+                      {p.vesting && p.vesting.recoverableUsd != null && p.vesting.recoverableUsd > 0 ? (
+                        <p className="w-full text-[11px] text-zinc-400">
+                          Marked at what a claim pays today.{' '}
+                          <span className="text-[#10c689]">{usd(p.vesting.recoverableUsd)} of that returns</span> as
+                          the {p.vesting.feePct.toFixed(2)}% early-exit fee decays to zero on{' '}
+                          <span className="text-zinc-950">{new Date(p.vesting.feeZeroAt * 1000).toISOString().slice(0, 10)}</span>.
+                          Claimable from {new Date(p.vesting.claimableAt * 1000).toISOString().slice(0, 10)}, but claiming
+                          before the fee is gone realises it. A markdown, not a loss.
+                        </p>
+                      ) : null}
                     </div>
                   );
                 })}
