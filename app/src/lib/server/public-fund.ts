@@ -33,7 +33,7 @@ export interface PublicAgent {
   /** Markdown inside navUsd that reverses on a known date, not a trading loss. */
   pendingRecovery?: { usd: number; byIso: string; note: string } | null;
   /** The official price moves at most one band per push, so a wide gap takes several pushes. */
-  rateWalk?: { gapBps: number; pushesRemaining: number; convergedAtIso: string; direction: string } | null;
+  rateWalk?: { gapBps: number; pushesRemaining: number; convergedAtIso: string; direction: string; note: string } | null;
   deposits: 'closed';
 }
 

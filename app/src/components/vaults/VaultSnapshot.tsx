@@ -37,6 +37,8 @@ interface NavResponse {
   baseAsset: { symbol: string; decimals: number } | null;
   sharePrice: string; // official on-chain getRate (~6h)
   liveSharePrice?: string; // true per-share value now (holdings / shares)
+  /** How many bounded pushes the official rate still needs, and the sentence that says so. */
+  rateWalk?: { pushesRemaining: number; note: string } | null;
   totalShares: string;
   shareDecimals: number;
   nav: string; // live NAV/TVL
@@ -436,7 +438,10 @@ export default function VaultSnapshot({ id }: { id: string }) {
               <span className="font-data text-zinc-800">
                 {fmt(data.liveSharePrice, baseDec, 6)} {baseSym}
               </span>{' '}
-              — marks current holdings; the official rate catches up on its next update (~6h).
+              marks current holdings.{' '}
+              {data.rateWalk
+                ? data.rateWalk.note
+                : 'The official rate is pushed on a delay and moves at most one band per push.'}
             </p>
           )}
 
