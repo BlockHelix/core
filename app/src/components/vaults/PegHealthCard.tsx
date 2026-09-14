@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { vaultBasePath } from '@/lib/vault-data-source';
 import { fetcher } from '@/lib/swr-fetcher';
 import type { VenueRiskResponse } from '@/lib/server/vault-factory';
 import { vaultHoldsPegVenue } from '@/lib/peg-health-exposure';
@@ -40,15 +41,26 @@ interface NavExposure {
   risks?: { market?: string }[];
 }
 
-export default function PegHealthCard({ id, chainId }: { id: string; chainId: number }) {
+export default function PegHealthCard({
+  id,
+  chainId,
+  basePath,
+  riskPath,
+}: {
+  id: string;
+  chainId: number;
+  basePath?: string;
+  riskPath?: string;
+}) {
+  const base = vaultBasePath(id, basePath);
   const { data: nav } = useSWR<NavExposure>(
-    `/api/vaults/${encodeURIComponent(id)}/nav`,
+    `${base}/nav`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 15_000, refreshInterval: 30_000 },
   );
   const exposed = vaultHoldsPegVenue({ chainId, positions: nav?.positions, risks: nav?.risks });
   const { data, error, isLoading } = useSWR<VenueRiskResponse | null>(
-    exposed ? `/api/fund/risk` : null,
+    exposed ? (riskPath ?? '/api/fund/risk') : null,
     fetcher,
     {
       revalidateOnFocus: false,

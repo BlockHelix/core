@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { vaultBasePath } from '@/lib/vault-data-source';
 import { clsx } from 'clsx';
 import { fetcher } from '@/lib/swr-fetcher';
 import { LastUpdated, RefreshButton, useFreshness } from '@/components/dashboard/Freshness';
@@ -366,9 +367,10 @@ function yieldSub(y: NavResponse['yield']): string | undefined {
   return parts.join(' · ');
 }
 
-export default function VaultSnapshot({ id }: { id: string }) {
+export default function VaultSnapshot({ id, basePath }: { id: string; basePath?: string }) {
+  const base = vaultBasePath(id, basePath);
   const { data, error, isLoading, isValidating, mutate } = useSWR<NavResponse>(
-    `/api/vaults/${encodeURIComponent(id)}/nav`,
+    `${base}/nav`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 15_000, refreshInterval: 30_000 },
   );

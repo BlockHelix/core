@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { vaultBasePath } from '@/lib/vault-data-source';
 import { clsx } from 'clsx';
 import { fetcher } from '@/lib/swr-fetcher';
 import { LastUpdated, RefreshButton, useFreshness } from '@/components/dashboard/Freshness';
@@ -148,9 +149,10 @@ function Card({ children }: { children: React.ReactNode }) {
 // The attribution engine's per-book P&L record: each book's ΔNAV decomposed into
 // named USD drivers. The residual is the honesty term: near zero means the drivers
 // explain the P&L; anything else shows in red.
-export default function PnlAttribution({ id }: { id: string }) {
+export default function PnlAttribution({ id, basePath }: { id: string; basePath?: string }) {
+  const base = vaultBasePath(id, basePath);
   const { data, error, isLoading, isValidating, mutate } = useSWR<PnlAttributionResponse>(
-    `/api/vaults/${encodeURIComponent(id)}/pnl-attribution`,
+    `${base}/pnl-attribution`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 30_000, refreshInterval: 300_000 },
   );
@@ -158,7 +160,7 @@ export default function PnlAttribution({ id }: { id: string }) {
   // and it grows unboundedly — so it ships in its own endpoint, fetched once per book set
   // instead of riding along on the snapshot's 5-minute refresh.
   const { data: seriesData } = useSWR<PnlSeriesResponse>(
-    `/api/vaults/${encodeURIComponent(id)}/pnl-attribution/series`,
+    `${base}/pnl-attribution/series`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60_000, refreshInterval: 900_000 },
   );

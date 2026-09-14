@@ -1,10 +1,17 @@
 import type { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
+import { fetchPublishedVaults } from '@/lib/server/public-fund';
 
 const BASE = 'https://blockhelix.tech';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const records: MetadataRoute.Sitemap = (await fetchPublishedVaults()).map((v) => ({
+    url: `${BASE}/record/${v.symbol}`,
+    lastModified: now,
+    changeFrequency: 'daily',
+    priority: 0.8,
+  }));
   const posts: MetadataRoute.Sitemap = getAllPosts().map((p) => ({
     url: `${BASE}/blog/${p.slug}`,
     lastModified: p.date ? new Date(p.date) : now,
@@ -14,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     { url: `${BASE}/agents`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
+    ...records,
     { url: BASE, lastModified: now, changeFrequency: 'weekly', priority: 1 },
     { url: `${BASE}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     ...posts,

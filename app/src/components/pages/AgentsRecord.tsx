@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { fetchAgents, type PublicAgent } from '@/lib/server/public-fund';
+import { fetchAgents, fetchPublishedVaults, type PublicAgent } from '@/lib/server/public-fund';
 
 const usd = (n: number | null | undefined, d = 2) =>
   n == null ? '—' : `$${n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
@@ -25,20 +25,37 @@ function Verdict({ v }: { v: PublicAgent['books'][number]['verdict'] }) {
   );
 }
 
-function AgentCard({ a }: { a: PublicAgent }) {
+function AgentCard({ a, published }: { a: PublicAgent; published: boolean }) {
   const d = a.drivers;
   const operating = d ? d.carry + d.mark + d.borrow : null;
+  // Only a vault on the backend's published allowlist has a record page. Linking the rest would
+  // hand a reader a 404 for a vault that plainly exists on this page.
+  const href = `/record/${encodeURIComponent(a.symbol)}`;
   return (
     <div className="border-t border-black/[0.08] pt-8">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <div className="flex items-baseline gap-3">
-          <h3 className="text-xl font-bold tracking-tight text-gray-900">{a.name}</h3>
+          <h3 className="text-xl font-bold tracking-tight text-gray-900">
+            {published ? (
+              <Link href={href} className="underline decoration-gray-300 underline-offset-4 hover:text-[#10c689]">
+                {a.name}
+              </Link>
+            ) : (
+              a.name
+            )}
+          </h3>
           <span className="font-mono text-[11px] uppercase tracking-widest text-gray-400">
             {a.symbol} · {a.baseAsset ?? '—'} · {a.daysLive ?? '—'} days
           </span>
         </div>
         <span className="font-mono text-[11px] uppercase tracking-widest text-gray-400">
-          deposits closed
+          {published ? (
+            <Link href={href} className="underline decoration-gray-300 underline-offset-4 hover:text-[#10c689]">
+              full record →
+            </Link>
+          ) : (
+            'deposits closed'
+          )}
         </span>
       </div>
 
@@ -178,8 +195,9 @@ function AgentCard({ a }: { a: PublicAgent }) {
 }
 
 export default async function AgentsRecord() {
-  const data = await fetchAgents();
+  const [data, publishedVaults] = await Promise.all([fetchAgents(), fetchPublishedVaults()]);
   const agents = data?.agents ?? [];
+  const published = new Set(publishedVaults.map((v) => v.symbol));
   const t = agents.reduce(
     (acc, a) => {
       if (!a.drivers) return acc;
@@ -262,7 +280,7 @@ export default async function AgentsRecord() {
 
             <div className="mt-16 flex flex-col gap-14">
               {agents.map((a) => (
-                <AgentCard key={a.vault} a={a} />
+                <AgentCard key={a.vault} a={a} published={published.has(a.symbol)} />
               ))}
             </div>
           </>

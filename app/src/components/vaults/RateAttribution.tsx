@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { vaultBasePath } from '@/lib/vault-data-source';
 import { clsx } from 'clsx';
 import { fetcher, FetchError } from '@/lib/swr-fetcher';
 import { timeAgo } from '@/lib/format';
@@ -133,9 +134,10 @@ function Card({ children }: { children: React.ReactNode }) {
 // One row per rate push: the on-chain move beside what produced it (per-symbol price and
 // quantity effects, shares, clamp, residual). The residual is the honesty term: near zero
 // means the decomposition explains the push; large means it does not, so say so in red.
-export default function RateAttribution({ id }: { id: string }) {
+export default function RateAttribution({ id, basePath }: { id: string; basePath?: string }) {
+  const base = vaultBasePath(id, basePath);
   const { data, error, isLoading, isValidating, mutate } = useSWR<RateAttributionResponse>(
-    `/api/vaults/${encodeURIComponent(id)}/rate-attribution`,
+    `${base}/rate-attribution`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 30_000, refreshInterval: 60_000 },
   );

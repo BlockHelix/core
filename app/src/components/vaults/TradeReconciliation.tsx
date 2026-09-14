@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { vaultBasePath } from '@/lib/vault-data-source';
 import { clsx } from 'clsx';
 import { fetcher, FetchError } from '@/lib/swr-fetcher';
 import { timeAgo, truncateAddress } from '@/lib/format';
@@ -240,9 +241,18 @@ function Card({ children }: { children: React.ReactNode }) {
 // What each trade promised before it broadcast against what the share price actually did. The
 // worker has recorded this comparison on every confirmed trade for a while and it reached a log
 // line and an alert topic and no screen. This is the screen.
-export default function TradeReconciliation({ id, chainId }: { id: string; chainId: number }) {
+export default function TradeReconciliation({
+  id,
+  chainId,
+  basePath,
+}: {
+  id: string;
+  chainId: number;
+  basePath?: string;
+}) {
+  const base = vaultBasePath(id, basePath);
   const { data, error, isLoading, isValidating, mutate } = useSWR<TradeReconciliationResponse>(
-    `/api/vaults/${encodeURIComponent(id)}/trade-reconciliation`,
+    `${base}/trade-reconciliation`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 30_000, refreshInterval: 60_000 },
   );
