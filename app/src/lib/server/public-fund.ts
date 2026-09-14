@@ -59,7 +59,8 @@ export interface PublishedVaultMeta {
   name: string;
   vault: string;
   chainId: number;
-  baseAsset: string;
+  /** Ticker, not the address. null when the backend cannot name the token. */
+  baseAsset: string | null;
   daysLive: number | null;
   deposits: 'closed';
 }

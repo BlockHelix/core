@@ -38,7 +38,7 @@ export default function PublicVaultRecord({ meta }: { meta: PublishedVaultMeta }
           </span>
         </div>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-gray-400">
-          {meta.symbol} · {meta.baseAsset} · {chainLabel(meta.chainId)} · {meta.daysLive ?? '—'} days
+          {meta.symbol} · {meta.baseAsset ?? '—'} · {chainLabel(meta.chainId)} · {meta.daysLive ?? '—'} days
         </p>
         <p className="mt-3 font-data text-xs">
           <a
