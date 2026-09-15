@@ -51,12 +51,6 @@ export default function PublicVaultRecord({ meta }: { meta: PublishedVaultMeta }
           </a>
         </p>
 
-        <p className="mt-6 max-w-xl text-[13px] leading-relaxed text-gray-500">
-          Our own capital, read live from chain. Deposits are closed and there is no fee, so this is
-          a record of what this book did and not an offer or an invitation. Anything we cannot
-          measure is named rather than scored, because a zero in an unmeasured row reads as healthy.
-        </p>
-
         <div className="mt-14 space-y-8">
           <VaultSnapshot id={meta.symbol} basePath={base} />
           <PegHealthCard id={meta.symbol} chainId={meta.chainId} basePath={base} riskPath={riskPath} />
