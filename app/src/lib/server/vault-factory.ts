@@ -314,11 +314,20 @@ export interface VenueAuditRow {
   borrowApy: number | null;
   lltv: number | null;
   leverage: number | null;
-  netCarryApy: number | null;
+  /** Rate spread only, no collateral mark. Never render this as an expected return. */
+  grossCarryApy: number | null;
+  /** Observed collateral mark drift from the attribution engine, and its window. Null on any
+   *  market with no attributed book. */
+  markDriftApy: number | null;
+  markDriftDays: number | null;
+  /** Gross with the observed drift applied at this leverage. Null when unmeasured. */
+  netOfMarkApy: number | null;
+  /** Why netOfMarkApy is null. A blank cell must state its reason, not read as zero. */
+  netOfMarkNote?: string | null;
   utilization: number | null;
   liquidityUsd: number | null;
   expiry: string | null;
-  status: 'measured' | 'screened' | 'screened-unexecutable';
+  status: 'measured' | 'registered' | 'screened' | 'screened-unexecutable';
 }
 
 export interface VenueAuditResponse {
@@ -329,7 +338,7 @@ export interface VenueAuditResponse {
   sources: Record<string, boolean>;
 }
 
-// Latest cross-chain venue audit (rates-only screen, ranked by net carry). null = no sweep yet.
+// Latest cross-chain venue audit (rates-only screen, ranked by gross carry). null = no sweep yet.
 export async function getVenueAuditUpstream(userId: string): Promise<VenueAuditResponse | null> {
   return (await upstream('/public/fund/venues', userId)) as VenueAuditResponse | null;
 }
