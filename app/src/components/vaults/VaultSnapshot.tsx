@@ -393,7 +393,7 @@ export default function VaultSnapshot({ id, basePath }: { id: string; basePath?:
           <span className="ml-2 text-zinc-300">{'// on-chain'}</span>
         </h2>
         <span className="flex items-center gap-1">
-          <LastUpdated since={updatedAt} />
+          <LastUpdated since={updatedAt} asOf={data?.asOf} />
           <RefreshButton onClick={() => void mutate()} spinning={isValidating} />
         </span>
       </div>

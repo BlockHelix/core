@@ -176,7 +176,7 @@ export default function PnlAttribution({ id, basePath }: { id: string; basePath?
           <span className="ml-2 text-zinc-300">{'// audited record'}</span>
         </h2>
         <span className="flex items-center gap-1">
-          <LastUpdated since={updatedAt} />
+          <LastUpdated since={updatedAt} asOf={data?.asOf} />
           <RefreshButton onClick={() => void mutate()} spinning={isValidating} />
         </span>
       </div>

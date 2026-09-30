@@ -84,16 +84,32 @@ export function DataAsOf({
 // Muted, understated freshness read-out. Ticks up every second from `since`,
 // which callers reset whenever the view's data refreshes. No "Live" dot — the
 // number itself reads near 0s when the stream is pushing, grows if it stalls.
-export function LastUpdated({ since, className }: { since: number; className?: string }) {
+export function LastUpdated({
+  since,
+  asOf,
+  className,
+}: {
+  since: number;
+  /** The timestamp the API stamped on this payload. Preferred over `since` whenever present. */
+  asOf?: string | number | null;
+  className?: string;
+}) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // When the payload says when it was true, that is the answer. `since` only knows when we
+  // asked, and the two differ by however long the figure sat upstream.
+  if (asOf !== undefined && asOf !== null) return <DataAsOf asOf={asOf} className={className} />;
+
   const seconds = Math.max(0, Math.round((now - since) / 1000));
+  // "Fetched", not "Updated": without an asOf this is the age of the REQUEST, and calling a
+  // request an update is how a twelve-day-old record read "Updated just now".
   return (
     <span className={clsx('text-[11px] tabular-nums text-zinc-500', className)}>
-      Updated {ago(seconds)}
+      Fetched {ago(seconds)}
     </span>
   );
 }

@@ -111,3 +111,35 @@ export async function fetchPublishedVaults(): Promise<{ vaults: PublishedVaultMe
     return { vaults: [], asOf: null };
   }
 }
+
+/**
+ * A published vault's NAV, read on the SERVER.
+ *
+ * The plain-English summary is the first thing on the page and was a client component, so the
+ * delivered HTML said "Reading the record…" and only filled in once JavaScript ran. Anything
+ * that does not run JS — a crawler, a link preview, a slow first paint — saw a loading state
+ * where the substance should be. Fetching it here means the sentence is in the HTML.
+ */
+export interface PublicVaultNav {
+  navUsd: number | null;
+  sharePrice: number | null;
+  returnToDate: number | null;
+  operatingApy: number | null;
+  daysLive: number | null;
+  navIsLive?: boolean;
+  asOf?: string;
+}
+
+export async function fetchPublicVaultNav(symbol: string): Promise<PublicVaultNav | null> {
+  const url = (process.env.VAULT_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+  try {
+    const res = await fetch(`${url}/public/fund/vaults/${encodeURIComponent(symbol)}/nav`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as PublicVaultNav;
+  } catch {
+    // Null, never a shape full of zeros: the card shows nothing rather than a false figure.
+    return null;
+  }
+}

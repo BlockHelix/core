@@ -60,6 +60,9 @@ export interface ReconciliationRollup {
 export interface TradeReconciliationResponse {
   trades: ReconciledTrade[];
   rollup: ReconciliationRollup | null;
+  /** When the API read this. Optional because an older deployment does not send it, and then
+   *  the label says "Fetched" — the age of the request — rather than claiming an update. */
+  asOf?: string;
 }
 
 // A local copy of the upstream call rather than an edit to vault-factory.ts, which is carrying

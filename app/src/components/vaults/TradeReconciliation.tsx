@@ -272,7 +272,7 @@ export default function TradeReconciliation({
           <span className="ml-2 text-zinc-300">{'// predicted vs realized'}</span>
         </h2>
         <span className="flex items-center gap-1">
-          <LastUpdated since={updatedAt} />
+          <LastUpdated since={updatedAt} asOf={data?.asOf} />
           <RefreshButton onClick={() => void mutate()} spinning={isValidating} />
         </span>
       </div>

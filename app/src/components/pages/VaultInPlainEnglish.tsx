@@ -33,12 +33,23 @@ const money = (n: number | null | undefined) =>
 const pct = (n: number | null | undefined, digits = 1) =>
   n === null || n === undefined ? null : `${(n * 100).toFixed(digits)}%`;
 
-export default function VaultInPlainEnglish({ id, basePath }: { id: string; basePath: string }) {
+export default function VaultInPlainEnglish({
+  id,
+  basePath,
+  initial,
+}: {
+  id: string;
+  basePath: string;
+  /** Server-rendered figures, so the sentence is in the HTML before any JavaScript runs. */
+  initial?: Summary | null;
+}) {
   const { data, error, isLoading } = useSWR<Summary>(`${basePath}/vaults/${encodeURIComponent(id)}/nav`, fetcher, {
     refreshInterval: 300_000,
+    // Renders immediately from the server's read, then refreshes in place.
+    fallbackData: initial ?? undefined,
   });
 
-  if (isLoading) return <p className="font-data text-sm text-gray-400">Reading the record…</p>;
+  if (isLoading && !initial) return <p className="font-data text-sm text-gray-400">Reading the record…</p>;
   // A figure that could not be read is left out entirely. A dash is honest; a zero is not.
   if (error || !data) {
     return (
