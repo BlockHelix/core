@@ -1,112 +1,129 @@
-'use client';
-
-import useSWR from 'swr';
 import { DataAsOf } from '@/components/dashboard/Freshness';
+import type { PublicVaultHeadline } from '@/lib/server/public-fund';
 
 /**
- * What this vault is, in words, above the panels that explain how.
+ * What this vault is, in words and numbers, above the panels that show the working.
  *
  * The record page opened with four headings a reader has to already understand — "Trade
  * Reconciliation // predicted vs realized", "Share Price Attribution // per push" — and never
- * said what the vault is, whose money is in it, or whether it made any. Somebody who did not
- * build it learns nothing from the first screen.
+ * said what the vault is, whose money is in it, or whether it made any.
  *
- * Every figure here is read from the same endpoints the panels below use, so this is a plainer
- * reading of the same record, not a second one. Anything unmeasured says so; nothing is rounded
- * into a claim.
+ * Design rules it follows, in the order they matter:
+ *
+ *   ONE THING FIRST. Return since inception is the number a reader came for, so it is the only
+ *   large figure. Three supporting numbers sit below it at a common weight. Everything else is
+ *   a sentence. A row of equally-sized statistics makes a reader choose what matters, which is
+ *   the page's job, not theirs.
+ *
+ *   NUMBERS ALIGN. Tabular figures throughout, so a column of them can be compared by eye
+ *   rather than read one at a time.
+ *
+ *   ABSENCE IS VISIBLE. A figure that could not be measured renders as "not measured", never
+ *   as a zero and never as a dash a reader might take for zero.
+ *
+ *   COLOUR MEANS ONE THING. Green and red mark direction on the return, and nothing else is
+ *   coloured, so colour stays a signal instead of decoration.
+ *
+ * Server-rendered: the sentence is in the delivered HTML, so a crawler, a link preview or a
+ * slow first paint sees the substance rather than a spinner.
  */
 
-interface Summary {
-  navUsd: number | null;
-  sharePrice: number | null;
-  returnToDate: number | null;
-  operatingApy: number | null;
-  daysLive: number | null;
-  navIsLive?: boolean;
-  asOf?: string;
+const GREEN = '#10c689';
+const RED = '#b82214';
+
+function money(n: number | null): string | null {
+  if (n === null) return null;
+  return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
-const fetcher = (u: string) => fetch(u).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
+function pct(n: number | null, digits = 1): string | null {
+  if (n === null) return null;
+  return `${(n * 100).toFixed(digits)}%`;
+}
 
-const money = (n: number | null | undefined) =>
-  n === null || n === undefined ? null : `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-const pct = (n: number | null | undefined, digits = 1) =>
-  n === null || n === undefined ? null : `${(n * 100).toFixed(digits)}%`;
+/** A measured value, or a plain statement that it is not measured. Never a bare dash. */
+function Stat({ label, value, hint }: { label: string; value: string | null; hint?: string }) {
+  return (
+    <div>
+      <dt className="text-[11px] uppercase tracking-wide text-gray-500">{label}</dt>
+      <dd
+        className={
+          value === null
+            ? 'mt-1 text-sm text-gray-400'
+            : 'mt-1 text-lg font-semibold tabular-nums text-gray-900'
+        }
+      >
+        {value ?? 'not measured'}
+      </dd>
+      {hint ? <p className="mt-0.5 text-[11px] text-gray-500">{hint}</p> : null}
+    </div>
+  );
+}
 
-export default function VaultInPlainEnglish({
-  id,
-  basePath,
-  initial,
-}: {
-  id: string;
-  basePath: string;
-  /** Server-rendered figures, so the sentence is in the HTML before any JavaScript runs. */
-  initial?: Summary | null;
-}) {
-  const { data, error, isLoading } = useSWR<Summary>(`${basePath}/vaults/${encodeURIComponent(id)}/nav`, fetcher, {
-    refreshInterval: 300_000,
-    // Renders immediately from the server's read, then refreshes in place.
-    fallbackData: initial ?? undefined,
-  });
-
-  if (isLoading && !initial) return <p className="font-data text-sm text-gray-400">Reading the record…</p>;
-  // A figure that could not be read is left out entirely. A dash is honest; a zero is not.
-  if (error || !data) {
+export default function VaultInPlainEnglish({ data }: { data: PublicVaultHeadline | null }) {
+  if (!data) {
     return (
-      <p className="font-data text-sm text-gray-500">
-        The live record could not be read. Nothing is shown rather than a stale figure.
-      </p>
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <p className="text-sm text-gray-500">
+          The live record could not be read. Nothing is shown rather than a stale figure.
+        </p>
+      </div>
     );
   }
 
-  const nav = money(data.navUsd);
-  const ret = pct(data.returnToDate);
-  const apy = pct(data.operatingApy);
-  const days = data.daysLive;
-  const incomplete = data.navIsLive === false;
+  // Share price starts at 1.0, so the return since inception is simply how far it has moved.
+  const ret = data.sharePriceLive === null ? null : data.sharePriceLive - 1;
+  const up = ret !== null && ret >= 0;
+  const incomplete = data.navVsMarketVerdict === 'flag' || data.navVsMarketVerdict === 'block';
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-5">
-      <div className="flex items-baseline justify-between gap-4">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="flex items-baseline justify-between gap-4 border-b border-gray-100 px-6 py-3">
         <h2 className="text-sm font-semibold text-gray-900">In plain English</h2>
         <DataAsOf asOf={data.asOf} />
       </div>
 
-      <div className="mt-3 space-y-2 text-sm leading-relaxed text-gray-700">
-        <p>
-          {nav ? <>This vault holds <strong>{nav}</strong> of our own money</> : <>The size of this vault could not be read</>}
-          {days ? <>, and has been running for <strong>{days} days</strong></> : null}. No one else&rsquo;s money is in it.
+      <div className="px-6 py-6">
+        {/* The one number a reader came for. Nothing else is this size. */}
+        <p className="text-[11px] uppercase tracking-wide text-gray-500">
+          Return since it started{data.daysLive ? `, ${data.daysLive} days ago` : ''}
+        </p>
+        <p
+          className="mt-1 text-4xl font-semibold tabular-nums tracking-tight"
+          style={{ color: ret === null ? '#9ca3af' : up ? GREEN : RED }}
+        >
+          {ret === null ? 'not measured' : `${up ? '+' : ''}${(ret * 100).toFixed(2)}%`}
+        </p>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-600">
+          After every cost we can measure: trading fees, price impact and interest paid. This is our own
+          money. No one else&rsquo;s is in it.
         </p>
 
-        {ret ? (
-          <p>
-            Since it started it is <strong>{ret}</strong> up or down in total, after every cost we can measure —
-            trading fees, price impact and interest paid.
-          </p>
-        ) : (
-          <p>How much it has made since it started is not measured yet.</p>
-        )}
-
-        {apy ? (
-          <p>
-            At today&rsquo;s rates it earns about <strong>{apy} a year</strong>. That rate moves with the market and is
-            not a promise.
-          </p>
-        ) : (
-          <p>What it earns at today&rsquo;s rates could not be measured.</p>
-        )}
+        <dl className="mt-7 grid grid-cols-2 gap-x-8 gap-y-5 border-t border-gray-100 pt-5 sm:grid-cols-3">
+          <Stat label="Size" value={money(data.navUsd)} hint={data.baseAsset ? `held in ${data.baseAsset}` : undefined} />
+          <Stat
+            label="Earning now"
+            value={pct(data.grossCarryApy)}
+            hint="a year, at today's rates"
+          />
+          <Stat
+            label="Room before liquidation"
+            value={data.worstBufferPp === null ? null : `${data.worstBufferPp.toFixed(1)}pp`}
+            hint="thinnest position"
+          />
+        </dl>
 
         {incomplete ? (
-          <p className="font-medium text-amber-700">
-            Part of what this vault holds could not be priced just now, so the figures above are incomplete. The
-            panels below say which part.
+          <p className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+            Part of what this vault holds is worth less on the open market than the price used above. The
+            panels below say which part, and by how much.
           </p>
         ) : null}
       </div>
 
-      <p className="mt-4 text-xs text-gray-500">
-        Everything below is the working: the trades, the prices we got, and where every dollar of profit and loss
-        came from. It is published so the numbers above can be checked, not taken.
+      <p className="border-t border-gray-100 bg-gray-50/70 px-6 py-3 text-xs leading-relaxed text-gray-600">
+        Everything below is the working: the trades, the prices we got, and where every dollar of profit and
+        loss came from. It is published so the numbers above can be checked, not taken.
       </p>
     </div>
   );

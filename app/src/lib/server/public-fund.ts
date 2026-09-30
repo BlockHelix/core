@@ -113,31 +113,58 @@ export async function fetchPublishedVaults(): Promise<{ vaults: PublishedVaultMe
 }
 
 /**
- * A published vault's NAV, read on the SERVER.
+ * One published vault's headline figures, read on the SERVER.
  *
- * The plain-English summary is the first thing on the page and was a client component, so the
- * delivered HTML said "Reading the record…" and only filled in once JavaScript ran. Anything
- * that does not run JS — a crawler, a link preview, a slow first paint — saw a loading state
- * where the substance should be. Fetching it here means the sentence is in the HTML.
+ * From /agents, not /vaults/:key/nav. The nav endpoint returns the on-chain composition — share
+ * price, holdings, per-position risk — and carries none of navUsd, daysLive or the carry rate.
+ * Pointing the summary card at it produced a card that correctly said every figure was
+ * unreadable, which was the honesty guard working and the wiring being wrong.
  */
-export interface PublicVaultNav {
+export interface PublicVaultHeadline {
+  symbol: string;
+  name: string;
   navUsd: number | null;
-  sharePrice: number | null;
-  returnToDate: number | null;
-  operatingApy: number | null;
+  sharePriceLive: number | null;
   daysLive: number | null;
-  navIsLive?: boolean;
-  asOf?: string;
+  grossCarryApy: number | null;
+  deployedRatio: number | null;
+  baseAsset: string | null;
+  navVsMarketVerdict: string | null;
+  /** Thinnest liquidation buffer across this vault's books, in percentage points. */
+  worstBufferPp: number | null;
+  asOf: string | null;
 }
 
-export async function fetchPublicVaultNav(symbol: string): Promise<PublicVaultNav | null> {
+export async function fetchPublicVaultHeadline(symbol: string): Promise<PublicVaultHeadline | null> {
   const url = (process.env.VAULT_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
   try {
-    const res = await fetch(`${url}/public/fund/vaults/${encodeURIComponent(symbol)}/nav`, {
-      next: { revalidate: 300 },
-    });
+    const res = await fetch(`${url}/public/fund/agents`, { next: { revalidate: 300 } });
     if (!res.ok) return null;
-    return (await res.json()) as PublicVaultNav;
+    const body = (await res.json()) as {
+      asOf?: string;
+      agents?: Array<Record<string, unknown>>;
+    };
+    const a = (body.agents ?? []).find((x) => x.symbol === symbol);
+    if (!a) return null;
+    const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    const books = Array.isArray(a.books) ? (a.books as Array<{ bufferPp?: number }>) : [];
+    const buffers = books.map((b) => b.bufferPp).filter((b): b is number => typeof b === 'number');
+    return {
+      symbol,
+      name: typeof a.name === 'string' ? a.name : symbol,
+      navUsd: num(a.navUsd),
+      sharePriceLive: num(a.sharePriceLive),
+      daysLive: num(a.daysLive),
+      grossCarryApy: num(a.grossCarryApy),
+      deployedRatio: num(a.deployedRatio),
+      baseAsset: typeof a.baseAsset === 'string' ? a.baseAsset : null,
+      navVsMarketVerdict:
+        a.navVsMarket && typeof (a.navVsMarket as { verdict?: unknown }).verdict === 'string'
+          ? ((a.navVsMarket as { verdict: string }).verdict)
+          : null,
+      worstBufferPp: buffers.length ? Math.min(...buffers) : null,
+      asOf: typeof body.asOf === 'string' ? body.asOf : null,
+    };
   } catch {
     // Null, never a shape full of zeros: the card shows nothing rather than a false figure.
     return null;

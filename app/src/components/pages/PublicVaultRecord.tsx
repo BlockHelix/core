@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import VaultInPlainEnglish from '@/components/pages/VaultInPlainEnglish';
+import { fetchPublicVaultHeadline } from '@/lib/server/public-fund';
 import VaultSnapshot from '@/components/vaults/VaultSnapshot';
 import PegHealthCard from '@/components/vaults/PegHealthCard';
 import TradeReconciliation from '@/components/vaults/TradeReconciliation';
@@ -17,7 +18,9 @@ import type { PublishedVaultMeta } from '@/lib/server/public-fund';
  * transaction list are absent by construction: this page never renders them, so there is no
  * state in which a reader reaches an action.
  */
-export default function PublicVaultRecord({ meta }: { meta: PublishedVaultMeta }) {
+export default async function PublicVaultRecord({ meta }: { meta: PublishedVaultMeta }) {
+  // Server-read, so the summary is in the delivered HTML rather than painted in later.
+  const headline = await fetchPublicVaultHeadline(meta.symbol);
   const base = publicRecordBasePath(meta.symbol);
   const riskPath = `${base}/peg-health`;
 
@@ -53,7 +56,7 @@ export default function PublicVaultRecord({ meta }: { meta: PublishedVaultMeta }
         </p>
 
         <div className="mt-14 space-y-8">
-          <VaultInPlainEnglish id={meta.symbol} basePath={base} />
+          <VaultInPlainEnglish data={headline} />
         <VaultSnapshot id={meta.symbol} basePath={base} />
           <PegHealthCard id={meta.symbol} chainId={meta.chainId} basePath={base} riskPath={riskPath} />
           <TradeReconciliation id={meta.symbol} chainId={meta.chainId} basePath={base} />
