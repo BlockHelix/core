@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import VaultInPlainEnglish from '@/components/pages/VaultInPlainEnglish';
 import VaultSnapshot from '@/components/vaults/VaultSnapshot';
 import PegHealthCard from '@/components/vaults/PegHealthCard';
 import TradeReconciliation from '@/components/vaults/TradeReconciliation';
@@ -52,7 +53,8 @@ export default function PublicVaultRecord({ meta }: { meta: PublishedVaultMeta }
         </p>
 
         <div className="mt-14 space-y-8">
-          <VaultSnapshot id={meta.symbol} basePath={base} />
+          <VaultInPlainEnglish id={meta.symbol} basePath={base} />
+        <VaultSnapshot id={meta.symbol} basePath={base} />
           <PegHealthCard id={meta.symbol} chainId={meta.chainId} basePath={base} riskPath={riskPath} />
           <TradeReconciliation id={meta.symbol} chainId={meta.chainId} basePath={base} />
           <RateAttribution id={meta.symbol} basePath={base} />

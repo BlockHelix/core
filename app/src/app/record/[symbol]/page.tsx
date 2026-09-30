@@ -7,7 +7,7 @@ import { fetchPublishedVault, fetchPublishedVaults } from '@/lib/server/public-f
 export const revalidate = 300;
 
 export async function generateStaticParams() {
-  return (await fetchPublishedVaults()).map((v) => ({ symbol: v.symbol }));
+  return (await fetchPublishedVaults()).vaults.map((v) => ({ symbol: v.symbol }));
 }
 
 export async function generateMetadata({

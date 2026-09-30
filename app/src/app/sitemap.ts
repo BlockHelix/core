@@ -6,7 +6,7 @@ const BASE = 'https://blockhelix.tech';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const records: MetadataRoute.Sitemap = (await fetchPublishedVaults()).map((v) => ({
+  const records: MetadataRoute.Sitemap = (await fetchPublishedVaults()).vaults.map((v) => ({
     url: `${BASE}/record/${v.symbol}`,
     lastModified: now,
     changeFrequency: 'daily',

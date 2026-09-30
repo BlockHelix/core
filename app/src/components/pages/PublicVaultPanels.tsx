@@ -1,3 +1,4 @@
+import VaultInPlainEnglish from '@/components/pages/VaultInPlainEnglish';
 import VaultSnapshot from '@/components/vaults/VaultSnapshot';
 import PegHealthCard from '@/components/vaults/PegHealthCard';
 import TradeReconciliation from '@/components/vaults/TradeReconciliation';
@@ -27,6 +28,7 @@ export default function PublicVaultPanels({ meta }: { meta: PublishedVaultMeta }
         {meta.symbol} · {meta.baseAsset ?? '—'} · {chainLabel(meta.chainId)} · {meta.daysLive ?? '—'} days · deposits closed
       </p>
       <div className="mt-8 space-y-8">
+        <VaultInPlainEnglish id={meta.symbol} basePath={base} />
         <VaultSnapshot id={meta.symbol} basePath={base} />
         <PegHealthCard id={meta.symbol} chainId={meta.chainId} basePath={base} riskPath={`${base}/peg-health`} />
         <TradeReconciliation id={meta.symbol} chainId={meta.chainId} basePath={base} />

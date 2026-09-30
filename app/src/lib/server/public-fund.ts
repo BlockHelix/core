@@ -87,14 +87,27 @@ export async function fetchPublishedVault(symbol: string): Promise<PublishedVaul
 }
 
 /** Every published vault. Empty on any failure: the caller shows nothing rather than a stale list. */
-export async function fetchPublishedVaults(): Promise<PublishedVaultMeta[]> {
+/**
+ * The published vaults, and WHEN the API said they were true.
+ *
+ * asOf used to be dropped here, which left the page with no way to know the age of what it was
+ * rendering. It showed "Updated just now" from the browser's clock instead, and on 2026-09-30
+ * that sat beside vault ages twelve days out of date: the page was served from cache with a
+ * stale-while-revalidate window of 365 days, so a failed revalidation simply kept serving.
+ *
+ * The timestamp travels with the data now. A page cannot claim freshness it has not measured.
+ */
+export async function fetchPublishedVaults(): Promise<{ vaults: PublishedVaultMeta[]; asOf: string | null }> {
   const url = (process.env.VAULT_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
   try {
     const res = await fetch(`${url}/public/fund/vaults`, { next: { revalidate: 300 } });
-    if (!res.ok) return [];
-    const body = (await res.json()) as { vaults?: PublishedVaultMeta[] };
-    return Array.isArray(body.vaults) ? body.vaults : [];
+    if (!res.ok) return { vaults: [], asOf: null };
+    const body = (await res.json()) as { vaults?: PublishedVaultMeta[]; asOf?: string };
+    return {
+      vaults: Array.isArray(body.vaults) ? body.vaults : [],
+      asOf: typeof body.asOf === 'string' ? body.asOf : null,
+    };
   } catch {
-    return [];
+    return { vaults: [], asOf: null };
   }
 }

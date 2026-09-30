@@ -1,9 +1,10 @@
 import PublicVaultPanels from '@/components/pages/PublicVaultPanels';
+import { DataAsOf } from '@/components/dashboard/Freshness';
 import { fetchPublishedVaults } from '@/lib/server/public-fund';
 
 /** Every vault we run, as the dashboard shows them. */
 export default async function AgentsRecord() {
-  const vaults = await fetchPublishedVaults();
+  const { vaults, asOf } = await fetchPublishedVaults();
 
   return (
     <main className="bg-white">
@@ -15,6 +16,11 @@ export default async function AgentsRecord() {
           Every vault we run
         </h1>
         <p className="mt-3 font-data text-xs text-gray-500">Own capital, read live from chain.</p>
+        {/* The age of the DATA, not of the page render. A cached page is indistinguishable from
+            a fresh one without this, which is how a twelve-day-old record read "just now". */}
+        <p className="mt-1">
+          <DataAsOf asOf={asOf} />
+        </p>
 
         {vaults.length === 0 ? (
           <p className="mt-16 font-mono text-sm text-gray-400">
