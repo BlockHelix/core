@@ -86,7 +86,7 @@ export default function VaultInPlainEnglish({ data }: { data: PublicVaultHeadlin
       <div className="px-6 py-6">
         {/* The one number a reader came for. Nothing else is this size. */}
         <p className="text-[11px] uppercase tracking-wide text-gray-500">
-          Return since it started{data.daysLive ? `, ${data.daysLive} days ago` : ''}
+          Return since launch{data.daysLive ? `, ${data.daysLive} days ago` : ''}
         </p>
         <p
           className="mt-1 text-4xl font-semibold tabular-nums tracking-tight"
@@ -102,9 +102,9 @@ export default function VaultInPlainEnglish({ data }: { data: PublicVaultHeadlin
         <dl className="mt-7 grid grid-cols-2 gap-x-8 gap-y-5 border-t border-gray-100 pt-5 sm:grid-cols-3">
           <Stat label="Size" value={money(data.navUsd)} hint={data.baseAsset ? `held in ${data.baseAsset}` : undefined} />
           <Stat
-            label="Earning now"
+            label="APY"
             value={pct(data.grossCarryApy)}
-            hint="a year, at today's rates"
+            hint="at today's rates"
           />
           <Stat
             label="Room before liquidation"
