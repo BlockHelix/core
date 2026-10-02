@@ -262,3 +262,22 @@ export async function clearEntitlements(userId: string): Promise<void> {
     method: 'DELETE',
   });
 }
+
+export interface OpenAlert {
+  id: string;
+  severity: 'critical' | 'warn';
+  title: string;
+  detail: string;
+  since: number;
+}
+
+export interface AlertSource {
+  source: string;
+  kind: 'conditions' | 'events';
+  updatedAt: string | null;
+  alerts: OpenAlert[];
+}
+
+export async function getOpenAlerts(): Promise<{ asOf: string; sources: AlertSource[] }> {
+  return (await adminUpstream('/admin/alerts')) as { asOf: string; sources: AlertSource[] };
+}

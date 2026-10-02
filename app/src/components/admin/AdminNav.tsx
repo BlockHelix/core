@@ -14,6 +14,7 @@ const NAV: NavItem[] = [
   { href: '/admin', label: 'Vaults', match: (p) => p === '/admin' || p.startsWith('/admin/vaults') },
   { href: '/admin/users', label: 'Users', match: (p) => p.startsWith('/admin/users') },
   { href: '/admin/attribution', label: 'Attribution', match: (p) => p.startsWith('/admin/attribution') },
+  { href: '/admin/alerts', label: 'Alerts', match: (p) => p.startsWith('/admin/alerts') },
 ];
 
 export default function AdminNav() {
