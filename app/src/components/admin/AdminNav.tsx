@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
   { href: '/admin/users', label: 'Users', match: (p) => p.startsWith('/admin/users') },
   { href: '/admin/attribution', label: 'Attribution', match: (p) => p.startsWith('/admin/attribution') },
   { href: '/admin/alerts', label: 'Alerts', match: (p) => p.startsWith('/admin/alerts') },
+  { href: '/admin/arb', label: 'Arb desk', match: (p) => p.startsWith('/admin/arb') },
 ];
 
 export default function AdminNav() {

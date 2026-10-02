@@ -281,3 +281,7 @@ export interface AlertSource {
 export async function getOpenAlerts(): Promise<{ asOf: string; sources: AlertSource[] }> {
   return (await adminUpstream('/admin/alerts')) as { asOf: string; sources: AlertSource[] };
 }
+
+export async function getArbDesk(): Promise<unknown> {
+  return adminUpstream('/admin/arb-desk');
+}
