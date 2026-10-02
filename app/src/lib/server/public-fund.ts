@@ -26,6 +26,10 @@ export interface PublicAgent {
     reversalHeadroomPp: number | null;
     verdict: 'ok' | 'warn' | 'reversing' | null;
   }>;
+  carryByPosition?: {
+    positions: Array<{ market: string; navShare: number; leverage: number; carryApy: number | null; contributionApy: number }>;
+    idleNavShare?: number;
+  } | null;
   drivers: { carry: number; mark: number; borrow: number; execution: number; net: number } | null;
   /** When the drivers were COMPUTED, which is not when the page was read. */
   driversComputedAt?: string | null;
@@ -167,6 +171,32 @@ export async function fetchPublicVaultHeadline(symbol: string): Promise<PublicVa
     };
   } catch {
     // Null, never a shape full of zeros: the card shows nothing rather than a false figure.
+    return null;
+  }
+}
+
+export interface SharePricePoint {
+  at: string;
+  sharePrice: number;
+  block: number;
+  txHash: string;
+}
+
+export interface SharePriceHistory {
+  startSharePrice: number | null;
+  points: SharePricePoint[];
+  asOf: string;
+}
+
+/** Every official share price push, from the accountant's own on-chain events. Null on any failure. */
+export async function fetchSharePriceHistory(symbol: string): Promise<SharePriceHistory | null> {
+  const url = (process.env.VAULT_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+  try {
+    const res = await fetch(`${url}/public/fund/vaults/${encodeURIComponent(symbol)}/share-price`, { next: { revalidate: 300 } });
+    if (!res.ok) return null;
+    const body = (await res.json()) as SharePriceHistory;
+    return Array.isArray(body.points) ? body : null;
+  } catch {
     return null;
   }
 }
