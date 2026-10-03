@@ -61,12 +61,12 @@ export const DEPLOY_CHAINS: DeployChainOption[] = [
     name: 'Base',
     usdcAddress: BASE_USDC_ADDRESS,
     baseAssets: [
-      { symbol: 'USDC', address: BASE_USDC_ADDRESS, decimals: 6, note: 'Lend-side profiles' },
+      { symbol: 'USDC', address: BASE_USDC_ADDRESS, decimals: 6, note: 'Lending, stock pool arbitrage' },
       // ETH-denominated: NAV in ETH; the pair-race profile trades Slipstream back to Hyperliquid
-      { symbol: 'WETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, note: 'ETH pair arbitrage' },
+      { symbol: 'WETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, note: 'ETH pair arbitrage, Aave' },
     ],
     live: true,
-    tagline: 'Lend-side profiles · ETH pair arbitrage',
+    tagline: 'Lending · stock pool arbitrage · ETH pair arbitrage',
   },
   {
     chainId: MAINNET_CHAIN_ID,
