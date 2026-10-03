@@ -3,8 +3,17 @@
 import useSWR from 'swr';
 import { fetcher } from '@/lib/swr-fetcher';
 
+interface Fill { hash: string; at: string; side: string; wethDelta: number; vvvDelta: number; notionalUsd: number; edgeBps: number | null; pnlUsd: number | null; gasEth: number; setup: boolean }
+interface Racer {
+  name: string; vault: string; asOf: string; holdings: { weth: number; vvv: number; vvvMarkSource: string };
+  navEth: number; navUsd: number; shareValueEth: number | null; racerGasEth: number;
+  races: { count: number; wins: number; measured: number; pnlUsd: number; gasUsd: number; volumeUsd: number };
+  fills: Fill[];
+}
+
 interface Desk {
   asOf: string;
+  racer?: Racer | { error: string };
   live: { at: string; block: string | null; rows: { symbol: string; perp: string; poolPrice: number | null; perpMid: number | null; gapBps: number | null }[] };
   recorder: { at: number; file: string | null; last: Record<string, { t: number; b: string; a: string }>; counts: Record<string, number> } | null;
   findings: {
@@ -39,13 +48,14 @@ export default function ArbDesk() {
   const { data, error } = useSWR<Desk>('/api/admin/arb-desk', fetcher, { refreshInterval: 15_000 });
   if (error) return <p className="text-sm text-zinc-400">The arb desk could not be read. That is not the same as nothing to show.</p>;
   if (!data) return <p className="text-sm text-zinc-400">Loading…</p>;
-  const { findings: f, live, recorder } = data;
+  const { findings: f, live, recorder, racer } = data;
   const now = Date.parse(data.asOf);
   const recAge = recorder ? now - recorder.at : null;
   const recording = recAge !== null && recAge < 60_000;
 
   return (
     <div className="space-y-6">
+      {racer ? <RacerPanel racer={racer} now={now} /> : null}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
           <p className="text-[11px] uppercase tracking-wide text-zinc-500">Bots make</p>
@@ -152,5 +162,58 @@ export default function ArbDesk() {
         </Section>
       ) : null}
     </div>
+  );
+}
+
+const signed = (n: number, d = 2) => `${n >= 0 ? '+' : '-'}$${Math.abs(n).toFixed(d)}`;
+
+function RacerPanel({ racer, now }: { racer: Racer | { error: string }; now: number }) {
+  if ('error' in racer) {
+    return <Section title="Vault racer"><p className="text-sm text-[#b82214]">Could not read the vault racer: {racer.error}</p></Section>;
+  }
+  const r = racer.races;
+  const net = r.pnlUsd - r.gasUsd;
+  const last = racer.fills[0];
+  const tile = (label: string, value: string, sub: string, color?: string) => (
+    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+      <p className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums" style={{ color }}>{value}</p>
+      <p className="text-[11px] text-zinc-500">{sub}</p>
+    </div>
+  );
+  return (
+    <Section
+      title={`Vault racer: ${racer.name}`}
+      note={`Fills read from the pool's on-chain Swap events to the vault. Edge is measured against the Hyperliquid 1m close at the fill. VVV is marked at the ${racer.holdings.vvvMarkSource}. Read ${ago(now - Date.parse(racer.asOf))}.`}
+    >
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {tile('Vault NAV', `${racer.navEth.toFixed(5)} ETH`, `${usd(racer.navUsd)} · ${racer.holdings.weth.toFixed(4)} WETH + ${racer.holdings.vvv.toFixed(2)} VVV`)}
+        {tile('Share value', racer.shareValueEth === null ? 'no shares' : `${racer.shareValueEth.toFixed(5)} ETH`, 'launched at 1.00000')}
+        {tile('Race trades', `${r.count}`, r.count ? `${r.wins} of ${r.measured} beat fair · ${usd(r.volumeUsd)} traded` : 'none yet', r.count ? undefined : '#71717a')}
+        {tile('Race P&L after gas', r.count ? signed(net) : '—', r.count ? `edge ${signed(r.pnlUsd)} · gas ${signed(-r.gasUsd, 3)}` : `racer gas left ${racer.racerGasEth.toFixed(5)} ETH`, r.count ? (net >= 0 ? GREEN : '#b82214') : undefined)}
+      </div>
+      {racer.fills.length ? (
+        <table className="mt-4 w-full text-sm">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-wide text-zinc-500">
+              <th className="pb-2 font-normal">When</th><th className="pb-2 font-normal">Side</th><th className="pb-2 font-normal text-right">Size</th><th className="pb-2 font-normal text-right">Edge vs fair</th><th className="pb-2 font-normal text-right">P&amp;L</th><th className="pb-2 font-normal text-right">Tx</th>
+            </tr>
+          </thead>
+          <tbody className="tabular-nums">
+            {racer.fills.map((x) => (
+              <tr key={x.hash} className="border-t border-zinc-100">
+                <td className="py-1.5 text-zinc-500">{ago(now - Date.parse(x.at))}</td>
+                <td className="py-1.5 text-zinc-900">{x.side}{x.setup ? <span className="ml-2 text-[11px] text-zinc-400">setup</span> : null}</td>
+                <td className="py-1.5 text-right">{usd(x.notionalUsd)}</td>
+                <td className="py-1.5 text-right font-mono" style={{ color: x.edgeBps === null ? undefined : x.edgeBps >= 0 ? GREEN : '#b82214' }}>{x.edgeBps === null ? 'not measured' : `${x.edgeBps >= 0 ? '+' : ''}${x.edgeBps.toFixed(1)}bps`}</td>
+                <td className="py-1.5 text-right">{x.pnlUsd === null ? '—' : signed(x.pnlUsd)}</td>
+                <td className="py-1.5 text-right"><a className="font-mono text-[11px] text-[#10c689] hover:underline" href={`https://basescan.org/tx/${x.hash}`} target="_blank" rel="noopener noreferrer">{x.hash.slice(0, 8)}…</a></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+      {last ? null : <p className="mt-3 text-xs text-zinc-500">No fills yet.</p>}
+    </Section>
   );
 }
