@@ -3,17 +3,18 @@
 import useSWR from 'swr';
 import { fetcher } from '@/lib/swr-fetcher';
 
-interface Fill { hash: string; at: string; side: string; wethDelta: number; vvvDelta: number; notionalUsd: number; edgeBps: number | null; pnlUsd: number | null; gasEth: number; setup: boolean }
-interface Racer {
-  name: string; vault: string; asOf: string; holdings: { weth: number; vvv: number; vvvMarkSource: string };
-  navEth: number; navUsd: number; shareValueEth: number | null; racerGasEth: number;
-  races: { count: number; wins: number; measured: number; pnlUsd: number; gasUsd: number; volumeUsd: number };
+interface Fill { hash: string; at: string; side: string; notionalUsd: number; markout1mBps: number | null; markout5mBps: number | null; pnl5mUsd: number | null; gasEth: number; label: string | null }
+interface Run {
+  id: string; name: string; status: string; holder: string; isVault: boolean;
+  holdings: { weth: number; vvv: number; aweth: number }; navEth: number; navUsd: number; shareValueEth: number | null;
+  races: { count: number; scored: number; positive5m: number; mean5mBps: number | null; pnl5mUsd: number; gasUsd: number; volumeUsd: number };
   fills: Fill[];
 }
+interface Racers { asOf: string; benchmark: string; runs: Run[] }
 
 interface Desk {
   asOf: string;
-  racer?: Racer | { error: string };
+  racer?: Racers | { error: string };
   live: { at: string; block: string | null; rows: { symbol: string; perp: string; poolPrice: number | null; perpMid: number | null; gapBps: number | null }[] };
   recorder: { at: number; file: string | null; last: Record<string, { t: number; b: string; a: string }>; counts: Record<string, number> } | null;
   findings: {
@@ -166,14 +167,22 @@ export default function ArbDesk() {
 }
 
 const signed = (n: number, d = 2) => `${n >= 0 ? '+' : '-'}$${Math.abs(n).toFixed(d)}`;
+const bps = (n: number | null) => (n === null ? 'pending' : `${n >= 0 ? '+' : ''}${n.toFixed(1)}bps`);
+const tone = (n: number | null) => (n === null ? undefined : n >= 0 ? GREEN : '#b82214');
 
-function RacerPanel({ racer, now }: { racer: Racer | { error: string }; now: number }) {
+function RacerPanel({ racer, now }: { racer: Racers | { error: string }; now: number }) {
   if ('error' in racer) {
-    return <Section title="Vault racer"><p className="text-sm text-[#b82214]">Could not read the vault racer: {racer.error}</p></Section>;
+    return <Section title="Racers"><p className="text-sm text-[#b82214]">Could not read the racers: {racer.error}</p></Section>;
   }
-  const r = racer.races;
-  const net = r.pnlUsd - r.gasUsd;
-  const last = racer.fills[0];
+  return (
+    <div className="space-y-6">
+      {racer.runs.map((run) => <RunPanel key={run.id} run={run} benchmark={racer.benchmark} asOf={racer.asOf} now={now} />)}
+    </div>
+  );
+}
+
+function RunPanel({ run, benchmark, asOf, now }: { run: Run; benchmark: string; asOf: string; now: number }) {
+  const r = run.races;
   const tile = (label: string, value: string, sub: string, color?: string) => (
     <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
       <p className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</p>
@@ -181,39 +190,40 @@ function RacerPanel({ racer, now }: { racer: Racer | { error: string }; now: num
       <p className="text-[11px] text-zinc-500">{sub}</p>
     </div>
   );
+  const h = run.holdings;
   return (
     <Section
-      title={`Vault racer: ${racer.name}`}
-      note={`Fills read from the pool's on-chain Swap events to the vault. Edge is measured against the Hyperliquid 1m close at the fill. VVV is marked at the ${racer.holdings.vvvMarkSource}. Read ${ago(now - Date.parse(racer.asOf))}.`}
+      title={`Racer: ${run.name}`}
+      note={`${run.status}. Markout = fill price (fee included) against the ${benchmark.replace(', fee included', '')}. Only markouts count; "landed first" is not profit. Read ${ago(now - Date.parse(asOf))}.`}
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tile('Vault NAV', `${racer.navEth.toFixed(5)} ETH`, `${usd(racer.navUsd)} · ${racer.holdings.weth.toFixed(4)} WETH + ${racer.holdings.vvv.toFixed(2)} VVV`)}
-        {tile('Share value', racer.shareValueEth === null ? 'no shares' : `${racer.shareValueEth.toFixed(5)} ETH`, 'launched at 1.00000')}
-        {tile('Race trades', `${r.count}`, r.count ? `${r.wins} of ${r.measured} beat fair · ${usd(r.volumeUsd)} traded` : 'none yet', r.count ? undefined : '#71717a')}
-        {tile('Race P&L after gas', r.count ? signed(net) : '—', r.count ? `edge ${signed(r.pnlUsd)} · gas ${signed(-r.gasUsd, 3)}` : `racer gas left ${racer.racerGasEth.toFixed(5)} ETH`, r.count ? (net >= 0 ? GREEN : '#b82214') : undefined)}
+        {tile(run.isVault ? 'Vault NAV' : 'Wallet inventory', `${run.navEth.toFixed(5)} ETH`, `${usd(run.navUsd)} · ${[h.weth && `${h.weth.toFixed(4)} WETH`, h.aweth && `${h.aweth.toFixed(4)} aWETH`, h.vvv && `${h.vvv.toFixed(3)} VVV`].filter(Boolean).join(' + ') || 'empty'}`)}
+        {tile('Race fills', `${r.count}`, r.count ? `${usd(r.volumeUsd)} traded · ${r.scored} scored at 5m` : 'none yet', r.count ? undefined : '#71717a')}
+        {tile('Mean 5m markout', bps(r.mean5mBps), r.scored ? `${r.positive5m} of ${r.scored} positive · auto-stop if negative after 20` : 'needs 5 minutes after a fill', tone(r.mean5mBps))}
+        {tile('P&L at 5m after gas', r.scored ? signed(r.pnl5mUsd - r.gasUsd) : '—', r.scored ? `markouts ${signed(r.pnl5mUsd)} · gas ${signed(-r.gasUsd, 3)}` : '—', r.scored ? tone(r.pnl5mUsd - r.gasUsd) : undefined)}
       </div>
-      {racer.fills.length ? (
+      {run.fills.length ? (
         <table className="mt-4 w-full text-sm">
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wide text-zinc-500">
-              <th className="pb-2 font-normal">When</th><th className="pb-2 font-normal">Side</th><th className="pb-2 font-normal text-right">Size</th><th className="pb-2 font-normal text-right">Edge vs fair</th><th className="pb-2 font-normal text-right">P&amp;L</th><th className="pb-2 font-normal text-right">Tx</th>
+              <th className="pb-2 font-normal">When</th><th className="pb-2 font-normal">Side</th><th className="pb-2 font-normal text-right">Size</th><th className="pb-2 font-normal text-right">1m</th><th className="pb-2 font-normal text-right">5m</th><th className="pb-2 font-normal text-right">P&amp;L 5m</th><th className="pb-2 font-normal text-right">Tx</th>
             </tr>
           </thead>
           <tbody className="tabular-nums">
-            {racer.fills.map((x) => (
+            {run.fills.map((x) => (
               <tr key={x.hash} className="border-t border-zinc-100">
                 <td className="py-1.5 text-zinc-500">{ago(now - Date.parse(x.at))}</td>
-                <td className="py-1.5 text-zinc-900">{x.side}{x.setup ? <span className="ml-2 text-[11px] text-zinc-400">setup</span> : null}</td>
-                <td className="py-1.5 text-right">{usd(x.notionalUsd)}</td>
-                <td className="py-1.5 text-right font-mono" style={{ color: x.edgeBps === null ? undefined : x.edgeBps >= 0 ? GREEN : '#b82214' }}>{x.edgeBps === null ? 'not measured' : `${x.edgeBps >= 0 ? '+' : ''}${x.edgeBps.toFixed(1)}bps`}</td>
-                <td className="py-1.5 text-right">{x.pnlUsd === null ? '—' : signed(x.pnlUsd)}</td>
+                <td className="py-1.5 text-zinc-900">{x.side}{x.label ? <span className="ml-2 text-[11px] text-zinc-400">{x.label}</span> : null}</td>
+                <td className="py-1.5 text-right">{x.notionalUsd < 10 ? `$${x.notionalUsd.toFixed(2)}` : usd(x.notionalUsd)}</td>
+                <td className="py-1.5 text-right font-mono" style={{ color: tone(x.markout1mBps) }}>{bps(x.markout1mBps)}</td>
+                <td className="py-1.5 text-right font-mono" style={{ color: tone(x.markout5mBps) }}>{bps(x.markout5mBps)}</td>
+                <td className="py-1.5 text-right">{x.pnl5mUsd === null ? '—' : signed(x.pnl5mUsd, Math.abs(x.pnl5mUsd) < 0.1 ? 4 : 2)}</td>
                 <td className="py-1.5 text-right"><a className="font-mono text-[11px] text-[#10c689] hover:underline" href={`https://basescan.org/tx/${x.hash}`} target="_blank" rel="noopener noreferrer">{x.hash.slice(0, 8)}…</a></td>
               </tr>
             ))}
           </tbody>
         </table>
-      ) : null}
-      {last ? null : <p className="mt-3 text-xs text-zinc-500">No fills yet.</p>}
+      ) : <p className="mt-3 text-xs text-zinc-500">No fills yet.</p>}
     </Section>
   );
 }
